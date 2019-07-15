@@ -1009,6 +1009,9 @@ DeepScanLineOutputFile::~DeepScanLineOutputFile ()
                 // stack is currently being unwound for another
                 // exception.
                 //
+
+                assert (true); // suppress SonarCloud "unhandled
+                               // exception" vulnerability report.
             }
         }
     }

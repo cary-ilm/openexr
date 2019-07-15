@@ -356,6 +356,7 @@ reconstructLineOffsets (OPENEXR_IMF_INTERNAL_NAMESPACE::IStream &is,
         // table for incomplete files, and exceptions
         // are likely.
         //
+        //NOSONAR
     }
 
     is.clear();
