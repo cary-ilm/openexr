@@ -1,11 +1,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) Contributors to the OpenEXR Project.
 
-cmake_minimum_required(VERSION 3.12)
+if("${CMAKE_PROJECT_NAME}" STREQUAL "")
+  cmake_minimum_required(VERSION 3.12)
 
-project(OpenEXRExamples)
+  message(STATUS "Configuring OpenEXRExamples")
 
-find_package(OpenEXR)
+  project(OpenEXRExamples)
+  find_package(OpenEXR)
+else()
+  message(STATUS "OpenEXRExamples is a sub-project")
+endif()
 
 add_executable(OpenEXRExamples
   drawImage.cpp
