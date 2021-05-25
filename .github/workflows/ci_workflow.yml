@@ -228,17 +228,19 @@ jobs:
         working-directory: _build
       - name: Examples
         run: |
-          find .. -print
+          find .. -name OpenEXRConfig.cmake
           cmake -B . \
                 -S ../src/examples \
-                -DOpenEXR_DIR=../../_install/lib/cmake/OpenEXR \
-                -DImath_DIR=../../_install/lib/cmake/Imath \
+                -DOpenEXR_DIR=../../_install/lib64/cmake/OpenEXR \
+                -DImath_DIR=../../_install/lib64/cmake/Imath \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
           cmake --build . \
                 --config ${{ matrix.build-type }} \
                 -- -j4
+          find .. -name OpenEXRExamples
+          ./OpenEXRExamples
         working-directory: _examples
       - name: Test
         run: |
