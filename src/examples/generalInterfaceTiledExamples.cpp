@@ -11,12 +11,12 @@
 //	OpenEXR image files with an arbitrary set of channels.
 //
 //-----------------------------------------------------------------------------
-#include <OpenEXR/ImfTiledOutputFile.h>
-#include <OpenEXR/ImfTiledInputFile.h>
-#include <OpenEXR/ImfChannelList.h>
-#include <OpenEXR/ImfStringAttribute.h>
-#include <OpenEXR/ImfMatrixAttribute.h>
-#include <OpenEXR/ImfArray.h>
+#include <ImfTiledOutputFile.h>
+#include <ImfTiledInputFile.h>
+#include <ImfChannelList.h>
+#include <ImfStringAttribute.h>
+#include <ImfMatrixAttribute.h>
+#include <ImfArray.h>
 
 #include "drawImage.h"
 

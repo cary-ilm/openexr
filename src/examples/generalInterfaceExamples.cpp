@@ -12,12 +12,12 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <OpenEXR/ImfOutputFile.h>
-#include <OpenEXR/ImfInputFile.h>
-#include <OpenEXR/ImfChannelList.h>
-#include <OpenEXR/ImfStringAttribute.h>
-#include <OpenEXR/ImfMatrixAttribute.h>
-#include <OpenEXR/ImfArray.h>
+#include <ImfOutputFile.h>
+#include <ImfInputFile.h>
+#include <ImfChannelList.h>
+#include <ImfStringAttribute.h>
+#include <ImfMatrixAttribute.h>
+#include <ImfArray.h>
 
 #include "drawImage.h"
 

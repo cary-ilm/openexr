@@ -15,9 +15,9 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <OpenEXR/ImfRgbaFile.h>
-#include <OpenEXR/ImfIO.h>
-#include <OpenEXR/Iex.h>
+#include <ImfRgbaFile.h>
+#include <ImfIO.h>
+#include <Iex.h>
 
 #include "drawImage.h"
 

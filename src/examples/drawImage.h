@@ -3,9 +3,9 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
-#include <OpenEXR/OpenEXRConfig.h>
-#include <OpenEXR/ImfRgbaFile.h>
-#include <OpenEXR/ImfArray.h>
+#include <OpenEXRConfig.h>
+#include <ImfRgbaFile.h>
+#include <ImfArray.h>
 
 #include "namespaceAlias.h"
 

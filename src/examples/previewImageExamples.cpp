@@ -11,10 +11,10 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <OpenEXR/ImfRgbaFile.h>
-#include <OpenEXR/ImfArray.h>
-#include <OpenEXR/ImfPreviewImage.h>
-#include <Imath/ImathFun.h>
+#include <ImfRgbaFile.h>
+#include <ImfArray.h>
+#include <ImfPreviewImage.h>
+#include <ImathFun.h>
 
 #include "drawImage.h"
 

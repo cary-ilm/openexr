@@ -13,10 +13,10 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <OpenEXR/ImfTiledRgbaFile.h>
-#include <OpenEXR/ImfStringAttribute.h>
-#include <OpenEXR/ImfMatrixAttribute.h>
-#include <OpenEXR/ImfArray.h>
+#include <ImfTiledRgbaFile.h>
+#include <ImfStringAttribute.h>
+#include <ImfMatrixAttribute.h>
+#include <ImfArray.h>
 
 #include "drawImage.h"
 
