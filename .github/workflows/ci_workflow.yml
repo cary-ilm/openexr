@@ -228,6 +228,7 @@ jobs:
         working-directory: _build
       - name: Examples
         run: |
+          find .. -print
           cmake -B . \
                 -S ../src/examples \
                 -DOpenEXR_DIR=../../_install/lib/cmake/OpenEXR \
