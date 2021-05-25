@@ -230,7 +230,8 @@ jobs:
         run: |
           cmake -B . \
                 -S ../src/examples \
-                -DCMAKE_PREFIX_PATH=../_install \
+                -DOpenEXR_DIR=../_install/lib/cmake/OpenEXR \
+                -DImath_DIR=../_install/lib/cmake/Imath \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
