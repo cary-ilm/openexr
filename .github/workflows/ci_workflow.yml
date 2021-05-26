@@ -207,8 +207,8 @@ jobs:
           mkdir _examples
       - name: Configure
         run: |
-          cmake ../. \
-                -DCMAKE_INSTALL_PREFIX=../_install \
+          cmake -B _build -S . \
+                -DCMAKE_INSTALL_PREFIX=_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
@@ -218,30 +218,24 @@ jobs:
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }} \
                 -DPYTHON_EXECUTABLE=$(which python) 
-        working-directory: _build
+        working-directory: .
       - name: Build
         run: |
-          cmake --build . \
+          cmake --build _build \
                 --target install \
                 --config ${{ matrix.build-type }} \
-                -- -j4
-        working-directory: _build
+        working-directory: .
       - name: Examples
         run: |
-          find .. -name OpenEXRConfig.cmake
-          cmake -B . \
-                -S ../src/examples \
-                -DOpenEXR_DIR=../../_install/lib64/cmake/OpenEXR \
-                -DImath_DIR=../../_install/lib64/cmake/Imath \
+          cmake -B _examples -S src/examples \
+                -DCMAKE_PREFIX_PATH=../../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
-          cmake --build . \
-                --config ${{ matrix.build-type }} \
-                -- -j4
-          find .. -name OpenEXRExamples
-          ./OpenEXRExamples
-        working-directory: _examples
+          cmake --build _examples \
+                --config ${{ matrix.build-type }}
+          _examples/OpenEXRExamples
+        working-directory: .
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
@@ -313,8 +307,8 @@ jobs:
           mkdir _examples
       - name: Configure
         run: |
-          cmake ../. \
-                -DCMAKE_INSTALL_PREFIX=../_install \
+          cmake -B _build -S . \
+                -DCMAKE_INSTALL_PREFIX=_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
@@ -322,30 +316,25 @@ jobs:
                 -DBUILD_SHARED_LIBS=${{ matrix.build-shared }} \
                 -DOPENEXR_BUILD_UTILS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF'
-        working-directory: _build
-      - name: Examples
-        run: |
-          find .. -name OpenEXRConfig.cmake
-          cmake -B . \
-                -S ../src/examples \
-                -DOpenEXR_DIR=../../_install/lib/cmake/OpenEXR \
-                -DImath_DIR=../../_install/lib/cmake/Imath \
-                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-                -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
-                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
-          cmake --build . \
-                --config ${{ matrix.build-type }} \
-                -- -j4
-          find .. -name OpenEXRExamples
-          ./OpenEXRExamples
-        working-directory: _examples
+        working-directory: .
       - name: Build
         run: |
-          cmake --build . \
+          cmake --build _build \
                 --target install \
                 --config ${{ matrix.build-type }} \
                 -- -j2
-        working-directory: _build
+        working-directory: .
+      - name: Examples
+        run: |
+          cmake -B _examples -S src/examples \
+                -DCMAKE_PREFIX_PATH=../../_install \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
+                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
+          cmake --build _examples \
+                --config ${{ matrix.build-type }}
+          _examples/OpenEXRExamples
+        working-directory: .
       - name: Test
         run: |
           ctest -T Test ${{matrix.exclude-tests }} \
@@ -417,8 +406,8 @@ jobs:
       ##   shell: powershell
       - name: Configure
         run: |
-          cmake ../. \
-                -DCMAKE_INSTALL_PREFIX=../_install \
+          cmake -B _build -S . \
+                -DCMAKE_INSTALL_PREFIX=_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
@@ -427,31 +416,26 @@ jobs:
                 -DOPENEXR_BUILD_UTILS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' 
         shell: bash
-        working-directory: _build
+        working-directory: .
       - name: Build
         run: |
-          cmake --build . \
+          cmake --build _build \
                 --target install \
                 --config ${{ matrix.build-type }}
         shell: bash
-        working-directory: _build
+        working-directory: .
       - name: Examples
         run: |
-          find .. -name OpenEXRConfig.cmake
-          cmake -B . \
-                -S ../src/examples \
-                -DOpenEXR_DIR=../../_install/lib/cmake/OpenEXR \
-                -DImath_DIR=../../_install/lib/cmake/Imath \
+          cmake -B _examples -S src/examples \
+                -DCMAKE_PREFIX_PATH=../../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
-          cmake --build . \
-                --config ${{ matrix.build-type }} \
-                -- -j4
-          find .. -name OpenEXRExamples
-          ./OpenEXRExamples
+          cmake --build _examples \
+                --config ${{ matrix.build-type }}
+          _examples/OpenEXRExamples
         shell: bash
-        working-directory: _examples
+        working-directory: .
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
