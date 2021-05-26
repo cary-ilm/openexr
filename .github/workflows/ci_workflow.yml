@@ -310,6 +310,7 @@ jobs:
         run: |
           mkdir _install
           mkdir _build
+          mkdir _examples
       - name: Configure
         run: |
           cmake ../. \
@@ -322,6 +323,22 @@ jobs:
                 -DOPENEXR_BUILD_UTILS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF'
         working-directory: _build
+      - name: Examples
+        run: |
+          find .. -name OpenEXRConfig.cmake
+          cmake -B . \
+                -S ../src/examples \
+                -DOpenEXR_DIR=../../_install/lib/cmake/OpenEXR \
+                -DImath_DIR=../../_install/lib/cmake/Imath \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
+                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
+          cmake --build . \
+                --config ${{ matrix.build-type }} \
+                -- -j4
+          find .. -name OpenEXRExamples
+          ./OpenEXRExamples
+        working-directory: _examples
       - name: Build
         run: |
           cmake --build . \
@@ -390,6 +407,7 @@ jobs:
         run: |
           mkdir _install
           mkdir _build
+          mkdir _examples
         shell: bash
       ## - name: Install Dependences
       ##   run: |
@@ -417,6 +435,23 @@ jobs:
                 --config ${{ matrix.build-type }}
         shell: bash
         working-directory: _build
+      - name: Examples
+        run: |
+          find .. -name OpenEXRConfig.cmake
+          cmake -B . \
+                -S ../src/examples \
+                -DOpenEXR_DIR=../../_install/lib/cmake/OpenEXR \
+                -DImath_DIR=../../_install/lib/cmake/Imath \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
+                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
+          cmake --build . \
+                --config ${{ matrix.build-type }} \
+                -- -j4
+          find .. -name OpenEXRExamples
+          ./OpenEXRExamples
+        shell: bash
+        working-directory: _examples
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
