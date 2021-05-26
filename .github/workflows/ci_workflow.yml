@@ -216,14 +216,13 @@ jobs:
                 -DBUILD_SHARED_LIBS=${{ matrix.build-shared }} \
                 -DOPENEXR_BUILD_UTILS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
-                -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }} \
-                -DPYTHON_EXECUTABLE=$(which python) 
+                -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }}
         working-directory: .
       - name: Build
         run: |
           cmake --build _build \
                 --target install \
-                --config ${{ matrix.build-type }} \
+                --config ${{ matrix.build-type }}
         working-directory: .
       - name: Examples
         run: |
