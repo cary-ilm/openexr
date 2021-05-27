@@ -207,8 +207,8 @@ jobs:
           mkdir _examples
       - name: Configure
         run: |
-          cmake -B _build -S . \
-                -DCMAKE_INSTALL_PREFIX=_install \
+          cmake .. \
+                -DCMAKE_INSTALL_PREFIX=../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
@@ -217,24 +217,24 @@ jobs:
                 -DOPENEXR_BUILD_UTILS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }}
-        working-directory: .
+        working-directory: _build
       - name: Build
         run: |
-          cmake --build _build \
+          cmake --build . \
                 --target install \
                 --config ${{ matrix.build-type }}
-        working-directory: .
+        working-directory: _build
       - name: Examples
         run: |
-          cmake -B _examples -S src/examples \
+          cmake ../src/examples \
                 -DCMAKE_PREFIX_PATH=../../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
-          cmake --build _examples \
+          cmake --build . \
                 --config ${{ matrix.build-type }}
-          _examples/OpenEXRExamples
-        working-directory: .
+          ./OpenEXRExamples
+        working-directory: _examples
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
@@ -306,8 +306,8 @@ jobs:
           mkdir _examples
       - name: Configure
         run: |
-          cmake -B _build -S . \
-                -DCMAKE_INSTALL_PREFIX=_install \
+          cmake .. \
+                -DCMAKE_INSTALL_PREFIX=../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
@@ -315,25 +315,24 @@ jobs:
                 -DBUILD_SHARED_LIBS=${{ matrix.build-shared }} \
                 -DOPENEXR_BUILD_UTILS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF'
-        working-directory: .
+        working-directory: _build
       - name: Build
         run: |
-          cmake --build _build \
+          cmake --build . \
                 --target install \
-                --config ${{ matrix.build-type }} \
-                -- -j2
-        working-directory: .
+                --config ${{ matrix.build-type }}
+        working-directory: _build
       - name: Examples
         run: |
-          cmake -B _examples -S src/examples \
+          cmake ../src/examples \
                 -DCMAKE_PREFIX_PATH=../../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
-          cmake --build _examples \
+          cmake --build . \
                 --config ${{ matrix.build-type }}
-          _examples/OpenEXRExamples
-        working-directory: .
+          ./OpenEXRExamples
+        working-directory: _examples
       - name: Test
         run: |
           ctest -T Test ${{matrix.exclude-tests }} \
@@ -405,8 +404,8 @@ jobs:
       ##   shell: powershell
       - name: Configure
         run: |
-          cmake -B _build -S . \
-                -DCMAKE_INSTALL_PREFIX=_install \
+          cmake .. \
+                -DCMAKE_INSTALL_PREFIX=../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
@@ -415,26 +414,26 @@ jobs:
                 -DOPENEXR_BUILD_UTILS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' 
         shell: bash
-        working-directory: .
+        working-directory: _build
       - name: Build
         run: |
-          cmake --build _build \
+          cmake --build . \
                 --target install \
                 --config ${{ matrix.build-type }}
         shell: bash
-        working-directory: .
+        working-directory: _build
       - name: Examples
         run: |
-          cmake -B _examples -S src/examples \
+          cmake ../src/examples \
                 -DCMAKE_PREFIX_PATH=../../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
-          cmake --build _examples \
+          cmake --build . \
                 --config ${{ matrix.build-type }}
-          _examples/OpenEXRExamples
+          ./OpenEXRExamples
         shell: bash
-        working-directory: .
+        working-directory: _examples
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
