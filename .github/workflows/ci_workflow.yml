@@ -4,7 +4,7 @@
 # GitHub Actions workflow file
 # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
 
-name: CI-cmake
+name: CI
 
 on:
   push:
@@ -226,6 +226,9 @@ jobs:
         working-directory: _build
       - name: Examples
         run: |
+          # Make sure we can build the examples when configured as a
+          # standalone application linking against the just-installed
+          # OpenEXR library.
           cmake ../src/examples \
                 -DCMAKE_PREFIX_PATH=../../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
@@ -233,6 +236,7 @@ jobs:
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
           cmake --build . \
                 --config ${{ matrix.build-type }}
+          # Confirm the examples program runs
           ./OpenEXRExamples
         working-directory: _examples
       - name: Test
@@ -324,6 +328,9 @@ jobs:
         working-directory: _build
       - name: Examples
         run: |
+          # Make sure we can build the examples when configured as a
+          # standalone application linking against the just-installed
+          # OpenEXR library.
           cmake ../src/examples \
                 -DCMAKE_PREFIX_PATH=../../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
@@ -331,6 +338,7 @@ jobs:
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
           cmake --build . \
                 --config ${{ matrix.build-type }}
+          # Confirm the examples program runs
           ./OpenEXRExamples
         working-directory: _examples
       - name: Test
@@ -422,18 +430,22 @@ jobs:
                 --config ${{ matrix.build-type }}
         shell: bash
         working-directory: _build
-      - name: Examples
-        run: |
-          cmake ../src/examples \
-                -DCMAKE_PREFIX_PATH=../../_install \
-                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-                -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
-                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
-          cmake --build . \
-                --config ${{ matrix.build-type }}
-          ./OpenEXRExamples
-        shell: bash
-        working-directory: _examples
+      ## - name: Examples
+      ##  run: |
+      ##    # Make sure we can build the examples when configured as a
+      ##    # standalone application linking against the just-installed
+      ##    # OpenEXR library.
+      ##    cmake ../src/examples \
+      ##          -DCMAKE_PREFIX_PATH=../../_install \
+      ##          -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+      ##          -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
+      ##          -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
+      ##    cmake --build . \
+      ##          --config ${{ matrix.build-type }}
+      ##    # Confirm the examples program runs
+      ##    ./OpenEXRExamples
+      ##  shell: bash
+      ##  working-directory: _examples
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
