@@ -43,7 +43,7 @@ g++ $CXX_FLAGS $TMP_DIR/validate.cpp -o $TMP_DIR/validate $LD_FLAGS
 
 # Execute the program
 
-export LD_LIBRARY_PATH=$BUILD_ROOT/lib
+export LD_LIBRARY_PATH=`pkg-config OpenEXR --variable=libdir`
 validate=`$TMP_DIR/validate`
 status=$?
 
