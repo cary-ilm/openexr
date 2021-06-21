@@ -320,8 +320,6 @@ jobs:
         working-directory: _build
       - name: Validate
         run: |
-          pwd
-          ls -l
           share/ci/scripts/linux/validate_openexr_libs.sh _install 
       - name: Examples
         run: |

@@ -30,8 +30,8 @@ export PKG_CONFIG_PATH=$(dirname $pkgconfig)
 CXX_FLAGS=$(pkg-config OpenEXR --cflags)
 LD_FLAGS=$(pkg-config OpenEXR --libs --static)
 
-VALIDATE_CPP=$(tempfile -d /tmp -s ".cpp")
-VALIDATE_BIN=$(tempfile -d /tmp)
+VALIDATE_CPP=$(mktemp --tmpdir "validate_XXX.cpp")
+VALIDATE_BIN=$(mktemp --tmpdir "validate_XXX")
 trap "rm -rf $VALIDATE_CPP $VALIDATE_BIN" exit
 
 echo -e '#include <ImfHeader.h>\n#include <OpenEXRConfig.h>\n#include <stdio.h>\nint main() { puts(OPENEXR_PACKAGE_STRING); Imf::Header h; return 0; }' > $VALIDATE_CPP
@@ -40,8 +40,10 @@ g++ $CXX_FLAGS $VALIDATE_CPP -o $VALIDATE_BIN $LD_FLAGS
 
 # Execute the program
 
-export LD_LIBRARY_PATH=$(pkg-config OpenEXR --variable=libdir)
-validate=$($VALIDATE_BIN)
+LIB_DIR=$(pkg-config OpenEXR --variable=libdir)
+export LD_LIBRARY_PATH=$LIB_DIR
+
+validate=`$VALIDATE_BIN`
 status=$?
 
 echo $validate
@@ -66,11 +68,11 @@ for lib in $libs; do
     base=$(echo $lib | cut -d- -f1)
     suffix=$(echo $lib | cut -d- -f2)
 
-    if [[ -f $BUILD_ROOT/lib/lib$base$_d.so ]]; then 
-        libbase=$(readlink $BUILD_ROOT/lib/lib$base$_d.so)
-        libcurrent=$(readlink $BUILD_ROOT/lib/$libbase)
-        libversion=$(readlink $BUILD_ROOT/lib/$libcurrent)
-        file $BUILD_ROOT/lib/$libversion | grep -q "ELF"
+    if [[ -f $LIB_DIR/lib$base$_d.so ]]; then 
+        libbase=$(readlink $LIB_DIR/lib$base$_d.so)
+        libcurrent=$(readlink $LIB_DIR/$libbase)
+        libversion=$(readlink $LIB_DIR/$libcurrent)
+        file $LIB_DIR/$libversion | grep -q "ELF"
 
         if [[ "$?" != 0 ]]; then
             echo "Broken libs: lib$base.so -> $libbase -> $libcurrent -> $libversion"
@@ -79,8 +81,8 @@ for lib in $libs; do
 
         echo "lib$base.so -> $libbase -> $libcurrent -> $libversion"
 
-    elif [[ ! -f $BUILD_ROOT/lib/lib$lib.a ]]; then
-        echo "No static lib: $BUILD_ROOT/lib/lib$lib.a"
+    elif [[ ! -f $LIB_DIR/lib$lib.a ]]; then
+        echo "No static lib: $LIB_DIR/lib$lib.a"
     else
         echo "Static lib lib$lib.a"
     fi
@@ -88,7 +90,7 @@ for lib in $libs; do
 done
 
 # Confirm no broken .so symlinks 
-file $BUILD_ROOT/lib/lib* | grep -q broken 
+file $LIB_DIR/lib* | grep -q broken 
 if [[ "$?" == "0" ]]; then
   echo "broken symbolic link"
   exit -1
