@@ -16,15 +16,12 @@
 BUILD_ROOT=$1
 SRC_ROOT=$2
 
-echo "Running validate_openexr_libs:"
-echo "BUILD_ROOT=$BUILD_ROOT"
-echo "SRC_ROOT=$SRC_ROOT"
-pwd
-env
-echo 'find $BUILD_ROOT -name "*.pc"'
-find $BUILD_ROOT -name "*.pc"
-
-export PKG_CONFIG_PATH=$BUILD_ROOT/lib/pkgconfig
+pkgconfig=`find $BUILD_ROOT -name OpenEXR.pc`
+if [[ "$pkgconfig" == "" ]]; then
+    echo "Can't find OpenEXR.pc"
+    exit -1
+fi    
+export PKG_CONFIG_PATH=`dirname $pkgconfig`
 
 CXX_FLAGS=`pkg-config OpenEXR --cflags`
 LD_FLAGS=`pkg-config OpenEXR --libs --static`
