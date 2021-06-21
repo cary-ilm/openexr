@@ -311,6 +311,7 @@ jobs:
                 -DOPENEXR_BUILD_UTILS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }}
+          share/ci/scripts/linux/validate_openexr_libs.sh ../_install 
         working-directory: _build
       - name: Build
         run: |
