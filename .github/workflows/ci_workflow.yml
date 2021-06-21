@@ -311,7 +311,6 @@ jobs:
                 -DOPENEXR_BUILD_UTILS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }}
-          share/ci/scripts/linux/validate_openexr_libs.sh ../_install 
         working-directory: _build
       - name: Build
         run: |
@@ -319,6 +318,11 @@ jobs:
                 --target install \
                 --config ${{ matrix.build-type }}
         working-directory: _build
+      - name: Validate
+        run: |
+          pwd
+          ls -l
+          share/ci/scripts/linux/validate_openexr_libs.sh _install 
       - name: Examples
         run: |
           # Make sure we can build the examples when configured as a
