@@ -16,40 +16,35 @@
 BUILD_ROOT=$1
 SRC_ROOT=$2
 
-echo "Running validate_openexr_libs.sh..."
-echo "BUILD_ROOT=$BUILD_ROOT"
-echo "SRC_ROOT=$SRC_ROOT"
-echo "find:"
-find $BUILD_ROOT -print
+# Locate OpenEXR.pc and set PKG_CONFIG_PATH accordingly
 
-pkgconfig=`find $BUILD_ROOT -name OpenEXR.pc`
-echo "pkgconfig=$pkgconfig"
-
+pkgconfig=$(find $BUILD_ROOT -name OpenEXR.pc)
 if [[ "$pkgconfig" == "" ]]; then
     echo "Can't find OpenEXR.pc"
     exit -1
 fi    
-export PKG_CONFIG_PATH=`dirname $pkgconfig`
-echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+export PKG_CONFIG_PATH=$(dirname $pkgconfig)
 
-CXX_FLAGS=`pkg-config OpenEXR --cflags`
-LD_FLAGS=`pkg-config OpenEXR --libs --static`
+# Build the validation program
 
-TMP_DIR=`mktemp -d /var/tmp/validate_XXX`
+CXX_FLAGS=$(pkg-config OpenEXR --cflags)
+LD_FLAGS=$(pkg-config OpenEXR --libs --static)
 
-echo -e '#include <ImfHeader.h>\n#include <OpenEXRConfig.h>\n#include <stdio.h>\nint main() { puts(OPENEXR_PACKAGE_STRING); Imf::Header h; return 0; }' > $TMP_DIR/validate.cpp
+VALIDATE_CPP=$(tempfile -d /tmp -s ".cpp")
+VALIDATE_BIN=$(tempfile -d /tmp)
+trap "rm -rf $VALIDATE_CPP $VALIDATE_BIN" exit
 
-g++ $CXX_FLAGS $TMP_DIR/validate.cpp -o $TMP_DIR/validate $LD_FLAGS
+echo -e '#include <ImfHeader.h>\n#include <OpenEXRConfig.h>\n#include <stdio.h>\nint main() { puts(OPENEXR_PACKAGE_STRING); Imf::Header h; return 0; }' > $VALIDATE_CPP
+
+g++ $CXX_FLAGS $VALIDATE_CPP -o $VALIDATE_BIN $LD_FLAGS
 
 # Execute the program
 
-export LD_LIBRARY_PATH=`pkg-config OpenEXR --variable=libdir`
-validate=`$TMP_DIR/validate`
+export LD_LIBRARY_PATH=$(pkg-config OpenEXR --variable=libdir)
+validate=$($VALIDATE_BIN)
 status=$?
 
 echo $validate
-
-rm -rf $TMP_DIR
 
 if [[ "$status" != "0" ]]; then
    echo "validate failed: $validate"
@@ -57,24 +52,24 @@ if [[ "$status" != "0" ]]; then
 fi
 
 # Get the suffix, e.g. -2_5_d, and determine if there's also a _d
-libsuffix=`pkg-config OpenEXR --variable=libsuffix`
-if [[ $libsuffix != `basename ./$libsuffix _d` ]]; then
+libsuffix=$(pkg-config OpenEXR --variable=libsuffix)
+if [[ $libsuffix != $(basename ./$libsuffix _d) ]]; then
     _d="_d"
 else
     _d=""
 fi
 
 # Validate each of the libs
-libs=`pkg-config OpenEXR --libs-only-l | sed -e s/-l//g`
+libs=$(pkg-config OpenEXR --libs-only-l | sed -e s/-l//g)
 for lib in $libs; do
 
-    base=`echo $lib | cut -d- -f1`
-    suffix=`echo $lib | cut -d- -f2`
+    base=$(echo $lib | cut -d- -f1)
+    suffix=$(echo $lib | cut -d- -f2)
 
     if [[ -f $BUILD_ROOT/lib/lib$base$_d.so ]]; then 
-        libbase=`readlink $BUILD_ROOT/lib/lib$base$_d.so`
-        libcurrent=`readlink $BUILD_ROOT/lib/$libbase`
-        libversion=`readlink $BUILD_ROOT/lib/$libcurrent`
+        libbase=$(readlink $BUILD_ROOT/lib/lib$base$_d.so)
+        libcurrent=$(readlink $BUILD_ROOT/lib/$libbase)
+        libversion=$(readlink $BUILD_ROOT/lib/$libcurrent)
         file $BUILD_ROOT/lib/$libversion | grep -q "ELF"
 
         if [[ "$?" != 0 ]]; then
@@ -100,8 +95,8 @@ if [[ "$?" == "0" ]]; then
 fi
 
 if [[ "$SRC_ROOT" != "" ]]; then
-    version=`pkg-config OpenEXR --modversion`
-    notes=`grep "\* \[Version $version\]" $SRC_ROOT/CHANGES.md | head -1`
+    version=$(pkg-config OpenEXR --modversion)
+    notes=$(grep "\* \[Version $version\]" $SRC_ROOT/CHANGES.md | head -1)
     if [[ "$notes" == "" ]]; then
         echo "No release notes."
     else
