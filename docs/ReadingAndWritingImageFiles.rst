@@ -35,15 +35,28 @@ the IlmImf library supports two reading and writing interfaces:
 The interfaces for reading and writing OpenEXR files are implemented in
 the following eight C++ classes:
 
-================== ===================== ================
-====================
-\                  tiles                 scan lines       scan lines and tiles
-arbitrary channels *TiledInputFile*                       *InputFile*
-\                  *TiledOutputFile*     *OutputFile*    
-RGBA only          *TiledRgbaInputFile*                   *RgbaInputFile*
-\                  *TiledRgbaOutputFile* *RgbaOutputFile*
-================== ===================== ================
-====================
+.. list-table::
+
+   * -
+     - tiles
+     - scan lines
+     - scan lines and tiles
+   * - arbitrary channels
+     - *TiledInputFile*
+     -
+     - *InputFile*
+   * -
+     - *TiledOutputFile*
+     - *OutputFile*
+     - 
+   * - RGBA only
+     - *TiledRgbaInputFile*
+     -
+     - *RgbaInputFile*
+   * -
+     - *TiledRgbaOutputFile*
+     - *RgbaOutputFile*
+     -
 
 The classes for reading scan line based images (*InputFile* and
 *RgbaInputFile*) can also be used to read tiled image files. This way,
@@ -64,20 +77,37 @@ This table describes the significant differences between writing
 single-part scan line and tile files and writing multi-part and deep
 data files.
 
-===========================================
-=======================================================================================================================================================================
-=======================================================================================================================================================================================================================================================================================================
-Feature                                     scan line and tile                                                                                                                                                      Multi-part and deep data
-Channel names may be reserved               Some channel names are reserved in practice, but were never formally defined.                                                                                           Channel name “sample count” is reserved for a pixel sample count slice in frame buffer.
-                                                                                                                                                                                                                   
-                                                                                                                                                                                                                    **Note:**\ The name “sample count” (all lowercase) is subject to change.
-Multiple parts                              Single-part format is intended for storing a single multichannel image                                                                                                  Multi-part files support multiple independent parts. This allows storing multiple views in the same file for stereo images, storing multiple resolutions in different parts. It is possible to include one or more scan line, tile, deep scan line or deep tile format images within a multi-part file.
-                                                                                                                                                                                                                   
-                                                                                                                                                                                                                    Custom data formats can also be used to store additional parts, but this is outside the scope of this document.
-Backwards-compatible low-level io available The new formats share the same abstract low-level IO as OpenEXR 1.7. It is therefore possible to use the same libraries to implement low level IO to read both formats.
-===========================================
-=======================================================================================================================================================================
-=======================================================================================================================================================================================================================================================================================================
++-------------------------+------------------------------------------------+---------------------------------------+
+| Feature                 | scan line and tile                             | Multi-part and deep data              | 
++=========================+================================================+=======================================+
+| Channel names may be    | Some channel names are reserved                | Channel name “sample count” is        |
+| reserved                | in practice, but were never                    | reserved for a pixel sample count     |
+|                         | formally defined.                              | slice in frame buffer.                |
+|                         |                                                |                                       | 
+|                         |                                                | **Note:** The name “sample count”     |
+|                         |                                                | (all lowercase) is subject to change. |
++-------------------------+------------------------------------------------+---------------------------------------+
+| Multiple parts          | Single-part format is intended for             |                                       |
+|                         | storing a single multichannel image            | Multi-part files support multiple     |
+|                         |                                                | independent parts. This allows        |
+|                         |                                                | storing multiple views in the same    |
+|                         |                                                | file for stereo images, storing       |
+|                         |                                                | multiple resolutions in different     |
+|                         |                                                | parts. It is possible to include      |
+|                         |                                                | one or more scan line, tile, deep     |
+|                         |                                                | scan line or deep tile format         |
+|                         |                                                | images within a multi-part file.      |
+|                         |                                                |                                       |
+|                         |                                                | Custom data formats can also be       |
+|                         |                                                | used to store additional parts,       |
+|                         |                                                | but this is outside the scope of      |
+|                         |                                                | this document.                        |
++-------------------------+------------------------------------------------+---------------------------------------+
+| Backwards-compatible    | The new formats share the same abstract low-level IO as OpenEXR                        |
+| low-level io available  | 1.7. It is therefore possible to use the same libraries to                             |
+|                         | implement low level IO to read both formats.                                           |
++-------------------------+------------------------------------------------+---------------------------------------+
+
 
 Using the RGBA-only Interface for Scan Line Based Files
 =======================================================
@@ -87,25 +117,15 @@ Writing an RGBA Image File
 
 Writing a simple RGBA image file is fairly straightforward:
 
-void
+.. code-block::
 
-writeRgba1 (const char fileName[],
-
-const Rgba \*pixels,
-
-int width,
-
-int height)
-
-{
-
-RgbaOutputFile file (fileName, width, height, WRITE_RGBA); // 1
-
-file.setFrameBuffer (pixels, 1, width); // 2
-
-file.writePixels (height); // 3
-
-}
+    void
+    writeRgba1 (const char fileName[], const Rgba *pixels, int width, int height)
+    {
+        RgbaOutputFile file (fileName, width, height, WRITE_RGBA); // 1
+        file.setFrameBuffer (pixels, 1, width);                    // 2
+        file.writePixels (height);                                 // 3
+    }
 
 Construction of an RgbaOutputFile object, in line 1, creates an OpenEXR
 header, sets the header's attributes, opens the file with the specified
@@ -118,32 +138,28 @@ example, the *pixels* pointer is assumed to point to the beginning of an
 array of *width*height* pixels. The pixels are represented as *Rgba*
 structs, which are defined like this:
 
-struct Rgba
+.. code-block::
 
-{
-
-half r; // red
-
-half g; // green
-
-half b; // blue
-
-half a; // alpha (opacity)
-
-};
+    struct Rgba
+    {
+        half r; // red
+        half g; // green
+        half b; // blue
+        half a; // alpha (opacity)
+    };
 
 The elements of our array are arranged so that the pixels of each scan
-line are contiguous in memory. The\ * setFrameBuffer()* function takes
+line are contiguous in memory. The * setFrameBuffer()* function takes
 three arguments, *base*, *xStride*, and *ystride*. To find the address
 of pixel *(x,y)*, the *RgbaOutputFile* object computes
 
-base + x \* xStride + y \* yStride.
+    base + x * xStride + y * yStride.
 
 In this case, *base*, *xStride* and *yStride* are set to *pixels*, *1*,
 and *width*, respectively, indicating that pixel *(x,y)* can be found at
 memory address
 
-pixels + 1 \* x + width \* y.
+    pixels + 1 * x + width * y.
 
 The call to *writePixels(),* in line 3, copies the image's pixels from
 memory to the file. The argument to *writePixels()*, *height*, specifies
@@ -175,21 +191,16 @@ to get right than with error return values. For instance, a program that
 calls our *writeRgba1()* function can handle all possible error
 conditions with a single try/catch block:
 
-try
+.. code-block::
 
-{
-
-writeRgba1 (fileName, pixels, width, height);
-
-}
-
-catch (const std::exception &exc)
-
-{
-
-std::cerr << exc.what() << std::endl;
-
-}
+    try
+    {
+        writeRgba1 (fileName, pixels, width, height);
+    }
+    catch (const std::exception &exc)
+    {
+        std::cerr << exc.what() << std::endl;
+    }
 
 Writing a Cropped RGBA Image
 ----------------------------
@@ -202,29 +213,20 @@ is indicated by the display window, *(0, 0) - (width-1, height-1)*, and
 the data window specifies the region for which valid pixel data exist.
 Only the pixels in the data window are stored in the file.
 
-void
+.. code-block::
 
-writeRgba2 (const char fileName[],
-
-const Rgba \*pixels,
-
-int width,
-
-int height,
-
-const Box2i &dataWindow)
-
-{
-
-Box2i displayWindow (V2i (0, 0), V2i (width - 1, height - 1));
-
-RgbaOutputFile file (fileName, displayWindow, dataWindow, WRITE_RGBA);
-
-file.setFrameBuffer (pixels, 1, width);
-
-file.writePixels (dataWindow.max.y - dataWindow.min.y + 1);
-
-}
+    void
+    writeRgba2 (const char fileName[],
+                const Rgba *pixels,
+                int width,
+                int height,
+                const Box2i &dataWindow)
+    {
+        Box2i displayWindow (V2i (0, 0), V2i (width - 1, height - 1));
+        RgbaOutputFile file (fileName, displayWindow, dataWindow, WRITE_RGBA);
+        file.setFrameBuffer (pixels, 1, width);
+        file.writePixels (dataWindow.max.y - dataWindow.min.y + 1);
+    }
 
 The code above is similar to that in `Writing an RGBA Image
 File <#Writing an RGBA Image File>`__ on page
@@ -248,35 +250,32 @@ pointing to the pixel at the upper left corner of the data window, at
 coordinates *(dataWindow.min.x, dataWindow.min.y)*, the arguments to the
 *setFrameBuffer()* call would have to be to be changed as follows:
 
-int dwWidth = dataWindow.max.x - dataWindow.min.x + 1;
+.. code-block::
 
-file.setFrameBuffer
+    int dwWidth = dataWindow.max.x - dataWindow.min.x + 1;
 
-(pixels - dataWindow.min.x - dataWindow.min.y \* dwWidth, 1, dwWidth);
+    file.setFrameBuffer (pixels - dataWindow.min.x - dataWindow.min.y * dwWidth, 1, dwWidth);
 
 With these settings, evaluation of
 
-base + x \* xStride + y \* yStride
+.. code-block::
+
+    base + x * xStride + y * yStride
 
 for pixel *(dataWindow.min.x, dataWindow.min.y)* produces
 
-pixels - dataWindow.min.x - dataWindow.min.y \* dwWidth
+.. code-block::
 
-+ dataWindow.min.x \* 1
+    pixels - dataWindow.min.x - dataWindow.min.y * dwWidth
+       + dataWindow.min.x * 1
+       + dataWindow.min.y * dwWidth
 
-+ dataWindow.min.y \* dwWidth
-
-= pixels -
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* (dataWindow.max.x - dataWindow.min.x + 1)
-
-+ dataWindow.min.x
-
-+ dataWindow.min.y \* (dataWindow.max.x - dataWindow.min.x + 1)
-
-= pixels,
+    = pixels -
+        - dataWindow.min.x
+        - dataWindow.min.y * (dataWindow.max.x - dataWindow.min.x + 1)
+        + dataWindow.min.x
+        + dataWindow.min.y * (dataWindow.max.x - dataWindow.min.x + 1)
+    = pixels,
 
 which is exactly what we want. Similarly, calculating the addresses for
 pixels *(dataWindow.min.x+1, dataWindow.min.y)* and *(dataWindow.min.x,
@@ -290,35 +289,25 @@ We will now to store an image in a file, and we will add two extra
 attributes to the image file header: a string, called "comments", and a
 4×4 matrix, called "cameraTransform".
 
-void
+.. code-block::
 
-writeRgba3 (const char fileName[],
+    void
+    writeRgba3 (const char fileName[],
+                const Rgba *pixels,
+                int width,
+                int height,
+                const char comments[],
+                const M44f &cameraTransform)
+    {
+        Header header (width, height);
 
-const Rgba \*pixels,
+        header.insert ("comments", StringAttribute (comments));
+        header.insert ("cameraTransform", M44fAttribute (cameraTransform));
 
-int width,
-
-int height,
-
-const char comments[],
-
-const M44f &cameraTransform)
-
-{
-
-Header header (width, height);
-
-header.insert ("comments", StringAttribute (comments));
-
-header.insert ("cameraTransform", M44fAttribute (cameraTransform));
-
-RgbaOutputFile file (fileName, header, WRITE_RGBA);
-
-file.setFrameBuffer (pixels, 1, width);
-
-file.writePixels (height);
-
-}
+        RgbaOutputFile file (fileName, header, WRITE_RGBA);
+        file.setFrameBuffer (pixels, 1, width);
+        file.writePixels (height);
+    }
 
 The *setFrameBuffer()* and *writePixels()* calls are the same as in the
 previous examples, but construction of the *RgbaOutputFile* object is
@@ -345,34 +334,24 @@ Reading an RGBA Image File
 
 Reading an RGBA image is almost as easy as writing one:
 
-void
+.. code-block::
 
-readRgba1 (const char fileName[],
-
-Array2D<Rgba> &pixels,
-
-int &width,
-
-int &height)
-
-{
-
-RgbaInputFile file (fileName);
-
-Box2i dw = file.dataWindow();
-
-width = dw.max.x - dw.min.x + 1;
-
-height = dw.max.y - dw.min.y + 1;
-
-pixels.resizeErase (height, width);
-
-file.setFrameBuffer (&pixels[0][0] - dw.min.x - dw.min.y \* width, 1,
-width);
-
-file.readPixels (dw.min.y, dw.max.y);
-
-}
+    void
+    readRgba1 (const char fileName[],
+               Array2D<Rgba> &pixels,
+               int &width,
+               int &height)
+    {
+        RgbaInputFile file (fileName);
+        Box2i dw = file.dataWindow();
+        
+        width = dw.max.x - dw.min.x + 1;
+        height = dw.max.y - dw.min.y + 1;
+        pixels.resizeErase (height, width);
+        
+        file.setFrameBuffer (&pixels[0][0] - dw.min.x - dw.min.y * width, 1, width);
+        file.readPixels (dw.min.y, dw.max.y);
+    }
 
 Constructing an *RgbaInputFile* object, passing the name of the file to
 the constructor, opens the file and reads the file's header.
@@ -404,7 +383,7 @@ Finally, returning from function *readRgba1()* destroys the local
 *RgbaInputFile* object, thereby closing the file.
 
 Unlike the *RgbaOutputFile*'s *writePixels()* method, *readPixels()* has
-two arguments. Calling *readPixels(y1,y2)*\ copies the pixels for all
+two arguments. Calling *readPixels(y1,y2)* copies the pixels for all
 scan lines with y coordinates from *y1* to *y2* into the frame buffer.
 This allows access to the the scan lines in any order. The image can be
 read all at once, one scan line at a time, or in small blocks of a few
@@ -433,39 +412,30 @@ incrementally this way. With clever buffering of a few extra scan lines,
 incremental versions of operations that require access to neighboring
 pixels, like blurring or sharpening, are also possible.
 
-void
+.. code-block::
 
-readRgba2 (const char fileName[])
+    void
+    readRgba2 (const char fileName[])
+    {
+        RgbaInputFile file (fileName);
+        Box2i dw = file.dataWindow();
 
-{
+        int width = dw.max.x - dw.min.x + 1;
+        int height = dw.max.y - dw.min.y + 1;
+        Array2D<Rgba> pixels (10, width);
 
-RgbaInputFile file (fileName);
+        while (dw.min.y <= dw.max.y)
+        {
+            file.setFrameBuffer (&pixels[0][0] - dw.min.x - dw.min.y * width, 1, width);
+    
 
-Box2i dw = file.dataWindow();
+            file.readPixels (dw.min.y, min (dw.min.y + 9, dw.max.y));
 
-int width = dw.max.x - dw.min.x + 1;
+            // processPixels (pixels)
 
-int height = dw.max.y - dw.min.y + 1;
-
-Array2D<Rgba> pixels (10, width);
-
-while (dw.min.y <= dw.max.y)
-
-{
-
-file.setFrameBuffer (&pixels[0][0] - dw.min.x - dw.min.y \* width,
-
-1, width);
-
-file.readPixels (dw.min.y, min (dw.min.y + 9, dw.max.y));
-
-// processPixels (pixels)
-
-dw.min.y += 10;
-
-}
-
-}
+            dw.min.y += 10;
+        }
+    }
 
 Again, we open the file and read the file header by constructing an
 *RgbaInputFile* object. Then we allocate a memory buffer that is just
@@ -486,31 +456,25 @@ attributes in the image file header. Here we show how to test whether a
 given file's header contains particular attributes, and how to read
 those attributes' values.
 
-void
+.. code-block::
 
-readHeader (const char fileName[])
-
-{
-
-RgbaInputFile file (fileName);
-
-const StringAttribute \*comments =
-
-file.header().findTypedAttribute <StringAttribute> ("comments");
-
-const M44fAttribute \*cameraTransform =
-
-file.header().findTypedAttribute <M44fAttribute> ("cameraTransform");
-
-if (comments)
-
-cout << "comments\n " << comments->value() << endl;
-
-if (cameraTransform)
-
-cout << "cameraTransform\n" << cameraTransform->value() << flush;
-
-}
+    void
+    readHeader (const char fileName[])
+    {
+        RgbaInputFile file (fileName);
+        
+        const StringAttribute *comments =
+            file.header().findTypedAttribute <StringAttribute> ("comments");
+        
+        const M44fAttribute *cameraTransform =
+            file.header().findTypedAttribute <M44fAttribute> ("cameraTransform");
+        
+        if (comments)
+            cout << "commentsn " << comments->value() << endl;
+    
+        if (cameraTransform)
+            cout << "cameraTransformn" << cameraTransform->value() << flush;
+    }
 
 As usual, we open the file by constructing an RgbaInputFile object.
 Calling *findTypedAttribute<T>(n)* searches the header for an attribute
@@ -535,36 +499,30 @@ that are part of the *RgbaInputFile* object. The pointers become invalid
 as soon as the *RgbaInputFile* object is destroyed. Therefore, the
 following will not work:
 
-void
+.. code-block::
 
-readComments (const char fileName[], StringAttribute \*&comments)
+    void
+    readComments (const char fileName[], StringAttribute *&comments)
+    {
+        // error: comments pointer is invalid after this function returns
 
-{
+        RgbaInputFile file (fileName);
 
-// error: comments pointer is invalid after this function returns
-
-RgbaInputFile file (fileName);
-
-comments = file.header().findTypedAttribute <StringAttribute>
-("comments");
-
-}
+        comments = file.header().findTypedAttribute <StringAttribute> ("comments");
+    }
 
 *readComments()* must copy the attribute's value before it returns; for
 example, like this:
 
-void
+.. code-block::
 
-readComments (const char fileName[], string &comments)
+    void
+    readComments (const char fileName[], string &comments)
+    {
+        RgbaInputFile file (fileName);
 
-{
-
-RgbaInputFile file (fileName);
-
-comments =
-file.header().typedAttribute<StringAttribute>("comments").value();
-
-}
+        comments = file.header().typedAttribute<StringAttribute>("comments").value();
+    }
 
 Luminance/Chroma and Gray-Scale Images
 --------------------------------------
@@ -603,7 +561,7 @@ file:
 *WRITE_YA*   luminance, alpha
 ============ ========================
 
-*WRITE_Y*\ and *WRITE_YA* provide an efficient way to store gray-scale
+*WRITE_Y* and *WRITE_YA* provide an efficient way to store gray-scale
 images. The chroma channels for a gray-scale image contain only zeroes,
 so they can be omitted from the file.
 
@@ -624,55 +582,38 @@ pixels. The data for the two channels are supplied in two separate
 buffers, *gPixels* and *zPixels*. Within each buffer, the pixels of each
 scan line are contiguous in memory.
 
-void
+.. code-block::
 
-writeGZ1 (const char fileName[],
-
-const half \*gPixels,
-
-const float \*zPixels,
-
-int width,
-
-int height)
-
-{
-
-Header header (width, height); // 1
-
-header.channels().insert ("G", Channel (HALF)); // 2
-
-header.channels().insert ("Z", Channel (FLOAT)); // 3
-
-OutputFile file (fileName, header); // 4
-
-FrameBuffer frameBuffer; // 5
-
-frameBuffer.insert ("G", // name // 6
-
-Slice (HALF, // type // 7
-
-(char \*) gPixels, // base // 8
-
-sizeof (*gPixels) \* 1, // xStride// 9
-
-sizeof (*gPixels) \* width)); // yStride// 10
-
-frameBuffer.insert ("Z", // name // 11
-
-Slice (FLOAT, // type // 12
-
-(char \*) zPixels, // base // 13
-
-sizeof (*zPixels) \* 1, // xStride// 14
-
-sizeof (*zPixels) \* width)); // yStride// 15
-
-file.setFrameBuffer (frameBuffer); // 16
-
-file.writePixels (height); // 17
-
-}
+    void
+    writeGZ1 (const char fileName[],
+             const half *gPixels,
+             const float *zPixels,
+             int width,
+             int height)
+    {
+        Header header (width, height);                               // 1
+        header.channels().insert ("G", Channel (HALF));              // 2
+        header.channels().insert ("Z", Channel (FLOAT));             // 3
+    
+        OutputFile file (fileName, header);                          // 4
+    
+        FrameBuffer frameBuffer;                                     // 5
+    
+        frameBuffer.insert ("G",                          // name    // 6
+                            Slice (HALF,                  // type    // 7
+                            (char *) gPixels,            // base    // 8
+                            sizeof (*gPixels) * 1,       // xStride // 9
+                            sizeof (*gPixels) * width)); // yStride // 10
+    
+        frameBuffer.insert ("Z",                          // name    // 11
+                            Slice (FLOAT,                 // type    // 12
+                            (char *) zPixels,            // base    // 13
+                            sizeof (*zPixels) * 1,       // xStride // 14
+                            sizeof (*zPixels) * width)); // yStride // 15
+    
+        file.setFrameBuffer (frameBuffer);                           // 16
+        file.writePixels (height);                                   // 17
+    }
 
 In line 1, an OpenEXR header is created, and the header's display window
 and data window are both set to *(0, 0) - (width-1, height-1)*.
@@ -686,15 +627,17 @@ specified name, and stores the header in the file.
 Lines 5 through 16 tell the *OutputFile* object how the pixel data for
 the image channels are laid out in memory. After constructing a
 *FrameBuffer* object, a *Slice* is added for each of the image file's
-channels. A \ *Slice* describes the memory layout of one channel. The
+channels. A  *Slice* describes the memory layout of one channel. The
 constructor for the *Slice* object takes four arguments, *type*, *base*,
 *xStride*, and *yStride*. *type* specifies the pixel data type (*HALF*,
 *FLOAT*, or *UINT*); the other three arguments define the memory address
 of pixel *(x,y)* as
 
-base + x \* xStride + y \* yStride.
+.. code-block::
+   
+    base + x * xStride + y * yStride.
 
-**Note:**\ *base* is of type *char\**, and that offsets from *base* are
+**Note:** *base* is of type *char**, and that offsets from *base* are
 not implicitly multiplied by the size of an individual pixel, as in the
 RGBA-only interface. *xStride* and *yStride* must explictly take the
 size of the pixels into account.
@@ -702,17 +645,17 @@ size of the pixels into account.
 With the values specified in our example, the IlmImf library computes
 the address of the G channel of pixel *(x,y)* like this:
 
-(half*)((char*)gPixels + x \* sizeof(half) \* 1 + y \* sizeof(half) \*
-width)
+.. code-block::
 
-= (half*)((char*)gPixels + x \* 2 + y \* 2 \* width),
+    (half*)((char*)gPixels + x * sizeof(half) * 1 + y * sizeof(half) * width)
+    = (half*)((char*)gPixels + x * 2 + y * 2 * width),
 
 The address of the Z channel of pixel *(x,y)* is
 
-(float*)((char*)zPixels + x \* sizeof(float) \* 1 + y \* sizeof(float)
-\* width)
+.. code-block::
 
-= (float*)((char*)zPixels + x \* 4 + y \* 4 \* width).
+    (float*)((char*)zPixels + x * sizeof(float) * 1 + y * sizeof(float) * width)
+    = (float*)((char*)zPixels + x * 4 + y * 4 * width).
 
 The *writePixels()* call in line 17 copies the image's pixels from
 memory into the file. As in the RGBA-only interface, the argument to
@@ -749,59 +692,8 @@ adjusted accordingly. (Again, see `Writing a Cropped RGBA
 Image <#Writing a Cropped Image>`__, on page
 `5 <#Writing a Cropped Image>`__.)
 
-void
-
-writeGZ2 (const char fileName[],
-
-const half \*gPixels,
-
-const float \*zPixels,
-
-int width,
-
-int height,
-
-const Box2i &dataWindow)
-
-{
-
-Header header (width, height);
-
-header.dataWindow() = dataWindow;
-
-header.channels().insert ("G", Channel (HALF));
-
-header.channels().insert ("Z", Channel (FLOAT));
-
-OutputFile file (fileName, header);
-
-FrameBuffer frameBuffer;
-
-frameBuffer.insert ("G", // name
-
-Slice (HALF, // type
-
-(char \*) gPixels, // base
-
-sizeof (*gPixels) \* 1, // xStride
-
-sizeof (*gPixels) \* width)); // yStride
-
-frameBuffer.insert ("Z", // name
-
-Slice (FLOAT, // type
-
-(char \*) zPixels, // base
-
-sizeof (*zPixels) \* 1, // xStride
-
-sizeof (*zPixels) \* width)); // yStride
-
-file.setFrameBuffer (frameBuffer);
-
-file.writePixels (dataWindow.max.y - dataWindow.min.y + 1);
-
-}
+.. literalinclude:: src/writeGZ2.cpp
+   :language: c++
 
 Reading an Image File
 ---------------------
@@ -813,95 +705,8 @@ If one of those channels is not present in the image file, the
 corresponding memory buffer for the pixels will be filled with an
 appropriate default value.
 
-void
-
-readGZ1 (const char fileName[],
-
-Array2D<half> &rPixels,
-
-Array2D<half> &gPixels,
-
-Array2D<float> &zPixels,
-
-int &width, int &height)
-
-{
-
-InputFile file (fileName);
-
-Box2i dw = file.header().dataWindow();
-
-width = dw.max.x - dw.min.x + 1;
-
-height = dw.max.y - dw.min.y + 1;
-
-rPixels.resizeErase (height, width);
-
-gPixels.resizeErase (height, width);
-
-zPixels.resizeErase (height, width);
-
-FrameBuffer frameBuffer;
-
-frameBuffer.insert ("R", // name
-
-Slice (HALF, // type
-
-(char \*) (&rPixels[0][0] - // base
-
-dw.min.x -
-
-dw.min.y \* width),
-
-sizeof (rPixels[0][0]) \* 1, // xStride
-
-sizeof (rPixels[0][0]) \* width,// yStride
-
-1, 1, // x/y sampling
-
-0.0)); // fillValue
-
-frameBuffer.insert ("G", // name
-
-Slice (HALF, // type
-
-(char \*) (&gPixels[0][0] - // base
-
-dw.min.x -
-
-dw.min.y \* width),
-
-sizeof (gPixels[0][0]) \* 1, // xStride
-
-sizeof (gPixels[0][0]) \* width,// yStride
-
-1, 1, // x/y sampling
-
-0.0)); // fillValue
-
-frameBuffer.insert ("Z", // name
-
-Slice (FLOAT, // type
-
-(char \*) (&zPixels[0][0] - // base
-
-dw.min.x -
-
-dw.min.y \* width),
-
-sizeof (zPixels[0][0]) \* 1, // xStride
-
-sizeof (zPixels[0][0]) \* width,// yStride
-
-1, 1, // x/y sampling
-
-FLT_MAX)); // fillValue
-
-file.setFrameBuffer (frameBuffer);
-
-file.readPixels (dw.min.y, dw.max.y);
-
-}
+.. literalinclude:: src/readGZ1.cpp
+   :language: c++
 
 First, we open the file with the specified name, by constructing an
 *InputFile* object.
@@ -920,27 +725,23 @@ corresponding buffer's layout. For the R channel, pixel
 *type*, *xStride* and *yStride* of the corresponding *Slice* object as
 shown above, evaluating
 
-base + x \* xStride + y \* yStride
+.. code-block::
+
+    base + x * xStride + y * yStride
 
 for pixel *(dw.min.x, dw.min.y)* produces
 
-(char*)(&rPixels[0][0] - dw.min.x - dw.min.y \* width)
+.. code-block::
 
-+ dw.min.x \* sizeof (rPixels[0][0]) \* 1
-
-+ dw.min.y \* sizeof (rPixels[0][0]) \* width
-
-= (char*)&rPixels[0][0]
-
-- dw.min.x \* sizeof (rPixels[0][0])
-
-- dw.min.y \* sizeof (rPixels[0][0]) \* width
-
-+ dw.min.x \* sizeof (rPixels[0][0])
-
-+ dw.min.y \* sizeof (rPixels[0][0]) \* width
-
-= &rPixels[0][0]\ *.*
+    (char*)(&rPixels[0][0] - dw.min.x - dw.min.y * width)
+     + dw.min.x * sizeof (rPixels[0][0]) * 1
+     + dw.min.y * sizeof (rPixels[0][0]) * width
+    = (char*)&rPixels[0][0]
+     - dw.min.x * sizeof (rPixels[0][0])
+     - dw.min.y * sizeof (rPixels[0][0]) * width
+     + dw.min.x * sizeof (rPixels[0][0])
+     + dw.min.y * sizeof (rPixels[0][0]) * width
+    = &rPixels[0][0] *.*
 
 The address calculations for pixels *(dw.min.x+1, dw.min.y)* and
 *(dw.min.x, dw.min.y+1)* produce *&rPixels[0][0]+1* and
@@ -976,72 +777,22 @@ file, but instead of storing each image channel in a separate memory
 buffer, we interleave the channels in a single buffer. The buffer is an
 array of structs, which are defined like this:
 
-typedef struct GZ
+.. code-block::
 
-{
-
-half g;
-
-float z;
-
-};
+    typedef struct GZ
+    {
+        half g;
+        float z;
+    };
 
 The code to read the file is almost the same as before; aside from
 reading only two instead of three channels, the only difference is how
-*base*, *xStride* and *yStride* for the *Slice*\ s in the *FrameBuffer*
+*base*, *xStride* and *yStride* for the *Slice* s in the *FrameBuffer*
 object are computed:
 
-void
+.. literalinclude:: src/readGZ2.cpp
+   :language: c++
 
-readGZ2 (const char fileName[],
-
-Array2D<GZ> &pixels,
-
-int &width, int &height)
-
-{
-
-InputFile file (fileName);
-
-Box2i dw = file.header().dataWindow();
-
-width = dw.max.x - dw.min.x + 1;
-
-height = dw.max.y - dw.min.y + 1;
-
-int dx = dw.min.x;
-
-int dy = dw.min.y;
-
-pixels.resizeErase (height, width);
-
-FrameBuffer frameBuffer;
-
-frameBuffer.insert ("G",
-
-Slice (HALF,
-
-(char \*) &pixels[-dy][-dx].g,
-
-sizeof (pixels[0][0]) \* 1,
-
-sizeof (pixels[0][0]) \* width));
-
-frameBuffer.insert ("Z",
-
-Slice (FLOAT,
-
-(char \*) &pixels[-dy][-dx].z,
-
-sizeof (pixels[0][0]) \* 1,
-
-sizeof (pixels[0][0]) \* width));
-
-file.setFrameBuffer (frameBuffer);
-
-file.readPixels (dw.min.y, dw.max.y);
-
-}
 
 Which Channels are in a File?
 -----------------------------
@@ -1057,27 +808,26 @@ The file's header contains the file's channel list. Using iterators
 similar to those in the C++ Standard Template Library, we can iterate
 over the channels:
 
-const ChannelList &channels = file.header().channels();
+.. code-block::
 
-for (ChannelList::ConstIterator i = channels.begin(); i !=
-channels.end(); ++i)
+    const ChannelList &channels = file.header().channels();
 
-{
-
-const Channel &channel = i.channel();
-
-// ...
-
-}
+    for (ChannelList::ConstIterator i = channels.begin(); i != channels.end(); ++i)
+    {
+        const Channel &channel = i.channel();
+        // ...
+    }
 
 Channels can also be accessed by name, either with the *[]* operator, or
-with the f\ *indChannel()* function:
+with the f *indChannel()* function:
 
-const ChannelList &channels = file.header().channels();
+.. code-block::
 
-const Channel &channel = channelList["G"];
+    const ChannelList &channels = file.header().channels();
 
-const Channel \*channelPtr = channelList.findChannel("G");
+    const Channel &channel = channelList["G"];
+
+    const Channel *channelPtr = channelList.findChannel("G");
 
 The difference between the *[]* operator and *findChannel()* function is
 how errors are handled. If the channel in question is not present,
@@ -1114,39 +864,26 @@ corresponding layer.
 The following sample code prints the layers in a *ChannelList* and the
 channels in each layer:
 
-const ChannelList &channels = ... ;
+.. code-block::
 
-set<string> layerNames;
+    const ChannelList &channels = ... ;
 
-channels.layers (layerNames);
+    set<string> layerNames;
 
-for (set<string>::const_iterator i = layerNames.begin();
+    channels.layers (layerNames);
 
-i != layerNames.end();
+    for (set<string>::const_iterator i = layerNames.begin(); i != layerNames.end(); ++i)
+    {
+         cout << "layer " << *i << endl;
 
-++i)
+         ChannelList::ConstIterator layerBegin, layerEnd;
+         channels.channelsInLayer (*i, layerBegin, layerEnd);
+         for (ChannelList::ConstIterator j = layerBegin; j != layerEnd; ++j)
+         {
+              cout << "tchannel " << j.name() << endl;
 
-{
-
-cout << "layer " << \*i << endl;
-
-ChannelList::ConstIterator layerBegin, layerEnd;
-
-channels.channelsInLayer (*i, layerBegin, layerEnd);
-
-for (ChannelList::ConstIterator j = layerBegin;
-
-j != layerEnd;
-
-++j)
-
-{
-
-cout << "\tchannel " << j.name() << endl;
-
-}
-
-}
+         }
+    }
 
 Tiles, Levels and Level Modes
 =============================
@@ -1156,12 +893,21 @@ with a different resolution. Each version is called a *level*. A tiled
 file's *level mode* defines how many levels are stored in the file.
 There are three different level modes:
 
-===============
-==================================================================================================================================================================================================================================================================================================================================================
-*MIPMAP_LEVELS* The file contains multiple levels. The first level holds the image at full resolution. Each successive level is half the resolution of the previous level in x and y direction. The last level contains only a single pixel. *MIPMAP_LEVELS* files are used for texture-mapping and similar applications.
-*RIPMAP_LEVELS* Like *MIPMAP_LEVELS*, but with more levels. The levels include all combinations of reducing the resolution of the image by powers of two independently in x and y direction. Used for texture mapping, like *MIPMAP\_LEVELS*. The additional levels in a *RIPMAP_LEVELS* file can help to accelerate anisotropic filtering during texture lookups.
-===============
-==================================================================================================================================================================================================================================================================================================================================================
+.. list-table::
+
+   * - *MIPMAP_LEVELS*
+     - The file contains multiple levels. The first level holds the image at
+       full resolution. Each successive level is half the resolution of the
+       previous level in x and y direction. The last level contains only a
+       single pixel. *MIPMAP_LEVELS* files are used for texture-mapping and
+       similar applications.
+
+   * - *RIPMAP_LEVELS*
+     - Like *MIPMAP_LEVELS*, but with more levels. The levels include all
+       combinations of reducing the resolution of the image by powers of two
+       independently in x and y direction. Used for texture mapping, like
+       *MIPMAP_LEVELS*. The additional levels in a *RIPMAP_LEVELS* file can
+       help to accelerate anisotropic filtering during texture lookups. 
 
 In *MIPMAP_LEVELS* and *RIPMAP_LEVELS* mode, the size (width or height)
 of each level is computed by halving the size of the level with the next
@@ -1181,45 +927,30 @@ An OpenEXR file's level mode and rounding mode, and the size of the
 tiles are stored in an attribute in the file header. The value of this
 attribute is a *TileDescription* object:
 
-enum LevelMode
+.. code-block::
 
-{
-
-ONE_LEVEL,
-
-MIPMAP_LEVELS,
-
-RIPMAP_LEVELS
-
-};
-
-enum LevelRoundingMode
-
-{
-
-ROUND_DOWN,
-
-ROUND_UP
-
-};
-
-class TileDescription
-
-{
-
-public:
-
-unsigned int xSize; // size of a tile in the x dimension
-
-unsigned int ySize; // size of a tile in the y dimension
-
-LevelMode mode;
-
-LevelRoundingMode roundingMode;
-
-... // (methods omitted)
-
-};
+    enum LevelMode
+    {
+        ONE_LEVEL,
+        MIPMAP_LEVELS,
+        RIPMAP_LEVELS
+    };
+    
+    enum LevelRoundingMode
+    {
+        ROUND_DOWN,
+        ROUND_UP
+    };
+    
+    class TileDescription
+    {
+      public:
+        unsigned int xSize; // size of a tile in the x dimension
+        unsigned int ySize; // size of a tile in the y dimension
+        LevelMode mode;
+        LevelRoundingMode roundingMode;
+        ... // (methods omitted)
+    };
 
 Using the RGBA-only Interface for Tiled Files
 =============================================
@@ -1229,35 +960,8 @@ Writing a Tiled RGBA Image File with One Resolution Level
 
 Writing a tiled RGBA image with a single level is easy:
 
-void
-
-writeTiledRgbaONE1 (const char fileName[],
-
-const Rgba \*pixels,
-
-int width, int height,
-
-int tileWidth, int tileHeight)
-
-{
-
-TiledRgbaOutputFile out (fileName,
-
-width, height, // image size
-
-tileWidth, tileHeight, // tile size
-
-ONE_LEVEL, // level mode
-
-ROUND_DOWN, // rounding mode
-
-WRITE_RGBA); // channels in file // 1
-
-out.setFrameBuffer (pixels, 1, width); // 2
-
-out.writeTiles (0, out.numXTiles() - 1, 0, out.numYTiles() - 1);// 3
-
-}
+.. literalinclude:: src/writeTiledRgbaONE1.cpp
+   :language: c++
 
 Opening the file and defining the pixel data layout in memory are done
 in almost the same way as for scan line based files:
@@ -1280,15 +984,17 @@ entire image.
 
 Line 3 copies the pixels into the file. The *TiledRgbaOutputFile*'s
 *writeTiles()method takes four
-arguments,\ dxMin\ ,\ dyMin\ ,\ dxMax\ and\ dyMax*;\ *writeTiles()*\ writes
+arguments, dxMin , dyMin , dxMax and dyMax*; *writeTiles()* writes
 all tiles that have tile coordinates *(dx,dy)*, where
-*dxMin\  *\ ≤\ * \ dx\  *\ ≤\ * \ dxMax* and
-*dyMin\  *\ ≤\ * \ dy\  *\ ≤\ * \ dyMax*. The *numXTiles()* method
+*dxMin  * ≤ *  dx  * ≤ *  dxMax* and
+*dyMin  * ≤ *  dy  * ≤ *  dyMax*. The *numXTiles()* method
 returns the number of tiles in the x direction, and similarly, the
 *numYTiles()* method returns the number of tiles in the y direction.
 Thus,
 
-out.writeTiles (0, out.numXTiles() - 1, 0, out.numYTiles() - 1);
+.. code-block::
+   
+    out.writeTiles (0, out.numXTiles() - 1, 0, out.numYTiles() - 1);
 
 writes the entire image.
 
@@ -1299,60 +1005,13 @@ image is very large, a smaller frame buffer can be used. Even a frame
 buffer that can hold only a single tile is sufficient, as demonstrated
 in the following example:
 
-void
-
-writeTiledRgbaONE2 (const char fileName[],
-
-int width, int height,
-
-int tileWidth, int tileHeight)
-
-{
-
-TiledRgbaOutputFile out (fileName,
-
-width, height, // image size
-
-tileWidth, tileHeight, // tile size
-
-ONE_LEVEL, // level mode
-
-ROUND_DOWN, // rounding mode
-
-WRITE_RGBA); // channels in file // 1
-
-Array2D<Rgba> pixels (tileHeight, tileWidth); // 2
-
-for (int tileY = 0; tileY < out.numYTiles (); ++tileY) // 3
-
-{
-
-for (int tileX = 0; tileX < out.numXTiles (); ++tileX) // 4
-
-{
-
-Box2i range = out.dataWindowForTile (tileX, tileY); // 5
-
-generatePixels (pixels, width, height, range); // 6
-
-out.setFrameBuffer (&pixels[-range.min.y][-range.min.x],
-
-1, // xStride
-
-tileWidth); // yStride // 7
-
-out.writeTile (tileX, tileY); // 8
-
-}
-
-}
-
-}
+.. literalinclude:: src/writeTiledRgbaONE2.cpp
+   :language: c++
 
 In line 2 we allocate a *pixels* array with *tileWidth*tileHeight*
 elements, which is just enough for one tile. Line 5 computes the data
 window range for each tile, that is, the set of pixel coordinates
-covered by the tile. The *generatePixels()*\ function, in line 6, fills
+covered by the tile. The *generatePixels()* function, in line 6, fills
 the *pixels* array with one tile's worth of image data. The same
 *pixels* array is reused for all tiles. We must call *setFrameBuffer()*,
 in line 7, before writing each tile so that the pixels in the array are
@@ -1362,7 +1021,9 @@ based files. The values for the *base*, *xStride*, and *yStride*
 arguments to the *setFrameBuffer()* call must be chosen so that
 evaluating the expression
 
-base + x \* xStride + y \* yStride
+.. code-block::
+
+    base + x * xStride + y * yStride
 
 produces the address of the pixel with coordinates *(x,y)*.
 
@@ -1373,47 +1034,8 @@ In order to store a multi-resolution image in a file, we can allocate a
 frame buffer large enough for the highest-resolution level, *(0,0)*, and
 reuse it for all levels:
 
-void
-
-writeTiledRgbaMIP1 (const char fileName[],
-
-int width, int height,
-
-int tileWidth, int tileHeight)
-
-{
-
-TiledRgbaOutputFile out (fileName,
-
-width, height,
-
-tileWidth, tileHeight,
-
-MIPMAP_LEVELS,
-
-ROUND_DOWN,
-
-WRITE_RGBA); // 1
-
-Array2D<Rgba> pixels (height, width); // 2
-
-out.setFrameBuffer (&pixels[0][0], 1, width); // 3
-
-for (int level = 0; level < out.numLevels (); ++level) // 4
-
-{
-
-generatePixels (pixels, width, height, level); // 5
-
-out.writeTiles (0, out.numXTiles (level) – 1, // 6
-
-0, out.numYTiles (level) – 1,
-
-level);
-
-}
-
-}
+.. literalinclude:: src/writeTiledRgbaMIP1.cpp
+   :language: c++
 
 The main difference here is the use of *MIPMAP_LEVELS* in line 1 for the
 *TiledRgbaOutputFile* constructor. This signifies that the file will
@@ -1421,15 +1043,17 @@ contain multiple levels, each level being a factor of 2 smaller in both
 dimensions than the previous level. Mipmap images contain *n* levels,
 with level numbers
 
-(0,0), (1,1), ... (n-1,n-1),
+.. code-block::
+
+    (0,0), (1,1), ... (n-1,n-1),
 
 where
 
-n = floor (log (max (width, height)) / log (2)) + 1
+    n = floor (log (max (width, height)) / log (2)) + 1
 
 if the level size rounding mode is *ROUND_DOWN*, or
 
-n = ceil (log (max (width, height)) / log (2)) + 1
+    n = ceil (log (max (width, height)) / log (2)) + 1
 
 if the level size rounding mode is *ROUND_UP*. Note that even though
 level numbers are pairs of integers, *(lx,ly)*, only levels where *lx*
@@ -1450,61 +1074,8 @@ data for each level, and line 6 stores the pixel data in the file.
 As with *ONE_LEVEL* images, we can choose to only allocate a frame
 buffer for a single tile and reuse it for all tiles in the image:
 
-void
-
-writeTiledRgbaMIP2 (const char fileName[],
-
-int width, int height,
-
-int tileWidth, int tileHeight)
-
-{
-
-TiledRgbaOutputFile out (fileName,
-
-width, height,
-
-tileWidth, tileHeight,
-
-MIPMAP_LEVELS,
-
-ROUND_DOWN,
-
-WRITE_RGBA);
-
-Array2D<Rgba> pixels (tileHeight, tileWidth);
-
-for (int level = 0; level < out.numLevels (); ++level)
-
-{
-
-for (int tileY = 0; tileY < out.numYTiles (level); ++tileY)
-
-{
-
-for (int tileX = 0; tileX < out.numXTiles (level); ++tileX)
-
-{
-
-Box2i range = out.dataWindowForTile (tileX, tileY, level);
-
-generatePixels (pixels, width, height, range, level);
-
-out.setFrameBuffer (&pixels[-range.min.y][-range.min.x],
-
-1, // xStride
-
-tileWidth); // yStride
-
-out.writeTile (tileX, tileY, level);
-
-}
-
-}
-
-}
-
-}
+.. literalinclude:: src/writeTiledRgbaMIP2.cpp
+   :language: c++
 
 The structure of this code is the same as for writing a *ONE_LEVEL*
 image using a tile-sized frame buffer, but we have to loop over more
@@ -1518,80 +1089,34 @@ The ripmap level mode allows for storing all combinations of reducing
 the resolution of the image by powers of two independently in both
 dimensions. Ripmap files contains *nx*ny* levels, with level numbers:
 
-(0, 0), (1, 0), ... (nx-1, 0),
+.. code-block::
 
-(0, 1), (1, 1), ... (nx-1, 1),
-
-...
-
-(0,ny-1), (1,ny-1), ... (nx-1,ny-1)
+    (0, 0), (1, 0), ... (nx-1, 0),
+    (0, 1), (1, 1), ... (nx-1, 1),
+    ...
+    (0,ny-1), (1,ny-1), ... (nx-1,ny-1)
 
 where
 
-nx = floor (log (width) / log (2)) + 1
+.. code-block::
 
-ny = floor (log (height) / log (2)) + 1
+    nx = floor (log (width) / log (2)) + 1
+    ny = floor (log (height) / log (2)) + 1
 
 if the level size rounding mode is *ROUND_DOWN*, or
 
-nx = ceil (log (width) / log (2)) + 1
+.. code-block::
 
-ny = ceil (log (height) / log (2)) + 1
+    nx = ceil (log (width) / log (2)) + 1
+    ny = ceil (log (height) / log (2)) + 1
 
 if the level size rounding mode is *ROUND_UP*.
 
 With a frame buffer that is large enough to hold level *(0,0)*, we can
 write a ripmap file like this:
 
-void
-
-writeTiledRgbaRIP1 (const char fileName[],
-
-int width, int height,
-
-int tileWidth, int tileHeight)
-
-{
-
-TiledRgbaOutputFile out (fileName,
-
-width, height,
-
-tileWidth, tileHeight,
-
-RIPMAP_LEVELS,
-
-ROUND_DOWN,
-
-WRITE_RGBA);
-
-Array2D<Rgba> pixels (height, width);
-
-out.setFrameBuffer (&pixels[0][0], 1, width);
-
-for (int yLevel = 0; yLevel < out.numYLevels (); ++yLevel)
-
-{
-
-for (int xLevel = 0; xLevel < out.numXLevels (); ++xLevel)
-
-{
-
-generatePixels (pixels, width, height, xLevel, yLevel);
-
-out.writeTiles (0, out.numXTiles (xLevel) - 1,
-
-0, out.numYTiles (yLevel) – 1,
-
-xLevel,
-
-yLevel);
-
-}
-
-}
-
-}
+.. literalinclude:: src/writeTiledRgbaRIP1.cpp
+   :language: c++
 
 As for *ONE_LEVEL* and *MIPMAP_LEVELS* files, the frame buffer doesn't
 have to be large enough to hold a whole level. Any frame buffer big
@@ -1602,37 +1127,8 @@ Reading a Tiled RGBA Image File
 
 Reading a tiled RGBA image file is done similarly to writing one:
 
-void
-
-readTiledRgba1 (const char fileName[],
-
-Array2D<Rgba> &pixels,
-
-int &width,
-
-int &height)
-
-{
-
-TiledRgbaInputFile in (fileName);
-
-Box2i dw = in.dataWindow();
-
-width = dw.max.x - dw.min.x + 1;
-
-height = dw.max.y - dw.min.y + 1;
-
-int dx = dw.min.x;
-
-int dy = dw.min.y;
-
-pixels.resizeErase (height, width);
-
-in.setFrameBuffer (&pixels[-dy][-dx], 1, width);
-
-in.readTiles (0, in.numXTiles() - 1, 0, in.numYTiles() - 1);
-
-}
+.. literalinclude:: src/readTiledRgba1.cpp
+   :language: c++
 
 First we need to create a *TiledRgbaInputFile* object for the given file
 name. We then retrieve information about the data window in order to
@@ -1662,58 +1158,9 @@ File <#Writing an Image File>`__, on page
 with two channels, G, and Z, of type *HALF*, and *FLOAT* respectively,
 but here the file is tiled instead of scan line based:
 
-void
-
-writeTiled1 (const char fileName[],
-
-Array2D<GZ> &pixels,
-
-int width, int height,
-
-int tileWidth, int tileHeight)
-
-{
-
-Header header (width, height); // 1
-
-header.channels().insert ("G", Channel (HALF)); // 2
-
-header.channels().insert ("Z", Channel (FLOAT)); // 3
-
-header.setTileDescription
-
-(TileDescription (tileWidth, tileHeight, ONE_LEVEL)); // 4
-
-TiledOutputFile out (fileName, header); // 5
-
-FrameBuffer frameBuffer; // 6
-
-frameBuffer.insert ("G", // name // 7
-
-Slice (HALF, // type // 8
-
-(char \*) &pixels[0][0].g, // base // 9
-
-sizeof (pixels[0][0]) \* 1, // xStride // 10
-
-sizeof (pixels[0][0]) \* width)); // yStride // 11
-
-frameBuffer.insert ("Z", // name // 12
-
-Slice (FLOAT, // type // 13
-
-(char \*) &pixels[0][0].z, // base // 14
-
-sizeof (pixels[0][0]) \* 1, // xStride // 15
-
-sizeof (pixels[0][0]) \* width)); // yStride // 16
-
-out.setFrameBuffer (frameBuffer); // 17
-
-out.writeTiles (0, out.numXTiles() - 1, 0, out.numYTiles() - 1); // 18
-
-}
-
+.. literalinclude:: src/writeTiled1.cpp
+   :language: c++
+   
 As one would expect, the code here is very similar to the code in
 `Writing an Image File <#Writing an Image File>`__ on page
 `10 <#Writing an Image File>`__. The file's header is created in line 1,
@@ -1737,57 +1184,8 @@ three lines are different. Instead of reading all scan lines at once
 with a single function call, here we must iterate over all tiles we want
 to read.
 
-void
-
-readTiled1 (const char fileName[],
-
-Array2D<GZ> &pixels,
-
-int &width, int &height)
-
-{
-
-TiledInputFile in (fileName);
-
-Box2i dw = in.header().dataWindow();
-
-width = dw.max.x - dw.min.x + 1;
-
-height = dw.max.y - dw.min.y + 1;
-
-int dx = dw.min.x;
-
-int dy = dw.min.y;
-
-pixels.resizeErase (height, width);
-
-FrameBuffer frameBuffer;
-
-frameBuffer.insert ("G",
-
-Slice (HALF,
-
-(char \*) &pixels[-dy][-dx].g,
-
-sizeof (pixels[0][0]) \* 1,
-
-sizeof (pixels[0][0]) \* width));
-
-frameBuffer.insert ("Z",
-
-Slice (FLOAT,
-
-(char \*) &pixels[-dy][-dx].z,
-
-sizeof (pixels[0][0]) \* 1,
-
-sizeof (pixels[0][0]) \* width));
-
-in.setFrameBuffer (frameBuffer);
-
-in.readTiles (0, in.numXTiles() - 1, 0, in.numYTiles() - 1);
-
-}
+.. literalinclude:: src/readTiled1.cpp
+   :language: c++
 
 In this example we assume that the file we want to read contains two
 channels, G and Z, of type *HALF* and *FLOAT* respectively. If the file
@@ -1796,11 +1194,15 @@ highest-resolution level of the image. If the input file contains more
 levels (*MIPMAP_LEVELS* or *MIPMAP_LEVELS*), we can access the extra
 levels by calling a four-argument version of the *readTile()* function:
 
-in.readTile (tileX, tileY, levelX, levelY);
+.. code-block::
+
+    in.readTile (tileX, tileY, levelX, levelY);
 
 or by calling a six-argument version of *readTiles()*:
 
-in.readTiles (tileXMin, tileXMax, tileYMin, tileYMax, levelX, levelY);
+.. code-block::
+
+    in.readTiles (tileXMin, tileXMax, tileYMin, tileYMax, levelX, levelY);
 
 Deep Data Files (New in 2.0)
 ============================
@@ -1816,121 +1218,8 @@ demonstrates how to write a deep scan line file with two channels:
 
 The size of the image is *width* by *height* pixels.
 
-void writeDeepScanlineFile(const char filename[],
-
-Box2i displayWindow,
-
-Box2i dataWindow,
-
-Array2D< float\* > &dataZ,
-
-Array2D< half\* > &dataA,
-
-Array2D< unsigned int > sampleCount)
-
-{
-
-int height = dataWindow.max.y - dataWindow.min.y + 1;
-
-int width = dataWindow.max.x - dataWindow.min.x + 1;
-
-Header header(displayWindow, dataWindow);
-
-header.channels().insert("Z", Channel(FLOAT));
-
-header.channels().insert("A", Channel(HALF));
-
-header.setType(DEEPSCANLINE);
-
-header.compression() = ZIP_COMPRESSION;
-
-DeepScanLineOutputFile file(filename, header);
-
-DeepFrameBuffer frameBuffer;
-
-frameBuffer.insertSampleCountSlice (Slice (UINT,
-
-(char \*) (&sampleCount[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (unsigned int) \* 1, // xStride
-
-sizeof (unsigned int) \* width)); // yStride
-
-frameBuffer.insert ("Z",
-
-DeepSlice (FLOAT,
-
-(char \*) (&dataZ[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (float \*) \* 1, // xStride for pointer array
-
-sizeof (float \*) \* width, // yStride for pointer array
-
-sizeof (float) \* 1)); // stride for Z data sample
-
-frameBuffer.insert ("A",
-
-DeepSlice (HALF,
-
-(char \*) (&dataA[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (half \*) \* 1, // xStride for pointer array
-
-sizeof (half \*) \* width, // yStride for pointer array
-
-sizeof (half) \* 1)); // stride for A data sample
-
-file.setFrameBuffer(frameBuffer);
-
-file.readPixelSampleCounts (height);
-
-for (int i = 0; i < height; i++)
-
-{
-
-for (int j = 0; j < width; j++)
-
-{
-
-sampleCount[i][j] = getPixelSampleCount(i,j);
-
-dataZ[i][j] = new float[sampleCount[i][j]];
-
-dataA[i][j] = new half[sampleCount[i][j]];
-
-// Generate data for dataZ and dataA.
-
-}
-
-file.writePixels(1);
-
-}
-
-for (int i = 0; i < height; i++)
-
-for (int j = 0; j < width; j++)
-
-{
-
-delete[] dataZ[i][j];
-
-delete[] dataA[i][j];
-
-}
-
-}
+.. literalinclude:: src/writeDeepScanlineFile.cpp
+   :language: c++
 
 The interface for deep scan line files is similar to scan line files. We
 added two new classes to deal with deep data: *DeepFrameBuffer* and
@@ -1938,7 +1227,9 @@ added two new classes to deal with deep data: *DeepFrameBuffer* and
 except that it accepts *Slice* for sample count slice. The first
 difference we see from the previous version is:
 
-header.setType(DEEPSCANLINE);
+.. code-block::
+
+    header.setType(DEEPSCANLINE);
 
 where we set the type of the header to a predefine string
 *DEEPSCANLINE*, then we insert a sample count slice using
@@ -1948,17 +1239,16 @@ non-deep slices. The first two strides are used for the pointers in the
 array. Because the memory space for *Array2D* is contiguous, we can get
 the strides easily. The third stride is used for pixel samples. Because
 the data type is float (and we are not interleaving), the stride should
-be **sizeof**\ *(*\ **float**\ *)*. If we name the stride for deep data
+be **sizeof** *(* **float** *)*. If we name the stride for deep data
 samples *sampleStride*, then the memory address of the i-th sample of
 this channel in pixel (x, y) is
 
-base +
+.. code-block::
 
-x \* xStride +
-
-y \* yStride +
-
-i \* sampleStride
+    base +
+       x * xStride +
+       y * yStride +
+       i * sampleStride
 
 Because we may not know the data until we are going to write it, the
 deep data file must support postponed initialization, as shown in the
@@ -1976,122 +1266,16 @@ Reading a Deep Scan Line File
 
 An example of reading a deep scan line file created by previous code.
 
-void readDeepScanlineFile(const char filename[],
-
-Box2i& displayWindow,
-
-Box2i& dataWindow,
-
-Array2D< float\* >& dataZ,
-
-Array2D< half\* >& dataA,
-
-Array2D< unsigned int >& sampleCount)
-
-{
-
-DeepScanLineInputFile file(filename);
-
-const Header& header = file.header();
-
-dataWindow = header.dataWindow();
-
-displayWindow = header.displayWindow();
-
-int width = dataWindow.max.x - dataWindow.min.x + 1;
-
-int height = dataWindow.max.y - dataWindow.min.y + 1;
-
-sampleCount.resizeErase(height, width);
-
-dataZ.resizeErase(height, width);
-
-dataA.resizeErase(height, width);
-
-DeepFrameBuffer frameBuffer;
-
-frameBuffer.insertSampleCountSlice (Slice (UINT,
-
-(char \*) (&sampleCount[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (unsigned int) \* 1, // xStride
-
-sizeof (unsigned int) \* width)); // yStride
-
-frameBuffer.insert ("dataZ",
-
-DeepSlice (FLOAT,
-
-(char \*) (&dataZ[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (float \*) \* 1, // xStride for pointer array
-
-sizeof (float \*) \* width, // yStride for pointer array
-
-sizeof (float) \* 1)); // stride for Z data sample
-
-frameBuffer.insert ("dataA",
-
-DeepSlice (HALF,
-
-(char \*) (&dataA[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (half \*) \* 1, // xStride for pointer array
-
-sizeof (half \*) \* width, // yStride for pointer array
-
-sizeof (half) \* 1)); // stride for O data sample
-
-file.setFrameBuffer(frameBuffer);
-
-file.readPixelSampleCounts(dataWindow.min.y, dataWindow.max.y);
-
-for (int i = 0; i < height; i++)
-
-for (int j = 0; j < width; j++)
-
-{
-
-dataZ[i][j] = new float[sampleCount[i][j]];
-
-dataA[i][j] = new half[sampleCount[i][j]];
-
-}
-
-file.readPixels(dataWindow.min.y, dataWindow.max.y);
-
-for (int i = 0; i < height; i++)
-
-for (int j = 0; j < width; j++)
-
-{
-
-delete[] dataZ[i][j];
-
-delete[] dataA[i][j];
-
-}
-
-}
+.. literalinclude:: src/readDeepScanlineFile.cpp
 
 The interface for deep scan line files is similar to scan line files.
 The main the difference is we use the sample count slice and deep data
 slices. To do this, we added a new method to read the sample count table
 from the file:
 
-file.readPixelSampleCounts(dataWindow.min.y, dataWindow.max.y);
+.. code-block::
+
+   file.readPixelSampleCounts(dataWindow.min.y, dataWindow.max.y);
 
 This method reads all pixel sample counts in the range
 *[dataWindow.min.y, dataWindow.max.y]*, and stores the data to sample
@@ -2110,120 +1294,9 @@ demonstrates how to write a deep tiled file with two channels:
 
 The size of the image is *width* by *height* pixels.
 
-void writeDeepTiledFile(const char filename[],
-
-Box2i displayWindow,
-
-Box2i dataWindow,
-
-int tileSizeX, int tileSizeY)
-
-{
-
-int height = dataWindow.max.y - dataWindow.min.y + 1;
-
-int width = dataWindow.max.x - dataWindow.min.x + 1;
-
-Header header(displayWindow, dataWindow);
-
-header.channels().insert("Z", Channel(FLOAT));
-
-header.channels().insert("A", Channel(HALF));
-
-header.setType(DEEPTILE);
-
-header.setTileDescription(
-
-TileDescription(tileSizeX, tileSizeY, MIPMAP_LEVELS));
-
-Array2D< unsigned int\* > dataZ;
-
-dataZ.resizeErase(height, width);
-
-Array2D< unsigned int\* > dataA;
-
-dataA.resizeErase(height, width);
-
-Array2D<unsigned int> sampleCount;
-
-sampleCount.resizeErase(height, width);
-
-DeepTiledOutputFile file(filename, header);
-
-DeepFrameBuffer frameBuffer;
-
-frameBuffer.insertSampleCountSlice (Slice (UINT,
-
-(char \*) (&sampleCount[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (unsigned int) \* 1, // xStride
-
-sizeof (unsigned int) \* width)); // yStride
-
-frameBuffer.insert ("Z",
-
-DeepSlice (FLOAT,
-
-(char \*) (&dataZ[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (float \*) \* 1, // xStride for pointer array
-
-sizeof (float \*) \* width, // yStride for pointer array
-
-sizeof (float) \* 1)); // stride for samples
-
-frameBuffer.insert ("A",
-
-DeepSlice (HALF,
-
-(char \*) (&dataA[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (half \*) \* 1, // xStride for pointer array
-
-sizeof (half \*) \* width, // yStride for pointer array
-
-sizeof (half) \* 1)); // stride for samples
-
-file.setFrameBuffer(frameBuffer);
-
-for (int l = 0; l < file.numLevels(); l++)
-
-{
-
-for (int j = 0; j < file.numYTiles(l); j++)
-
-{
-
-for (int i = 0; i < file.numXTiles(l); i++)
-
-{
-
-getSampleCountForTile(i, j, sampleCount);
-
-getSampleDataForTile(i, j, dataZ, dataA);
-
-file.writeTile(i, j, l);
-
-}
-
-}
-
-}
-
-}
-
+.. literalinclude:: src/writeDeepTiledFile.cpp
+   :language: c++
+              
 Here, getSampleCountForTile is a user-supplied function that sets each
 item in sampleCount array to the correct sampleCount for each pixel in
 the tile, and getSampleDataForTile is a user-supplied function that set
@@ -2246,115 +1319,8 @@ An example of reading a deep tiled file created by code explained in the
 `Writing a Deep Tiled File <#Writing a Deep Tiled File>`__ section, on
 page `26 <#Writing a Deep Tiled File>`__.
 
-void readDeepTiledFile(const char filename[],
-
-Box2i& displayWindow,
-
-Box2i& dataWindow,
-
-Array2D< float\* >& dataZ,
-
-Array2D< half\* >& dataA,
-
-Array2D< unsigned int >& sampleCount)
-
-{
-
-DeepTiledInputFile file(filename);
-
-int width = dataWindow.max.x - dataWindow.min.x + 1;
-
-int height = dataWindow.max.y - dataWindow.min.y + 1;
-
-sampleCount.resizeErase(height, width);
-
-dataZ.resizeErase(height, width);
-
-dataA.resizeErase(height, width);
-
-DeepFrameBuffer frameBuffer;
-
-frameBuffer.insertSampleCountSlice (Slice (UINT,
-
-(char \*) (&sampleCount[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (unsigned int) \* 1, // xStride
-
-sizeof (unsigned int) \* width)); // yStride
-
-frameBuffer.insert ("Z",
-
-DeepSlice (FLOAT,
-
-(char \*) (&dataZ[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (float \*) \* 1, // xStride for pointer array
-
-sizeof (float \*) \* width, // yStride for pointer array
-
-sizeof (float) \* 1)); // stride for samples
-
-frameBuffer.insert ("A",
-
-DeepSlice (HALF,
-
-(char \*) (&dataA[0][0]
-
-- dataWindow.min.x
-
-- dataWindow.min.y \* width),
-
-sizeof (half \*) \* 1, // xStride for pointer array
-
-sizeof (half \*) \* width, // yStride for pointer array
-
-sizeof (half) \* 1)); // stride for samples
-
-file.setFrameBuffer(frameBuffer);
-
-int numXTiles = file.numXTiles(0);
-
-int numYTiles = file.numYTiles(0);
-
-file.readPixelSampleCounts(0, numXTiles - 1, 0, numYTiles - 1);
-
-for (int i = 0; i < height; i++)
-
-for (int j = 0; j < width; j++)
-
-{
-
-dataZ[i][j] = new float[sampleCount[i][j]];
-
-dataA[i][j] = new half[sampleCount[i][j]];
-
-}
-
-file.readTiles(0, numXTiles - 1, 0, numYTiles – 1);
-
-// (after read data is processed, data must be freed:)
-
-for (int i = 0; i < height; i++)
-
-for (int j = 0; j < width; j++)
-
-{
-
-delete[] dataZ[i][j];
-
-delete[] dataA[i][j];
-
-}
-
-}
+.. literalinclude:: src/readDeepTiledFile.cpp
+   :language: c++
 
 This code demonstrates how to read the first level of a deep tiled file
 created by code explained in the `Writing a Deep Tiled
@@ -2414,29 +1380,23 @@ write call. If the application reads or writes the image one scan line
 or tile at a time, the library reverts to single-threaded file I/O.
 
 The following function writes an RGBA file using four concurrent worker
-threads:
+threads:g
 
-void
+.. code-block::
 
-writeRgbaMT (const char fileName[],
+    void
+    writeRgbaMT (const char fileName[],
+                 const Rgba *pixels,
+                 int width,
+                 int height)
+    {
+        setGlobalThreadCount (4);
 
-const Rgba \*pixels,
+        RgbaOutputFile file (fileName, width, height, WRITE_RGBA);
+        file.setFrameBuffer (pixels, 1, width);
+        file.writePixels (height);
+    }
 
-int width,
-
-int height)
-
-{
-
-setGlobalThreadCount (4);
-
-RgbaOutputFile file (fileName, width, height, WRITE_RGBA);
-
-file.setFrameBuffer (pixels, 1, width);
-
-file.writePixels (height);
-
-}
 
 Except for the call to *setGlobalThreadCount()*, function
 *writeRgbaMT()* is identical to function *writeRgba1()* in `Writing an
@@ -2470,24 +1430,28 @@ and we want to split the processors evenly between input and output.
 Before creating the input and output threads, the application instructs
 the IlmImf library to create four worker threads:
 
-// main, before application threads are created:
+.. code-block::
 
-setGlobalThreadCount (4);
+    // main, before application threads are created:
+
+    setGlobalThreadCount (4);
 
 In the input and output threads, input and output files are opened with
 *numThreads* set to 2:
 
-// application's input thread
+.. code-block::
 
-InputFile in (fileName, 2);
+    // application's input thread
 
-...
+    InputFile in (fileName, 2);
 
-// application's output thread
+    ...
 
-OutputFile out (fileName, header, 2);
+    // application's output thread
 
-...
+    OutputFile out (fileName, header, 2);
+
+    ...
 
 This ensures that file input and output in the application's two threads
 can proceed concurrently, without one thread stalling the other's I/O.
@@ -2534,68 +1498,51 @@ write, seek and tell operations with semantics similar to the
 corresponding *std::ifstream* and *std::ofstream* methods.
 
 For example, assume that we want to read an OpenEXR image from a C stdio
-file (of type *FILE \**) that has already been opened. To do this, we
+file (of type *FILE **) that has already been opened. To do this, we
 derive a new class, *C_IStream*, from *IStream*. The declaration of
 class *IStream* looks like this:
 
-class IStream
+.. code-block::
+          
+    class IStream
+    {
+      public:
+        virtual ~IStream ();
 
-{
+        virtual bool read (char c[], int n) = 0;
+        virtual Int64 tellg () = 0;
+        virtual void seekg (Int64 pos) = 0;
+        virtual void clear ();
+        const char * fileName () const;
+        virtual bool isMemoryMapped () const;
+        virtual char * readMemoryMapped (int n);
 
-public:
-
-virtual ~IStream ();
-
-virtual bool read (char c[], int n) = 0;
-
-virtual Int64 tellg () = 0;
-
-virtual void seekg (Int64 pos) = 0;
-
-virtual void clear ();
-
-const char \* fileName () const;
-
-virtual bool isMemoryMapped () const;
-
-virtual char \* readMemoryMapped (int n);
-
-protected:
-
-IStream (const char fileName[]);
-
-private:
-
-...
-
-};
-
+      protected:
+        IStream (const char fileName[]);
+        private:
+        ...
+    };
+        
 Our derived class needs a public constructor, and it must override four
 methods:
 
-class C_IStream: public IStream
+.. code-block::
 
-{
+    class C_IStream: public IStream
+    {
+      public:
+        C_IStream (FILE *file, const char fileName[]):
+            IStream (fileName), _file (file) {}
 
-public:
-
-C_IStream (FILE \*file, const char fileName[]):
-
-IStream (fileName), \_file (file) {}
-
-virtual bool read (char c[], int n);
-
-virtual Int64 tellg ();
-
-virtual void seekg (Int64 pos);
-
-virtual void clear ();
-
-private:
-
-FILE \* \_file;
-
-};
+        virtual bool read (char c[], int n);
+        virtual Int64 tellg ();
+        virtual void seekg (Int64 pos);
+        virtual void clear ();
+    
+      private:
+    
+        FILE * _file;
+    };
 
 *read(c,n)* reads *n* bytes from the file, and stores them in array *c*.
 If reading hits the end of the file before *n* bytes have been read, or
@@ -2603,77 +1550,60 @@ if an I/O error occurs, *read(c,n)* throws an exception. If *read(c,n)*
 hits the end of the file after reading *n* bytes, it returns *false*,
 otherwise it returns *true*:
 
-bool
+.. code-block::
 
-C_IStream::read (char c[], int n)
-
-{
-
-if (n != fread (c, 1, n, \_file))
-
-{
-
-// fread() failed, but the return value does not distinguish
-
-// between I/O errors and end of file, so we call ferror() to
-
-// determine what happened.
-
-if (ferror (_file))
-
-Iex::throwErrnoExc();
-
-else
-
-throw Iex::InputExc ("Unexpected end of file.");
-
-}
-
-return feof (_file);
-
-}
+    bool
+    C_IStream::read (char c[], int n)
+    {
+        if (n != fread (c, 1, n, _file))
+        {
+            // fread() failed, but the return value does not distinguish
+            // between I/O errors and end of file, so we call ferror() to
+            // determine what happened.
+        
+            if (ferror (_file))
+                Iex::throwErrnoExc();
+            else
+                throw Iex::InputExc ("Unexpected end of file.");
+        }
+        
+        return feof (_file);
+    }
 
 *tellg()* returns the current reading position, in bytes, from the
 beginning of the file. The next *read()* call will begin reading at the
 indicated position:
 
-Int64
+.. code-block::
 
-C_IStream::tellg ()
-
-{
-
-return ftell (_file);
-
-}
+    Int64
+    C_IStream::tellg ()
+    {
+        return ftell (_file);
+    }
 
 *seekg(pos)* sets the current reading position to *pos* bytes from the
 beginning of the file:
 
-void
+.. code-block::
 
-C_IStream::seekg (Int64 pos)
-
-{
-
-clearerr (_file);
-
-fseek (_file, pos, SEEK_SET);
-
-}
+    void
+    C_IStream::seekg (Int64 pos)
+    {
+        clearerr (_file);
+        fseek (_file, pos, SEEK_SET);
+    }
 
 *clear()* clears any error flags that may be set on the file after a
 *read()* or *seekg()* operation has failed:
 
-void
+.. code-block::
 
-C_IStream::clear ()
-
-{
-
-clearerr (_file);
-
-}
+    void
+    C_IStream::clear ()
+    {
+        clearerr (_file);
+    }
 
 In order to read an RGBA image from an open C stdio file, we first make
 a *C_IStream* object. Then we create an *RgbaInputFile*, passing the
@@ -2682,38 +1612,8 @@ read the image as usual (see `Reading an RGBA Image
 File <#Reading an RGBA Image File>`__, on page
 `7 <#Reading an RGBA Image File>`__):
 
-void
-
-readRgbaFILE (FILE \*cfile,
-
-const char fileName[],
-
-Array2D<Rgba> &pixels,
-
-int &width,
-
-int &height)
-
-{
-
-C_IStream istr (cfile, fileName);
-
-RgbaInputFile file (istr);
-
-Box2i dw = file.dataWindow();
-
-width = dw.max.x - dw.min.x + 1;
-
-height = dw.max.y - dw.min.y + 1;
-
-pixels.resizeErase (height, width);
-
-file.setFrameBuffer (&pixels[0][0] - dw.min.x - dw.min.y \* width, 1,
-width);
-
-file.readPixels (dw.min.y, dw.max.y);
-
-}
+.. literalinclude:: src/readRgbaFILE.cpp
+   :language: c++
 
 Memory-Mapped I/O
 -----------------
@@ -2731,42 +1631,35 @@ virtual address space, such that from the program's point of view the
 file looks like an array of type *char*. The contents of the array match
 the data in the file. This allows the program to access the data in the
 file directly, bypassing any copy operations associated with reading the
-file via a C++ *std::ifstream* or a C *FILE \**.
+file via a C++ *std::ifstream* or a C *FILE **.
 
 Classes derived from *IStream* can optionally support memory-mapped
 input. In order to do this, a derived class must override two virtual
 functions, *isMemoryMapped()* and *readMemoryMapped()*, in addition to
 the functions needed for regular, non-memory-mapped input:
 
-class MemoryMappedIStream: public IStream
+.. code-block::
 
-{
-
-public:
-
-MemoryMappedIStream (const char fileName[]);
-
-virtual ~MemoryMappedIStream ();
-
-virtual bool isMemoryMapped () const;
-
-virtual char \* readMemoryMapped (int n);
-
-virtual bool read (char c[], int n);
-
-virtual Int64 tellg ();
-
-virtual void seekg (Int64 pos);
-
-private:
-
-char \* \_buffer;
-
-Int64 \_fileLength;
-
-Int64 \_readPosition;
-
-};
+    class MemoryMappedIStream: public IStream
+    {
+      public:
+        MemoryMappedIStream (const char fileName[]);
+    
+        virtual ~MemoryMappedIStream ();
+    
+        virtual bool isMemoryMapped () const;
+        virtual char * readMemoryMapped (int n);
+        virtual bool read (char c[], int n);
+        virtual Int64 tellg ();
+    
+        virtual void seekg (Int64 pos);
+    
+      private:
+    
+        char * _buffer;
+        Int64 _fileLength;
+        Int64 _readPosition;
+    };
 
 The constructor for class *MemoryMappedIStream* maps the contents of the
 input file into the program's address space. Memory mapping is not
@@ -2774,137 +1667,111 @@ portable across operating systems. The example shown here uses the POSIX
 *mmap()* system call. On Windows files can be memory-mapped by calling
 *CreateFileMapping()* and *MapViewOfFile()*:
 
-MemoryMappedIStream::MemoryMappedIStream (const char fileName[]):
+.. code-block::
+   
+    MemoryMappedIStream::MemoryMappedIStream (const char fileName[])
+       : IStream (fileName),
+         _buffer (0),
+         _fileLength (0),
+         _readPosition (0)
+    {
+        int file = open (fileName, O_RDONLY);
+    
+        if (file < 0)
+            THROW_ERRNO ("Cannot open file \"" << fileName << "\".");
+    
+        struct stat stat;
+        fstat (file, &stat);
+    
+        _fileLength = stat.st_size;
+    
+        _buffer = (char *) mmap (0, _fileLength, PROT_READ, MAP_PRIVATE, file, 0);
 
-IStream (fileName),
+        close (file);
 
-\_buffer (0),
-
-\_fileLength (0),
-
-\_readPosition (0)
-
-{
-
-int file = open (fileName, O_RDONLY);
-
-if (file < 0)
-
-THROW_ERRNO ("Cannot open file \\"" << fileName << "\".");
-
-struct stat stat;
-
-fstat (file, &stat);
-
-\_fileLength = stat.st_size;
-
-\_buffer = (char \*) mmap (0, \_fileLength, PROT_READ, MAP_PRIVATE,
-file, 0);
-
-close (file);
-
-if (_buffer == MAP_FAILED)
-
-THROW_ERRNO ("Cannot memory-map file \\"" << fileName << "\".");
-
-}
+        if (_buffer == MAP_FAILED)
+            THROW_ERRNO ("Cannot memory-map file \"" << fileName << "\".");
+    }
 
 The destructor frees the address range associated with the file by
 un-mapping the file. The POSIX version shown here uses *munmap()*. A
 Windows version would call *UnmapViewOfFile()* and *CloseHandle()*:
 
-MemoryMappedIStream::~MemoryMappedIStream ()
-
-{
-
-munmap (_buffer, \_fileLength);
-
-}
+.. code-block::
+   
+    MemoryMappedIStream::~MemoryMappedIStream ()
+    {
+        munmap (_buffer, _fileLength);
+    }
 
 Function *isMemoryMapped()* returns *true* to indicate that
 memory-mapped input is supported. This allows the IlmImf library to call
 *readMemoryMapped()* instead of *read()*:
 
-bool
+.. code-block::
 
-MemoryMappedIStream::isMemoryMapped () const
-
-{
-
-return true;
-
-}
+    bool
+    MemoryMappedIStream::isMemoryMapped () const
+    {
+        return true;
+    }
 
 *readMemoryMapped()* is analogous to *read()*, but instead of copying
 data into a buffer supplied by the caller, *readMemoryMapped()* returns
 a pointer into the memory-mapped file, thus avoiding the copy operation:
 
-char \*
-
-MemoryMappedIStream::readMemoryMapped (int n)
-
-{
-
-if (_readPosition >= \_fileLength)
-
-throw Iex::InputExc ("Unexpected end of file.");
-
-if (_readPosition + n > \_fileLength)
-
-throw Iex::InputExc ("Reading past end of file.");
-
-char \*data = \_buffer + \_readPosition;
-
-\_readPosition += n;
-
-return data;
-
-}
+.. code-block::
+   
+    char *
+    MemoryMappedIStream::readMemoryMapped (int n)
+    {
+        if (_readPosition >= _fileLength)
+            throw Iex::InputExc ("Unexpected end of file.");
+    
+        if (_readPosition + n > _fileLength)
+            throw Iex::InputExc ("Reading past end of file.");
+    
+        char *data = _buffer + _readPosition;
+    
+        _readPosition += n;
+    
+        return data;
+    
+    }
 
 The *MemoryMappedIStream* class must also implement the regular *read()*
 function, as well as *tellg()* and *seekg()*:
 
-bool
+.. code-block::
 
-MemoryMappedIStream::read (char c[], int n)
+    bool
+    MemoryMappedIStream::read (char c[], int n)
+    {
+        if (_readPosition >= _fileLength)
+            throw Iex::InputExc ("Unexpected end of file.");
+        
+        if (_readPosition + n > _fileLength)
+            throw Iex::InputExc ("Reading past end of file.");
+    
+        memcpy (c, _buffer + _readPosition, n);
+    
+        _readPosition += n;
+    
+        return _readPosition < _fileLength;
+    
+    }
+    
+    Int64
+    MemoryMappedIStream::tellg ()
+    {
+        return _readPosition;
+    }
 
-{
-
-if (_readPosition >= \_fileLength)
-
-throw Iex::InputExc ("Unexpected end of file.");
-
-if (_readPosition + n > \_fileLength)
-
-throw Iex::InputExc ("Reading past end of file.");
-
-memcpy (c, \_buffer + \_readPosition, n);
-
-\_readPosition += n;
-
-return \_readPosition < \_fileLength;
-
-}
-
-Int64
-
-MemoryMappedIStream::tellg ()
-
-{
-
-return \_readPosition;
-
-}
-
-void
-
-MemoryMappedIStream::seekg (Int64 pos)
-
-{
-
-\_readPosition = pos;
-
-}
+    void
+    MemoryMappedIStream::seekg (Int64 pos)
+    {
+        _readPosition = pos;
+    }
 
 Class *MemoryMappedIStream* does not need a *clear()* function. Since
 the memory-mapped file has no error flags that need to be cleared, the
@@ -2912,7 +1779,7 @@ the memory-mapped file has no error flags that need to be cleared, the
 re-used.
 
 Memory-mapping a file can be faster than reading the file via a C++
-*std::istream* or a C *FILE \**, but the extra speed comes at a cost. A
+*std::istream* or a C *FILE **, but the extra speed comes at a cost. A
 large memory-mapped file can occupy a significant portion of a program's
 virtual address space. In addition, mapping and un-mapping many files of
 varying sizes can severely fragment the address space. After a while,
@@ -2943,22 +1810,18 @@ bytes contain the values *0x76*, *0x2f*, *0x31*, and *0x01*.
 Given a file name, the following function returns *true* if the
 corresponding file exists, is readable, and contains an OpenEXR image:
 
-bool
+.. code-block::
 
-isThisAnOpenExrFile (const char fileName[])
-
-{
-
-std::ifstream f (fileName, std::ios_base::binary);
-
-char b[4];
-
-f.read (b, sizeof (b));
-
-return !!f && b[0] == 0x76 && b[1] == 0x2f && b[2] == 0x31 && b[3] ==
-0x01;
-
-}
+    bool
+    isThisAnOpenExrFile (const char fileName[])
+    {
+        std::ifstream f (fileName, std::ios_base::binary);
+    
+        char b[4];
+        f.read (b, sizeof (b));
+    
+        return !!f && b[0] == 0x76 && b[1] == 0x2f && b[2] == 0x31 && b[3] == 0x01;
+    }
 
 Using this function does not require linking with the IlmImf library.
 
@@ -2966,17 +1829,19 @@ Programs that are linked with the IlmImf library can determine if a
 given file is an OpenEXR file by calling one of the following functions,
 which are part of the library:
 
-bool isOpenExrFile (const char fileName[], bool &isTiled);
+.. code-block::
 
-bool isOpenExrFile (const char fileName[]);
-
-bool isTiledOpenExrFile (const char fileName[]);
-
-bool isOpenExrFile (IStream &is, bool &isTiled);
-
-bool isOpenExrFile (IStream &is);
-
-bool isTiledOpenExrFile (IStream &is);
+    bool isOpenExrFile (const char fileName[], bool &isTiled);
+    
+    bool isOpenExrFile (const char fileName[]);
+    
+    bool isTiledOpenExrFile (const char fileName[]);
+    
+    bool isOpenExrFile (IStream &is, bool &isTiled);
+    
+    bool isOpenExrFile (IStream &is);
+    
+    bool isTiledOpenExrFile (IStream &is);
 
 Is this File Complete?
 ----------------------
@@ -2992,17 +1857,14 @@ convenient.
 The following function returns *true* or *false*, depending on whether a
 given OpenEXR file is complete or not:
 
-bool
-
-isComplete (const char fileName[])
-
-{
-
-InputFile in (fileName);
-
-return in.isComplete();
-
-}
+.. code-block::
+   
+    bool
+    isComplete (const char fileName[])
+    {
+        InputFile in (fileName);
+        return in.isComplete();
+    }
 
 Preview Images
 --------------
@@ -3017,35 +1879,34 @@ A preview image is an attribute whose value is of type *PreviewImage*. A
 pixel has four components, *r*, *g*, *b* and *a*, of type *unsigned
 char*, where *r*, *g* and *b* are the pixel's red, green and blue
 components, encoded with a gamma of 2.2. *a* is the pixel's alpha
-channel; *r*, *g*\ and *b* should be premultiplied by *a*. On a typical
+channel; *r*, *g* and *b* should be premultiplied by *a*. On a typical
 display with 8-bits per component, the preview image can be shown by
-simply loading the *r*, *g*\ and *b* components into the display's frame
+simply loading the *r*, *g* and *b* components into the display's frame
 buffer. (No gamma correction or tone mapping is required.)
 
 The code fragment below shows how to test if an OpenEXR file has a
 preview image, and how to access a preview image's pixels:
 
-RgbaInputFile file (fileName);
+.. code-block::
 
-if (file.header().hasPreviewImage())
-
-{
-
-const PreviewImage &preview = file.header().previewImage();
-
-for (int y = 0; y < preview.height(); ++y)
-
-for (int x = 0; x < preview.width(); ++x)
-
-{
-
-const PreviewRgba &pixel = preview.pixel (x, y);
-
-...
-
-}
-
-}
+    RgbaInputFile file (fileName);
+    
+    if (file.header().hasPreviewImage())
+    {
+        const PreviewImage &preview = file.header().previewImage();
+    
+        for (int y = 0; y < preview.height(); ++y)
+        {
+            for (int x = 0; x < preview.width(); ++x)
+            {
+    
+                const PreviewRgba &pixel = preview.pixel (x, y);
+    
+                ...
+    
+             }
+        }
+    }
 
 Writing an OpenEXR file with a preview image is shown in the following
 example. Since the preview image is an attribute in the file's header,
@@ -3056,41 +1917,8 @@ example uses the RGBA-only interface to write a scan line based file,
 but preview images are also supported for files that are written using
 the general interface, and for tiled files.
 
-void
-
-writeRgbaWithPreview1 (const char fileName[],
-
-const Array2D<Rgba> &pixels,
-
-int width,
-
-int height)
-
-{
-
-Array2D <PreviewRgba> previewPixels; // 1
-
-int previewWidth; // 2
-
-int previewHeight; // 3
-
-makePreviewImage (pixels, width, height, // 4
-
-previewPixels, previewWidth, previewHeight);
-
-Header header (width, height); // 5
-
-header.setPreviewImage // 6
-
-(PreviewImage (previewWidth, previewHeight, &previewPixels[0][0]));
-
-RgbaOutputFile file (fileName, header, WRITE_RGBA); // 7
-
-file.setFrameBuffer (&pixels[0][0], 1, width); // 8
-
-file.writePixels (height); // 9
-
-}
+.. literalinclude:: src/writeRgbaWithPreview1.cpp
+   :language: c++
 
 Lines 1 through 4 generate the preview image. Line 5 creates a header
 for the image file. Line 6 converts the preview image into a
@@ -3102,56 +1930,9 @@ Function *makePreviewImage()*, called in line 4, generates the preview
 image by scaling the main image down to one eighth of its original width
 and height:
 
-void
-
-makePreviewImage (const Array2D<Rgba> &pixels,
-
-int width,
-
-int height,
-
-Array2D<PreviewRgba> &previewPixels,
-
-int &previewWidth,
-
-int &previewHeight)
-
-{
-
-const int N = 8;
-
-previewWidth = width / N;
-
-previewHeight = height / N;
-
-previewPixels.resizeErase (previewHeight, previewWidth);
-
-for (int y = 0; y < previewHeight; ++y)
-
-{
-
-for (int x = 0; x < previewWidth; ++x)
-
-{
-
-const Rgba &inPixel = pixels[y \* N][x \* N];
-
-PreviewRgba &outPixel = previewPixels[y][x];
-
-outPixel.r = gamma (inPixel.r);
-
-outPixel.g = gamma (inPixel.g);
-
-outPixel.b = gamma (inPixel.b);
-
-outPixel.a = int (clamp (inPixel.a \* 255.f, 0.f, 255.f) + 0.5f);
-
-}
-
-}
-
-}
-
+.. literalinclude:: src/makePreviewImage.cpp
+   :language: c++
+              
 To make this example easier to read, scaling the image is done by just
 sampling every eighth pixel of every eighth scan line. This can lead to
 aliasing artifacts in the preview image; for a higher-quality preview
@@ -3165,17 +1946,14 @@ what the exrdisplay program does in order to show an OpenEXR image's
 floating-point pixels on the screen (for details, see exrdisplay's
 source code):
 
-unsigned char
-
-gamma (float x)
-
-{
-
-x = pow (5.5555f \* max (0.f, x), 0.4545f) \* 84.66f;
-
-return (unsigned char) clamp (x, 0.f, 255.f);
-
-}
+.. code-block::
+   
+    unsigned char
+    gamma (float x)
+    {
+        x = pow (5.5555f * max (0.f, x), 0.4545f) * 84.66f;
+        return (unsigned char) clamp (x, 0.f, 255.f);
+    }
 
 *makePreviewImage()* converts the pixels' alpha component to unsigned
 char by by linearly mapping the range [0.0, 1.0] to [0, 255].
@@ -3189,71 +1967,7 @@ possible to store a blank preview image in the header when the file is
 opened. The preview image can then be updated as the pixels become
 available. This is demonstrated in the following example:
 
-void
-
-writeRgbaWithPreview2 (const char fileName[],
-
-int width,
-
-int height)
-
-{
-
-Array <Rgba> pixels (width);
-
-const int N = 8;
-
-int previewWidth = width / N;
-
-int previewHeight = height / N;
-
-Array2D <PreviewRgba> previewPixels (previewHeight, previewWidth);
-
-Header header (width, height);
-
-header.setPreviewImage (PreviewImage (previewWidth, previewHeight));
-
-RgbaOutputFile file (fileName, header, WRITE_RGBA);
-
-file.setFrameBuffer (pixels, 1, 0);
-
-for (int y = 0; y < height; ++y)
-
-{
-
-generatePixels (pixels, width, height, y);
-
-file.writePixels (1);
-
-if (y % N == 0)
-
-{
-
-for (int x = 0; x < width; x += N)
-
-{
-
-const Rgba &inPixel = pixels[x];
-
-PreviewRgba &outPixel = previewPixels[y / N][x / N];
-
-outPixel.r = gamma (inPixel.r);
-
-outPixel.g = gamma (inPixel.g);
-
-outPixel.b = gamma (inPixel.b);
-
-outPixel.a = int (clamp (inPixel.a \* 255.f, 0.f, 255.f) + 0.5f);
-
-}
-
-}
-
-}
-
-file.updatePreviewImage (&previewPixels[0][0]);
-
-}
+.. literalinclude:: src/writeRgbaWithPreview2.cpp
 
 Environment Maps
 ----------------
@@ -3275,18 +1989,36 @@ which is of type *Envmap*, specifies the relation between 2D pixel
 locations and 3D directions. *Envmap* is an enumeration type. Two values
 are possible:
 
-================
-===================================================================================================================================================================================================================================================================================================================================================================================================
-*ENVMAP_LATLONG* **Latitude-Longitude Map.** The environment is projected onto the image using polar coordinates (latitude and longitude). A pixel's x coordinate corresponds to its longitude, and the y coordinate corresponds to its latitude. The pixel in the upper left corner of the data window has latitude +π/2 and longitude +π; the pixel in the lower right corner has latitude -π/2 and longitude -π .
-                
-                 In 3D space, latitudes -π/2 and +π/2 correspond to the negative and positive y direction. Latitude 0, longitude 0 points in the positive z direction; latitude 0, longitude π/2 points in the positive x direction.
-\                |image0|\ For a latitude-longitude map, the size of the data window should be 2×N by N pixels (width by height), where N can be any integer greater than 0.
-*ENVMAP_CUBE*    **Cube Map.** The environment is projected onto the six faces of an axis-aligned cube. The cube's faces are then arranged in a 2D image as shown below.
-\                |image1|\ For a cube map, the size of the data window should be N by 6×N pixels (width by height), where N can be any integer greater than 0.
-================
-===================================================================================================================================================================================================================================================================================================================================================================================================
+.. list-table::
 
-**Note:**\ Both kinds of environment maps contain redundant pixels: In a
+   * - *ENVMAP_LATLONG*
+     - **Latitude-Longitude Map.** The environment is projected onto
+       the image using polar coordinates (latitude and longitude). A
+       pixel's x coordinate corresponds to its longitude, and the y
+       coordinate corresponds to its latitude. The pixel in the upper
+       left corner of the data window has latitude +π/2 and longitude
+       +π; the pixel in the lower right corner has latitude -π/2 and
+       longitude -π. 
+                
+       In 3D space, latitudes -π/2 and +π/2 correspond to the negative
+       and positive y direction. Latitude 0, longitude 0 points in the
+       positive z direction; latitude 0, longitude π/2 points in the
+       positive x direction. 
+
+   * -
+     - For a latitude-longitude map, the size of the data window
+       should be 2×N by N pixels (width by height), where N can be any
+       integer greater than 0.
+   * - *ENVMAP_CUBE*
+     - **Cube Map.** The environment is projected onto the six faces
+       of an axis-aligned cube. The cube's faces are then arranged in
+       a 2D image as shown below. 
+   * -
+     - For a cube map, the size of the data window should be N by 6×N
+       pixels (width by height), where N can be any integer greater
+       than 0. 
+
+**Note:** Both kinds of environment maps contain redundant pixels: In a
 latitude-longitude map, the top row and the bottom row of pixels
 correspond to the map's north pole and south pole (latitudes +π/2 and
 -π/2). In each of those two rows all pixels are the same. The leftmost
@@ -3300,17 +2032,15 @@ face is repeated in the corresponding corners of the two adjacent faces.
 The following code fragment tests if an OpenEXR file contains an
 environment map, and if it does, which kind:
 
-RgbaInputFile file (fileName);
+.. code-block::
 
-if (hasEnvmap (file.header()))
+    RgbaInputFile file (fileName);
 
-{
-
-Envmap type = envmap (file.header());
-
-...
-
-}
+    if (hasEnvmap (file.header()))
+    {
+        Envmap type = envmap (file.header());
+       ...
+    }
 
 For each kind of environment map, the IlmImf library provides a set of
 routines that convert from 3D directions to 2D floating-point pixel
@@ -3318,9 +2048,3 @@ locations and back. Those routines are useful in application programs
 that create environment maps and in programs that perform map lookups.
 For details, see the header file *ImfEnvmap.h*.
 
-.. |image0| image:: Pictures/1000000000000769000003235842D1E5.png
-   :width: 4.2492in
-   :height: 1.7992in
-.. |image1| image:: Pictures/1000000000000663000005B58E740B28.png
-   :width: 3.6598in
-   :height: 3.2598in

@@ -12,8 +12,6 @@ Hello, OpenEXR docs
    TechnicalIntroduction
    ReadingAndWritingImageFiles
    OpenEXRFileLayout
-   MultiViewOpenEXR
-   InterpretingDeepPixels
 
 :ref:`genindex`
 

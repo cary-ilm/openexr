@@ -42,19 +42,39 @@ While you can continue to use the 1.7 format for files, these changes to
 the file layout are required to support the new multi-part and deep data
 features:
 
-========================
-===========================================================================================================================================================================================================================================================================================================
-======================================================================================================================================
-Version field            Bits 11 and 12 indicate whether the file contains deep data (bit 11), or more than one part (bit 12).                                                                                                                                                                                                       `Deep Data <#anchor>`__ on page `6 <#anchor-1>`__
-Header                   To store more than one part in the file, you need to have a header for each part.                                                                                                                                                                                                                           `Structure <#anchor-2>`__ on page `7 <#anchor-2>`__
-Header attributes        There are a number of attributes which have been defined to store data which is relevant to deep data and multi-part files. These include: name (one for each part), data type (you can have different types of data in different views), and the maximum number of samples to take in a deep data channel. `Multi-Part and Deep Data Header Attributes <#anchor-3>`__ on page `9 <#anchor-3>`__
-Offset tables and chunks To store more than one part in the file, you need to have an offset table for each part, and chunks for each part.                                                                                                                                                                                          `Component Four: Offset Tables <#anchor-4>`__ on page `10 <#anchor-4>`__, and `Chunk Layout <#anchor-5>`__ on page `11 <#anchor-5>`__.
-                                                                                                                                                                                                                                                                                                                                    
-                         The chunks must begin with a part number.                                                                                                                                                                                                                                                                  
-Deep Data                Deep data has a unique storage format.                                                                                                                                                                                                                                                                      `Deep Data <#anchor>`__ on page `13 <#anchor>`__
-========================
-===========================================================================================================================================================================================================================================================================================================
-======================================================================================================================================
+.. list-table::
+
+   * - Feature
+     - Description
+     - See
+   * - Version field
+     - Bits 11 and 12 indicate whether the file contains deep data
+       (bit 11), or more than one part (bit 12).
+     - `Deep Data <#anchor>`__ on page `6 <#anchor-1>`__
+   * - Header
+     - To store more than one part in the file, you need to have a
+       header for each part.
+     - `Structure <#anchor-2>`__ on page `7 <#anchor-2>`__
+   * - Header attributes
+     - There are a number of attributes which have been defined to
+       store data which is relevant to deep data and multi-part
+       files. These include: name (one for each part), data type (you
+       can have different types of data in different views), and the
+       maximum number of samples to take in a deep data channel.
+     - `Multi-Part and Deep Data Header Attributes <#anchor-3>`__ on
+       page `9 <#anchor-3>`__
+   * - Offset tables and chunks
+     - To store more than one part in the file, you need to have an
+       offset table for each part, and chunks for each part.
+
+       The chunks must begin with a part number.
+     - `Component Four: Offset Tables <#anchor-4>`__ on page `10
+       <#anchor-4>`__, and `Chunk Layout <#anchor-5>`__ on page `11
+       <#anchor-5>`__.
+       
+   * - Deep Data
+     - Deep data has a unique storage format.
+     - `Deep Data <#anchor>`__ on page `13 <#anchor>`__
 
 Basic Data Types
 ================
@@ -75,14 +95,29 @@ start of the file).
 
 OpenEXR uses the following six integer data types:
 
-================ === =
-*unsigned char*  no  1
-*short*          yes 2
-*unsigned short* no  2
-*int*            yes 4
-*unsigned int*   no  4
-*unsigned long*  no  8
-================ === =
+.. list-table::
+
+   * - name
+     - signed
+     - size in bytes
+   * - *unsigned char*
+     - no
+     - 1
+   * - *short*
+     - yes
+     - 2
+   * - *unsigned short*
+     - no
+     - 2
+   * - *int*
+     - yes
+     - 4
+   * - *unsigned int*
+     - no
+     - 4
+   * - *unsigned long*
+     - no
+     - 8
 
 Floating-Point Numbers
 ----------------------
@@ -100,11 +135,16 @@ are in the byte closest to the end of the file).
 The following table lists the names and sizes of OpenEXR's
 floating-point data types:
 
-======== =
-*half*   2
-*float*  4
-*double* 8
-======== =
+.. list-table::
+
+   * - name
+     - size in bytes
+   * - *half*
+     - 2
+   * - *float*
+     - 4
+   * - *double*
+     - 8
 
 Text
 ----
@@ -120,15 +160,13 @@ Packing
 Data in an OpenEXR file are densely packed; the file contains no
 "padding". For example, consider the following C struct:
 
-struct SI
+.. code-block::
 
-{
-
-short s;
-
-int i;
-
-};
+    struct SI
+    {
+        short s;
+        int i;
+    };
 
 On most computers, the in-memory representation of an *SI* object
 occupies 8 bytes: 2 bytes for *s*, 2 padding bytes to ensure four-byte
@@ -145,26 +183,26 @@ High-Level Layout
 Depending on whether the pixels in an OpenEXR file are stored as scan
 lines or as tiles, the file consists of the following components:
 
-=========== ================= =================
-===========================
-scan lines: tiles:                             
-one         magic number      magic number      magic number
-two         version field     version field     version field
-three       header            header            part 0 header
-                                               
-                                                [part 1 header]
-                                               
-                                                ...
-                                               
-                                                [<empty header>]
-four        line offset table tile offset table part 0 chunk offset table
-                                               
-                                                [part 1 chunk offset table]
-                                               
-                                                ...
-five        scan line blocks  tiles             *chunks*
-=========== ================= =================
-===========================
++-----------+---------------------------------------+-------------------------------+
+| Component | single-part file with...              | multi-part file:              |
++===========+===================+===================+===============================+
+|           | scan-lines:       | tiles:            |                               |
++-----------+-------------------+-------------------+-------------------------------+
+| one       | magic number      | magic number      | magic number                  |
++-----------+-------------------+-------------------+-------------------------------+
+| two       | version field     | version field     | version field                 | 
++-----------+-------------------+-------------------+-------------------------------+
+| three     | header            | header            | * part 0 header               | 
+|           |                   |                   | * [part 1 header]             | 
+|           |                   |                   | * ...                         | 
+|           |                   |                   | * [<empty header>]            | 
++-----------+-------------------+-------------------+-------------------------------+
+| four      | line offset table | line offset table | * part 0 chunk offset table   |
+|           |                   |                   | * [part 0 chunk offset table] |
+|           |                   |                   | * ...                         |
++-----------+-------------------+-------------------+-------------------------------+
+| five      | scan line blocks  | tiles             | chunks                        |
++-----------+-------------------+-------------------+-------------------------------+
 
 It is the version field part which indicates whether the file is single
 or multi-part and whether the file contains deep data. “Chunk” is a
@@ -202,38 +240,109 @@ Version Field
 The version field, of type *int*, is the four-byte group following the
 magic number, and it is treated as two separate bit fields.
 
-==============================
-========================================================================================
-Byte/bit position              Description and notes
-first byte                     The 8 least significant bits, they contain the file format version number.
-(bits 0 through 7)            
-                               The current OpenEXR version number is version 2.
-second, third and fourth bytes The 24 most significant bits, these are treated as a set of boolean flags.
-(bits 8 through 31)           
-                               The remaining 19 flags in the version field are currently unused and should be set to 0.
-==============================
-========================================================================================
++---------------------+-------------------------------------------------------------------------------------------------------------------------+
+| Byte/bit position   | Description and notes                                                                                                   |
++=====================+=========================================================================================================================+
+| first byte          | The 8 least significant bits, they                                                                                      |
+| (bits 0 through 7)  | contain the file format version number.                                                                                 |
+|                     |                                                                                                                         |
+|                     | The current OpenEXR version number is version 2.                                                                        |
++---------------------+---------------------------------------+---------------------------------------------------------------------------------+
+| second, third and   | The 24 most significant bits, these are treated as a set of boolean flags.                                              |
+| fourth bytes (bits  |                                                                                                                         |
+| 8 through 31)       +-----------------------------+---------------------------------------+---------------------------------------------------+
+|                     | Bit 9 (the single tile bit) | Indicates that this is a single-part  | If bit 9 is 1:                                    |
+|                     | bit mask: 0x200             | file which is in tiled format.        | * this is a regular single-part image and the     |
+|                     |                             |                                       | pixels are stored as tiles, and                   |
+|                     |                             |                                       | * bits 11 and 12 must be 0.                       |
+|                     |                             |                                       |                                                   |
+|                     |                             |                                       | If bit 9 is 0, and bits 11 and 12 are also 0:     |
+|                     |                             |                                       | the data is stored as regular single-part scan    |
+|                     |                             |                                       | line file.                                        |
+|                     |                             |                                       |                                                   |
+|                     |                             |                                       | This bit is for backwards compatibility with      |
+|                     |                             |                                       | older libraries: it is only set when there is     |
+|                     |                             |                                       | one "normal" tiled image in the file.             |
+|                     +-----------------------------+---------------------------------------+---------------------------------------------------+
+|                     | Bit 10 (the long name bit)  | Indicates whether the file contains   |                                                   |
+|                     | bit mask: 0x400             | “long names”.                         |                                                   |
+|                     |                             |                                       | If bit 10 is 1, the maximum length is 255 bytes.  |
+|                     |                             |                                       |                                                   |
+|                     |                             |                                       | If bit 10 is 0, the maximum length of attribute   |
+|                     |                             |                                       | names, attribute type names and channel names     |
+|                     |                             |                                       | is 31 bytes.                                      |
+|                     +-----------------------------+---------------------------------------+---------------------------------------------------+
+|                     | Bit 11 (the non-image bit)  | Indicates whether the file contains   | If bit 11 is 1, there is at least one             |
+|                     | bit mask: 0x800             | any “non-image parts” (deep data).    | part which is not a regular scan line             |
+|                     |                             |                                       | image or regular tiled image (that is, it         |
+|                     |                             |                                       | is a deep format).                                |
+|                     |                             |                                       |                                                   |
+|                     |                             |                                       | If bit 11 is 0, all parts are entirely            |
+|                     |                             |                                       | single or multiple scan line or tiled images.     |
+|                     |                             |                                       |                                                   |
+|                     |                             |                                       | New in 2.0.                                       |
+|                     +-----------------------------+---------------------------------------+---------------------------------------------------+
+|                     | Bit 12 (the multipart bit)  | Indicates the file is a               | If bit 12 is 1:                                   |
+|                     | bit mask: 0x1000            | multi-part file.                      | * the file does not contain exactly 1             |
+|                     |                             |                                       | part and the 'end of header' byte                 |
+|                     |                             |                                       | must be included at the end of each               |
+|                     |                             |                                       | header part, and                                  |
+|                     |                             |                                       | * the part number fields must be added            |
+|                     |                             |                                       | to the chunks.                                    |
+|                     |                             |                                       |                                                   |
+|                     |                             |                                       | If bit 12 is 0, this is not a multi-part          |
+|                     |                             |                                       | file and the 'end of header' byte and             |
+|                     |                             |                                       | part number fields in chunks must                 |
+|                     |                             |                                       | be omitted.                                       |
+|                     |                             |                                       |                                                   |
+|                     |                             |                                       | New in 2.0.                                       |
+|                     +-----------------------------+---------------------------------------+---------------------------------------------------+
+|                     | The remaining 19 flags in the version field are currently unused and should be set to 0.                                |
++---------------------+-------------------------------------------------------------------------------------------------------------------------+
 
 Version field, valid values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All valid combinations of the version field bits are as follows:
 
-==========================================================================================
-======================== ===== ====== ======
-Description                                                                                Compatible with          bit 9 bit 11 bit 12
-Single-part scan line.                                                                     All versions of OpenEXR. 0     0      0
-One normal scan line image.                                                                                                     
-Single-part tile.                                                                          All versions of OpenEXR. 1     0      0
-One normal tiled image.                                                                                                         
-Multi-part (new in 2.0).                                                                   OpenEXR 2.0.             0     0      1
-Multiple normal images (scan line and/or tiled).                                                                                
-Single-part deep data (new in 2.0).                                                        OpenEXR 2.0.             0     1      0
-One deep tile or deep scan line part.                                                                                           
-Multi-part deep data (new in 2.0).                                                         OpenEXR 2.0.             0     1      1
-Multiple parts (any combination of: tiles, scan lines, deep tiles and/or deep scan lines).                                      
-==========================================================================================
-======================== ===== ====== ======
+.. list-table::
+   
+   * - Description
+     - Compatible with
+     - bit 9
+     - bit 11
+     - bit 12
+   * - Single-part scan line.
+       One normal scan line image.
+     - All versions of OpenEXR.
+     - 0
+     - 0
+     - 0
+   * - Single-part tile.
+     - All versions of OpenEXR.
+       One normal tiled image.
+     - 1
+     - 0
+     - 0
+   * - Multi-part (new in 2.0).
+       Multiple normal images (scan line and/or tiled).
+     - OpenEXR 2.0.
+     - 0
+     - 0
+     - 1
+   * - Single-part deep data (new in 2.0).
+       One deep tile or deep scan line part.
+     - OpenEXR 2.0.
+     - 0
+     - 1
+     - 0
+   * - Multi-part deep data (new in 2.0).
+       Multiple parts (any combination of: tiles, scan lines,
+       deep tiles and/or deep scan lines).
+     - OpenEXR 2.0.
+     - 0
+     - 1
+     - 1
 
 **Note:**\ The version field bits define what capabilities must be
 available in the software so it can handle the file, rather than the
@@ -268,15 +377,10 @@ The header component of a multi-part file holds a set of headers, with a
 separate header for each part (in multi-part files) and a null byte
 signalling the end of the header component:
 
-================
-part 0 header
-
-[part 1 header]
-
-...
-
-[<empty header>]
-================
+* part 0 header
+* [part 1 header]
+* ...
+* [<empty header>]
 
 Each header is a sequence of attributes ended by a null byte.
 
@@ -289,18 +393,16 @@ Attribute Layout
 
 The layout of an attribute is as follows:
 
-===============
-attribute type
-attribute size
-attribute value
-===============
+* attribute type
+* attribute size
+* attribute value
 
 The **attribute name** and the **attribute type** are null-terminated
 text strings. Excluding the null byte, the name and type must each be as
 least 1 byte and at most :
 
--  31 bytes long (if bit 10 is set to 0), or
--  255 bytes long (if bit 10 is set to 1).
+*  31 bytes long (if bit 10 is set to 0), or
+*  255 bytes long (if bit 10 is set to 1).
 
 Both single-part and multi-part files use the same attribute types.
 
@@ -318,16 +420,26 @@ Header Attributes (All Files)
 The header of every OpenEXR file must contain at least the following
 attributes:
 
-==================== =============
-*channels*           *chlist*
-*compression*        *compression*
-*dataWindow*         *box2i*
-*displayWindow*      *box2i*
-*lineOrder*          *lineOrder*
-*pixelAspectRatio*   *float*
-*screenWindowCenter* *v2f*
-*screenWindowWidth*  *float*
-==================== =============
+.. list-table::
+
+   * - attribute name
+     - attribute type
+   * - *channels*
+     - *chlist*
+   * - *compression*
+     - *compression*
+   * - *dataWindow*
+     - *box2i*
+   * - *displayWindow*
+     - *box2i*
+   * - *lineOrder*
+     - *lineOrder*
+   * - *pixelAspectRatio*
+     - *float*
+   * - *screenWindowCenter*
+     - *v2f*
+   * - *screenWindowWidth*
+     - *float*
 
 For descriptions of what these attributes are for, see the *Technical
 Introduction to OpenEXR*.
@@ -338,22 +450,34 @@ Tile Header Attribute
 This attributes is required in the header for all files which contain
 one or more tiles:
 
-===== ========
-=======================================================================================================================================================================================================================================================================
-tiles tiledesc Determines the size of the tiles and the number of resolution levels in the file.
-              
-               **Note:**\ The IlmImf library ignores tile description attributes in scan line based files. The decision whether the file contains scan lines or tiles is based on the value of bit 9 in the file's version field, not on the presence of a tile description attribute.
-===== ========
-=======================================================================================================================================================================================================================================================================
+.. list-table::
+
+   * - attribute name
+     - attribute type
+     - notes
+   * - tiles
+     - tiledesc
+     - Determines the size of the tiles and the number of resolution levels
+       in the file. 
+
+       **Note:** The IlmImf library ignores tile description attributes in
+       scan line based files. The decision whether the file contains scan
+       lines or tiles is based on the value of bit 9 in the file's version
+       field, not on the presence of a tile description attribute.
 
 Multi-View Header Attribute
 ---------------------------
 
 This attribute can be used in the header for multi-part files:
 
-====== ======
-*view* *text*
-====== ======
+.. list-table::
+
+   * - attribute name
+     - attribute type
+     - notes
+   * - *view*
+     - *text*
+     -
 
 Multi-Part and Deep Data Header Attributes (New in 2.0)
 -------------------------------------------------------
@@ -361,21 +485,36 @@ Multi-Part and Deep Data Header Attributes (New in 2.0)
 These attributes are required in the header for all multi-part and/or
 deep data OpenEXR files.
 
-============ ==========
-========================================================================================================================
-*name*       *string*   Required if either the multipart bit (12) or the non-image bit (11) is set.
-type         string     Required if either the multipart bit (12) or the non-image bit (11) is set.
-                       
-                        Set to one of:
-                       
-                        **Note:**\ This value must agree with the version field's tile bit (9) and non-image (deep data) bit (11) settings.
-version      int        This document describes version 1 data for all part types.
-                       
-                        version is required for deep data (deepscanline and deeptile) parts. If not specified for other parts, assume version=1.
-*chunkCount* *int*      Required if either the multipart bit (12) or the non-image bit (11) is set.
-*tiles*      *tileDesc* Required for parts of type *tiledimage* and *deeptile*.
-============ ==========
-========================================================================================================================
+.. list-table::
+
+   * - attribute name
+     - attribute type
+     - notes
+   * - *name*
+     - *string*
+     - Required if either the multipart bit (12) or the non-image bit (11) is set.
+       
+   * - type
+     - string
+     - Required if either the multipart bit (12) or the non-image bit (11) is set.
+       Set to one of:
+       * scanlineimage
+       * tiledimage
+       * deepscanline, or
+       * deeptile
+       **Note:** This value must agree with the version field's tile bit (9) and
+       non-image (deep data) bit (11) settings.  
+   * - version
+     - int
+     - This document describes version 1 data for all part types.
+       version is required for deep data (deepscanline and deeptile) parts. If
+       not specified for other parts, assume version=1.  
+   * - *chunkCount*
+     - *int*
+     - Required if either the multipart bit (12) or the non-image bit (11) is set.
+   * - *tiles*
+     - *tileDesc*
+     - Required for parts of type *tiledimage* and *deeptile*.
 
 For more information about the standard OpenEXR attributes and optional
 attributes such as *preview images*, see the *OpenEXR File Layout*
@@ -387,16 +526,29 @@ Deep Data Header Attributes (New in 2.0)
 These attributes are required in the header for all files which contain
 deep data (deepscanline or deeptile):
 
-==================== ==========
-===============================================================================================================================================================================================================================================================================================================================================================================================================================
-*tiles*              *tileDesc* Required for parts of type tiledimage and deeptile.
-*maxSamplesPerPixel* *int*      Required for deep data (deepscanline and deeptile) parts.
-                               
-                                **Note:**\ Since the value of **maxSamplesPerPixel** maybe be unknown at the time of opening the file, the value “\ *-1*\ ” is written to the file to indicate an unknown value. When the file is closed, this will be overwritten with the correct value. If file writing does not complete correctly due to an error, the value *-1* will remain. In this case, the value must be derived by decoding each chunk in the part.
-version              int        Should be set to *1*. It will be changed if the format is updated.
-type                 string     Must be set to *deepscanline* or *deeptile*.
-==================== ==========
-===============================================================================================================================================================================================================================================================================================================================================================================================================================
+.. list-table::
+
+   * - attribute name
+     - attribute type
+     - notes
+   * - *tiles*
+     - *tileDesc*
+     - Required for parts of type tiledimage and deeptile.
+   * - *maxSamplesPerPixel*
+     - *int*
+     - Required for deep data (deepscanline and deeptile) parts.
+       **Note:**\ Since the value of **maxSamplesPerPixel** maybe be unknown at
+       the time of opening the file, the value “\ *-1*\ ” is written to the file
+       to indicate an unknown value. When the file is closed, this will be
+       overwritten with the correct value. If file writing does not complete
+       correctly due to an error, the value *-1* will remain. In this case, the
+       value must be derived by decoding each chunk in the part. 
+   * - version
+     - int
+     - Should be set to *1*. It will be changed if the format is updated. 
+   * - type
+     - string
+     - Must be set to *deepscanline* or *deeptile*.
 
 For information about channel layout and a list of reserved channel
 names, see the *Technical Introduction to OpenEXR* document, C\ *hannel
@@ -459,10 +611,8 @@ tile images have the same format that they did in OpenEXR 1.7. OpenEXR
 
 The layout of each chunk is as follows:
 
-========================================
-[part number] (if multi-part bit is set)
-chunk data
-========================================
+* [part number] (if multi-part bit is set)
+* chunk data
 
 The **part number** (of type *unsigned long*) is only present in
 multi-part files. It indicates which part this chunk belongs to. 0
@@ -475,16 +625,28 @@ The **chunk data** is dependent on the type attribute - but (other than
 the part number) has the same structure as a single-part file of the
 same format:
 
-============== ================================================
-========================================================================================================
-scan line      indicated by a type attribute of “scanlineimage” Each chunk stores a scan line block, with the minimum y coordinate of the scan line(s) within the chunk.
-                                                               
-                                                                See `Regular scan line image block layout <#anchor-7>`__\ *,* on page `12 <#anchor-7>`__.
-tiled          indicated by a type attribute of “tiledimage”    See `Regular image tile layout <#anchor-8>`__\ *,* on page `12 <#anchor-8>`__.
-deep scan line indicated by a type attribute of “deepscanline”  See `Deep scan line layout <#anchor-9>`__\ *,* on page `13 <#anchor-9>`__.
-deep tile      indicated by a type attribute of “deeptile”      See `Deep tiled layout <#anchor-10>`__\ *,* on page `13 <#anchor-10>`__.
-============== ================================================
-========================================================================================================
+.. list-table::
+
+   * - part type
+     - type attribute
+     - notes
+   * - scan line
+     - indicated by a type attribute of “scanlineimage”
+     - Each chunk stores a scan line block, with the minimum y coordinate of the
+       scan line(s) within the chunk.
+       See `Regular scan line image block layout <#anchor-7>`__\ *,* on page `12
+       <#anchor-7>`__.
+   * - tiled
+     - indicated by a type attribute of “tiledimage”
+     - See `Regular image tile layout <#anchor-8>`__\ *,* on page `12
+       <#anchor-8>`__. 
+   * - deep scan line
+     - indicated by a type attribute of “deepscanline”
+     - See `Deep scan line layout <#anchor-9>`__\ *,* on page `13
+       <#anchor-9>`__.
+   * - deep tile
+     - indicated by a type attribute of “deeptile”
+     - See `Deep tiled layout <#anchor-10>`__\ *,* on page `13 <#anchor-10>`__. 
 
 For more information about data types, see page `Error: Reference source
 not found <#anchor-11>`__.
@@ -496,16 +658,24 @@ For scan line images and deep scan line images, one or more scan lines
 may be stored together as a scan line block. The number of scan lines
 per block depends on how the pixel data are compressed:
 
-=================== ==
-*NO_COMPRESSION*    1 
-*RLE_COMPRESSION*   1 
-*ZIPS_COMPRESSION*  1 
-*ZIP_COMPRESSION*   16
-*PIZ_COMPRESSION*   32
-*PXR24_COMPRESSION* 16
-*B44_COMPRESSION*   32
-*B44A_COMPRESSION*  32
-=================== ==
+.. list-table::
+
+   * - *NO_COMPRESSION*
+     - 1 
+   * - *RLE_COMPRESSION*
+     - 1 
+   * - *ZIPS_COMPRESSION*
+     - 1 
+   * - *ZIP_COMPRESSION*
+     - 16
+   * - *PIZ_COMPRESSION*
+     - 32
+   * - *PXR24_COMPRESSION*
+     - 16
+   * - *B44_COMPRESSION*
+     - 32
+   * - *B44A_COMPRESSION*
+     - 32
 
 Each scan line block has a y coordinate of type *int*. The block's y
 coordinate is equal to the pixel space y coordinate of the top scan line
@@ -522,11 +692,9 @@ Regular scan line image block layout
 
 The layout of a regular image scan line block is as follows:
 
-===============
-y coordinate
-pixel data size
-pixel data
-===============
+* y coordinate
+* pixel data size
+* pixel data
 
 The **pixel data size**, of type *int*, indicates the number of bytes
 occupied by the actual pixel data.
@@ -559,11 +727,9 @@ Regular image tile layout
 
 The layout of a regular image tile is as follows:
 
-================
-tile coordinates
-pixel data size
-pixel data
-================
+* tile coordinates
+* pixel data size
+* pixel data
 
 The **tile coordinates**, a sequence of four *int*\ s (tileX, tileY,
 levelX, levelY) indicates the tile's position and resolution level. The
@@ -595,15 +761,21 @@ Deep scan line images are indicated by a type attribute of
 “deepscanline”. Each chunk of deep scan line data is a single scan line
 of data. The data in each chunk is laid out as follows:
 
-=======================================
-[part number] (if multipart bit is set)
-y coordinate
-packed size of pixel offset table
-packed size of sample data
-unpacked size of sample data
-compressed pixel offset table
-compressed sample data
-=======================================
++-----------------------------------------+
+| [part number] (if multipart bit is set) |
++-----------------------------------------+
+| y coordinate                            |
++-----------------------------------------+
+| packed size of pixel offset table       |
++-----------------------------------------+
+| packed size of sample data              |
++-----------------------------------------+
+| unpacked size of sample data            |
++-----------------------------------------+
+| compressed pixel offset table           |
++-----------------------------------------+
+| compressed sample data                  |
++-----------------------------------------+
 
 The **unpacked size of the sample data** (an *unsigned long*) is the
 size of the deep sample data once it is unpacked. It is necessary to
@@ -618,15 +790,21 @@ Tiled images are indicated by a type attribute of “deeptile”. Each chunk
 of deep tile data is a single tile. The data in each chunk is laid out
 as follows:
 
-=======================================
-[part number] (if multipart bit is set)
-tile coordinates
-packed size of pixel offset table
-packed size of sample data
-unpacked size of sample data
-compressed pixel offset table
-compressed sample data
-=======================================
++-----------------------------------------+
+| [part number] (if multipart bit is set) |
++-----------------------------------------+
+| tile coordinates                        |
++-----------------------------------------+
+| packed size of pixel offset table       |
++-----------------------------------------+
+| packed size of sample data              |
++-----------------------------------------+
+| unpacked size of sample data            |
++-----------------------------------------+
+| compressed pixel offset table           |
++-----------------------------------------+
+| compressed sample data                  |
++-----------------------------------------+
 
 The **unpacked size of the sample data** (an *unsigned long*) is the
 size of the deep data once it is unpacked. It is necessary to specify
@@ -646,38 +824,40 @@ Unpacked deep data chunks
 When decompressed, the unpacked chunk consists of the channel data
 stored in a non-interleaved fashion:
 
-=================================
-pixel sample data for channel 0
++------------------------------------+
+| pixel sample data for channel 0    |
++------------------------------------+
+| pixel sample data for channel 1    |
++------------------------------------+
+| pixel sample data for channel ...  |
++------------------------------------+
+| pixel sample data for channel n    |
++------------------------------------+
 
-pixel sample data for channel 1
-
-pixel sample data for channel ...
-
-pixel sample data for channel n
-=================================
 
 **Exception:**\ For ZIP_COMPRESSION only there will be up to 16
 scanlines in the packed sample data block:
 
-================================================
-pixel sample data for channel 0 for scanline 0
++--------------------------------------------------+
+| pixel sample data for channel 0 for scanline 0   |
++--------------------------------------------------+
+| pixel sample data for channel 1 for scanline 0   |
++--------------------------------------------------+
+| pixel sample data for channel ... for scanline 0 |
++--------------------------------------------------+
+| pixel sample data for channel n for scanline 0   |
++--------------------------------------------------+
+| pixel sample data for channel 0 for scanline 1   |
++--------------------------------------------------+
+| pixel sample data for channel 1 for scanline 1   |
++--------------------------------------------------+
+| pixel sample data for channel ... for scanline 1 |
++--------------------------------------------------+
+| pixel sample data for channel n for scanline 1   |
++--------------------------------------------------+
+| ...                                              |
++--------------------------------------------------+
 
-pixel sample data for channel 1 for scanline 0
-
-pixel sample data for channel ... for scanline 0
-
-pixel sample data for channel n for scanline 0
-
-pixel sample data for channel 0 for scanline 1
-
-pixel sample data for channel 1 for scanline 1
-
-pixel sample data for channel ... for scanline 1
-
-pixel sample data for channel n for scanline 1
-
-...
-================================================
 
 Deep data compression
 ~~~~~~~~~~~~~~~~~~~~~
@@ -697,80 +877,115 @@ Predefined Attribute Types
 
 The IlmImf library predefines the following attribute types:
 
-==============
-============================================================================================================================================================================================================================================================================================================
-box2i          Four *int*\ s: xMin, yMin, xMax, yMax
-box2f          Four *float*\ s: xMin, yMin, xMax, yMax
-chlist         A sequence of channels followed by a null byte (0x00).
-              
-               Channel layout:
-              
-chromaticities Eight *float*\ s: redX, redY, greenX, greenY, blueX, blueY, whiteX, whiteY
-compression    *unsigned* *char*, possible values are
-              
-               * NO_COMPRESSION* = 0
-              
-               * RLE_COMPRESSION* = 1
-              
-               * ZIPS_COMPRESSION* = 2
-              
-               * ZIP_COMPRESSION* = 3
-              
-               * PIZ_COMPRESSION* = 4
-              
-               * PXR24_COMPRESSION* = 5
-              
-               * B44_COMPRESSION* = 6
-              
-               * B44A_COMPRESSION* = 7
-double         *double*
-envmap         *unsigned* *char*, possible values are:
-              
-               * ENVMAP_LATLONG* = 0
-              
-               * ENVMAP_CUBE* = 1
-float          *float*
-int            *int*
-keycode        Seven *int*\ s: filmMfcCode, filmType, prefix, count, perfOffset, perfsPerFrame, perfsPerCount
-lineOrder      *unsigned* *char*, possible values are:
-              
-               * INCREASING_Y* = 0
-              
-               * DECREASING_Y* = 1
-              
-               * RANDOM_Y* = 2
-m33f           9 *float*\ s
-m44f           16 *float*\ s
-preview        Two *unsigned int*\ s, width and height, followed by 4×width×height *unsigned char*\ s of pixel data.
-              
-               Scan lines are stored top to bottom; within a scan line pixels are stored from left to right. A pixel consists of four *unsigned char*\ s, R, G, B, A.
-rational       An *int*, followed by an *unsigned int*.
-string         String length, of type *int*, followed by a sequence of *char*\ s.
-stringvector   A sequence of zero or more text strings. Each string is represented as a string length, of type *int*, followed by a sequence of *chars*. The number of strings can be inferred from the total attribute size (see the `Attribute Layout <#Header Attribute>`__ section, on page `8 <#Header Attribute>`__).
-tiledesc       Two *unsigned* *int*\ s: xSize, ySize, followed by mode, of type *unsigned char*, where
-              
-               mode = levelMode + roundingMode×16
-              
-               Possible values for levelMode:
-              
-               * ONE_LEVEL* = 0
-              
-               * MIPMAP_LEVELS* = 1
-              
-               * RIPMAP_LEVELS* = 2
-              
-               Possible values for roundingMode:
-              
-               * ROUND_DOWN* = 0
-              
-               * ROUND_UP* = 1
-timecode       Two *unsigned int*\ s: timeAndFlags, userData.
-v2i            Two *int*\ s
-v2f            Two *float*\ s
-v3i            Three *int*\ s.
-v3f            Three *float*\ s.
-==============
-============================================================================================================================================================================================================================================================================================================
++----------------+---------------------------------------------------------------+
+| type name      | data                                                          |
++================+===============================================================+
+| box2i          | Four *int*\ s: xMin, yMin, xMax, yMax                         |
++----------------+---------------------------------------------------------------+
+| box2f          | Four *float*\ s: xMin, yMin, xMax, yMax                       |
++----------------+---------------------------------------------------------------+
+| chlist         | A sequence of channels followed by a null byte (0x00).        |
+|                | Channel layout:                                               |
+|                +------------+--------------------------------------------------+
+|                | name       | zero-terminated string, from 1 to 255 bytes long |
+|                +------------+--------------------------------------------------+
+|                | pixel type | int, possible values are:                        |
+|                |            |                                                  |
+|                |            | * UINT=0                                         |
+|                |            | * HALF=1                                         |
+|                |            | * FLOAT=2                                        |
+|                |            |                                                  |
+|                +------------+--------------------------------------------------+
+|                | pLinear    | usigned char, possible values are 0 and 1        |
+|                +------------+--------------------------------------------------+
+|                | reserved   | three chars, should be zero                      |
+|                +------------+--------------------------------------------------+
+|                | xSampling  | int                                              |
+|                +------------+--------------------------------------------------+
+|                | ySampling  | int                                              |
++----------------+------------+--------------------------------------------------+
+| chromaticities | Eight *float*\ s: redX, redY, greenX, greenY,                 |
+|                | blueX, blueY, whiteX, whiteY                                  |
++----------------+---------------------------------------------------------------+
+| compression    | *unsigned* *char*, possible values are:                       |
+|                |                                                               |
+|                | * NO_COMPRESSION* = 0                                         |
+|                | * RLE_COMPRESSION* = 1                                        |
+|                | * ZIPS_COMPRESSION* = 2                                       |
+|                | * ZIP_COMPRESSION* = 3                                        |
+|                | * PIZ_COMPRESSION* = 4                                        |
+|                | * PXR24_COMPRESSION* = 5                                      |
+|                | * B44_COMPRESSION* = 6                                        |
+|                | * B44A_COMPRESSION* = 7                                       |
+|                |                                                               |
++----------------+---------------------------------------------------------------+
+| double         | *double*                                                      |
++----------------+---------------------------------------------------------------+
+| envmap         | *unsigned* *char*, possible values are:                       |
+|                | * ENVMAP_LATLONG* = 0                                         |
+|                | * ENVMAP_CUBE* = 1                                            |
++----------------+---------------------------------------------------------------+
+| float          | *float*                                                       |
++----------------+---------------------------------------------------------------+
+| int            | *int*                                                         |
++----------------+---------------------------------------------------------------+
+| keycode        | Seven *int*\ s: filmMfcCode, filmType, prefix, count,         |
+|                | perfOffset, perfsPerFrame, perfsPerCount                      |
++----------------+---------------------------------------------------------------+
+| lineOrder      | *unsigned* *char*, possible values are:                       |
+|                | * INCREASING_Y* = 0                                           |
+|                | * DECREASING_Y* = 1                                           |
+|                | * RANDOM_Y* = 2                                               |
+|                |                                                               |
++----------------+---------------------------------------------------------------+
+| m33f           | 9 *float*\ s                                                  |
++----------------+---------------------------------------------------------------+
+| m44f           | 16 *float*\ s                                                 |
++----------------+---------------------------------------------------------------+
+| preview        | Two *unsigned int*\ s, width and height, followed by          |
+|                | 4×width×height *unsigned char*\ s of pixel data.              |
+|                | Scan lines are stored top to bottom; within a scan line       |
+|                | pixels are stored from left to right. A pixel consists of     |
+|                | four *unsigned char* s, R, G, B, A.                           |
++----------------+---------------------------------------------------------------+
+| rational       | An *int*, followed by an *unsigned int*.                      |
++----------------+---------------------------------------------------------------+
+| string         | String length, of type *int*, followed by a sequence of       |
+|                | *char*\ s.                                                    |
++----------------+---------------------------------------------------------------+
+| stringvector   | A sequence of zero or more text strings. Each string is       | 
+|                | represented as a string length, of type *int*, followed by a  |
+|                | sequence of *chars*. The number of strings can be inferred    |
+|                | from the total attribute size                                 |
+|                | (see the `Attribute Layout <#Header Attribute>`__ section, on |
+|                | page `8 <#Header Attribute>`__).                              |
++----------------+---------------------------------------------------------------+
+| tiledesc       | Two *unsigned* *int*\ s: xSize, ySize, followed by mode, of   |
+|                | type *unsigned char*, where                                   |
+|                |                                                               |
+|                |   mode = levelMode + roundingMode×16                          |
+|                |                                                               |
+|                | Possible values for levelMode:                                |
+|                | * ONE_LEVEL* = 0                                              |
+|                | * MIPMAP_LEVELS* = 1                                          |
+|                | * RIPMAP_LEVELS* = 2                                          |
+|                |                                                               |
+|                | Possible values for roundingMode:                             |
+|                | * ROUND_DOWN* = 0                                             |
+|                | * ROUND_UP* = 1                                               |
+|                |                                                               |
++----------------+---------------------------------------------------------------+
+| timecode       | Two *unsigned int*\ s: timeAndFlags, userData.                |
++----------------+---------------------------------------------------------------+
+| v2i            | Two *int*\ s                                                  |
++----------------+---------------------------------------------------------------+
+| v2f            | Two *float*\ s                                                |
++----------------+---------------------------------------------------------------+
+| v3i            | Three *int*\ s.                                               |
++----------------+---------------------------------------------------------------+
+| v3f            | Three *float*\ s.                                             |
++----------------+---------------------------------------------------------------+
+
 
 Sample File
 ===========
@@ -788,183 +1003,170 @@ and text strings. The third and fourth lines indicate how those basic
 objects form compound objects such as attributes or the line offset
 table.
 
-================================================
-20000630 \| 2 \| c h a n n e l s
-magic number \| version, flags \| attribute name
-\| \| start of header
-================================================
-
-======================================================
-00 63 68 6c 69 73 74 00 25 00 00 00 47 00 01 00
-\\0 \| c h l i s t \\0 \| 37 \| G \\0 \| HALF
-\| attribute type \| attribute size \| attribute value
-\ 
-======================================================
-
-===============================================
-00 00 00 00 00 00 01 00 00 00 01 00 00 00 5a 00
-\| 0 \| 0 \| 1 \| 1 \| Z \\0 \|
-\ 
-\ 
-===============================================
-
-===============================================
-02 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00
-FLOAT \| 0 \| 0 \| 1 \| 1 \|
-\|
-\ 
-===============================================
-
-===============================================
-00 63 6f 6d 70 72 65 73 73 69 6f 6e 00 63 6f 6d
-\\0 \| c o m p r e s s i o n \\0 \| c o m
-\| attribute name \| attribute type
-\ 
-===============================================
-
-===============================================
-70 72 65 73 73 69 6f 6e 00 01 00 00 00 00 64 61
-p r e s s i o n \\0 \| 1 \| NONE\| d a
-\| attribute size \|value\|
-\ 
-===============================================
-
-===============================================
-74 61 57 69 6e 64 6f 77 00 62 6f 78 32 69 00 10
-t a W i n d o w \\0 \| b o x 2 i \\0 \|
-attribute name \| attribute type \|
-\ 
-===============================================
-
-===============================================
-00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 02
-16 \| 0 \| 0 \| 3 \|
-attribute size\| attribute value
-\ 
-===============================================
-
-===============================================
-00 00 00 64 69 73 70 6c 61 79 57 69 6e 64 6f 77
-2 \| d i s p l a y W i n d o w
-\| attribute name
-\ 
-===============================================
-
-======================================================
-00 62 6f 78 32 69 00 10 00 00 00 00 00 00 00 00
-\\0 \| b o x 2 i \\0 \| 16 \| 0 \|
-\| attribute type \| attribute size \| attribute value
-\ 
-======================================================
-
-===============================================
-00 00 00 03 00 00 00 02 00 00 00 6c 69 6e 65 4f
-0 \| 3 \| 2 \| l i n e O
-\| attribute name
-\ 
-===============================================
-
-===============================================
-72 64 65 72 00 6c 69 6e 65 4f 72 64 65 72 00 01
-r d e r \\0 \| l i n e O r d e r \\0 \|
-\| attribute type \|
-\ 
-===============================================
-
-===============================================
-00 00 00 00 70 69 78 65 6c 41 73 70 65 63 74 52
-1 \|INCY \| p i x e l A s p e c t R
-attribute size|value\| attribute name
-\ 
-===============================================
-
-===============================================
-61 74 69 6f 00 66 6c 6f 61 74 00 04 00 00 00 00
-a t i o \\0 \| f l o a t \\0 \| 4 \|
-\| attribute type \| attribute size \|
-\ 
-===============================================
-
-===============================================
-00 80 3f 73 63 72 65 65 6e 57 69 6e 64 6f 77 43
-1.0 \| s c r e e n W i n d o w C
-attribute value\| attribute name
-\ 
-===============================================
-
-===============================================
-65 6e 74 65 72 00 76 32 66 00 08 00 00 00 00 00
-e n t e r \\0 \| v 2 f \\0 \| 8 \|
-\| attribute type \| attribute size \|
-\ 
-===============================================
-
-===============================================
-00 00 00 00 00 00 73 63 72 65 65 6e 57 69 6e 64
-0.0 \| 0.0 \| s c r e e n W i n d
-attribute value \| attribute name
-\ 
-===============================================
-
-===============================================
-6f 77 57 69 64 74 68 00 66 6c 6f 61 74 00 04 00
-o w W i d t h \\0 \| f l o a t \\0 \|
-\| attribute type \|
-\ 
-===============================================
-
-======================================================
-00 00 00 00 80 3f 00 3f 01 00 00 00 00 00 00 5f
-4 \| 1.0 \| \\0 \| 319 \|
-size \| attribute value \| \| offset of scan line 0 \|
-end of header \| start of scan line offset table
-======================================================
-
-=================================================
-01 00 00 00 00 00 00 7f 01 00 00 00 00 00 00 00
-351 \| 383 \|
-offset of scan line 1 \| offset of scan line 2 \|
-end of scan line offset table \|
-=================================================
-
-===================================================
-00 00 00 18 00 00 00 00 00 54 29 d5 35 e8 2d 5c
-0 \| 24 \| 0.000 \| 0.042 \| 0.365 \| 0.092 \|
-y \| pixel data size \| pixel data for G channel \|
-scan line 0
-===================================================
-
-===================================================
-28 81 3a cf e1 34 3e 8b 0b bb 3d 89 74 f9 3e 01
-0.000985395 \| 0.176643 \| 0.0913306 \| 0.487217 \|
-pixel data for Z channel \|
-\|
-===================================================
-
-===================================================
-00 00 00 18 00 00 00 37 38 76 33 74 3b 73 38 7f
-1 \| 24 \| 0.527 \| 0.233 \| 0.932 \| 0.556 \|
-y \| pixel data size \| pixel data for G channel \|
-scan line 1
-===================================================
-
-===============================================
-ab e8 3e 8a cf 54 3f 5b 6c 11 3f 20 35 50 3d 02
-0.454433 \| 0.831292 \| 0.56806 \| 0.0508319 \|
-pixel data for Z channel \|
-\|
-===============================================
-
-===================================================
-00 00 00 18 00 00 00 23 3a 0a 34 02 3b 5d 3b 38
-2 \| 24 \| 0.767 \| 0.252 \| 0.876 \| 0.920 \|
-y \| pixel data size \| pixel data for G channel \|
-scan line 2
-===================================================
-
-==============================================
-f3 9a 3c 4d ad 98 3e 1c 14 08 3f 4c f3 03 3f
-0.0189148 \| 0.298197 \| 0.531557 \| 0.515431 
-pixel data for Z channel 
-end of file
-==============================================
+.. code-block::
+       
+     76   2f   31   01   02   00   00   00   63   68   61   6e   6e   65   6c   73
+          20000630     |         2         |  c    h    a    n    n    e    l    s
+        magic number   |  version, flags   | attribute name
+                       |                   | start of header
+.. code-block::
+    
+     00   63   68   6c   69   73   74   00   25   00   00   00   47   00   01   00
+     \0 |  c    h    l    i    s    t   \0 |        37         |  G   \0 | HALF
+        | attribute type                   | attribute size    | attribute value
+    
+.. code-block::
+    
+     00   00   00   00   00   00   01   00   00   00   01   00   00   00   5a   00
+             |  0 |      0       |         1         |         1         |  Z   \0 |
+    
+    
+.. code-block::
+    
+     02   00   00   00   00   00   00   00   01   00   00   00   01   00   00   00
+     FLOAT             |  0 |      0       |         1         |         1         |
+                                                                                   |
+.. code-block::
+    
+     00   63   6f   6d   70   72   65   73   73   69   6f   6e   00   63   6f   6d
+     \0 |  c    o    m    p    r    e    s    s    i    o    n   \0 |  c    o    m
+        | attribute name                                            | attribute type
+    
+.. code-block::
+    
+     70   72   65   73   73   69   6f   6e   00   01   00   00   00   00   64   61
+      p    r    e    s    s    i    o    n   \0 |         1         | NONE| d    a
+                                                | attribute size    |value|
+    
+.. code-block::
+    
+     74   61   57   69   6e   64   6f   77   00   62   6f   78   32   69   00   10
+      t    a    W    i    n    d    o    w   \0 |  b    o    x    2    i   \0 |
+     attribute name                             | attribute type              |
+    
+.. code-block::
+    
+     00   00   00   00   00   00   00   00   00   00   00   03   00   00   00   02
+        16        |         0         |         0         |         3         |
+    attribute size| attribute value
+    
+.. code-block::
+    
+     00   00   00   64   69   73   70   6c   61   79   57   69   6e   64   6f   77
+        2         |  d    i    s    p    l    a    y    W    i    n    d    o    w
+                  | attribute name
+    
+.. code-block::
+    
+     00   62   6f   78   32   69   00   10   00   00   00   00   00   00   00   00
+     \0 |  b    o    x    2    i   \0 |        16         |         0         |
+        | attribute type              | attribute size    | attribute value
+    
+    
+.. code-block::
+    
+     00   00   00   03   00   00   00   02   00   00   00   6c   69   6e   65   4f
+        0         |         3         |         2         |  l    i    n    e    O
+                                                          | attribute name
+    
+.. code-block::
+    
+     72   64   65   72   00   6c   69   6e   65   4f   72   64   65   72   00   01
+      r    d    e    r   \0 |  l    i    n    e    O    r    d    e    r   \0 |
+                            | attribute type                                  |
+    
+.. code-block::
+    
+     00   00   00   00   70   69   78   65   6c   41   73   70   65   63   74   52
+        1         |INCY | p    i    x    e    l    A    s    p    e    c    t    R
+    attribute size|value| attribute name
+    
+.. code-block::
+    
+     61   74   69   6f   00   66   6c   6f   61   74   00   04   00   00   00   00
+      a    t    i    o   \0  | f    l    o    a    t   \0 |         4         |
+                             | attribute type             | attribute size    |
+    
+    
+.. code-block::
+       
+     00   80   3f   73   63   72   65   65   6e   57   69   6e   64   6f   77   43
+       1.0         | s    c    r    e    e    n    W    i    n    d    o    w    C
+    attribute value| attribute name
+    
+    
+.. code-block::
+    
+     65   6e   74   65   72   00   76   32   66   00   08   00   00   00   00   00
+      e    n    t    e    r   \0 |  v    2    f   \0 |         8         |
+                                 | attribute type    | attribute size    |
+    
+    
+.. code-block::
+       
+     00   00   00   00   00   00   73   63   72   65   65   6e   57   69   6e   64
+    0.0      |         0.0       |  s    c    r    e    e    n    W    i    n    d
+    attribute value              | attribute name
+    
+    
+.. code-block::
+       
+     6f   77   57   69   64   74   68   00   66   6c   6f   61   74   00   04   00
+      o    w    W    i    d    t    h   \0 |  f    l    o    a    t   \0 |
+                                           | attribute type              |
+    
+    
+.. code-block::
+       
+     00   00   00   00   80   3f   00   3f   01   00   00   00   00   00   00   5f
+    4        |        1.0       | \0  |                  319                  |
+    size     | attribute value  |     |        offset of scan line 0          |
+                        end of header | start of scan line offset table
+    
+.. code-block::
+       
+     01   00   00   00   00   00   00   7f   01   00   00   00   00   00   00   00
+                 351                   |                 383                  |
+       offset of scan line 1           |       offset of scan line 2          |
+                                                end of scan line offset table |
+    
+.. code-block::
+       
+     00   00   00   18   00   00   00   00   00   54   29   d5   35   e8   2d   5c
+        0         |         24        |  0.000  |  0.042  |  0.365  |  0.092  |
+        y         |  pixel data size  |  pixel data for G channel             |
+      scan line 0
+    
+.. code-block::
+       
+     28   81   3a   cf   e1   34   3e   8b   0b   bb   3d   89   74   f9   3e   01
+    0.000985395   |   0.176643        |   0.0913306       |   0.487217        |
+    pixel data for Z channel                                                  |
+                                                                              |
+.. code-block::
+       
+     00   00   00   18   00   00   00   37   38   76   33   74   3b   73   38   7f
+        1         |         24        |  0.527  |  0.233  |  0.932  |  0.556  |
+        y         |  pixel data size  |  pixel data for G channel             |
+      scan line 1
+    
+.. code-block::
+       
+     ab   e8   3e   8a   cf   54   3f   5b   6c   11   3f   20   35   50   3d   02
+    0.454433      |   0.831292        |   0.56806         |   0.0508319       |
+    pixel data for Z channel                                                  |
+                                                                              |
+    
+.. code-block::
+       
+     00   00   00   18   00   00   00   23   3a   0a   34   02   3b   5d   3b   38
+        2         |         24        |  0.767  |  0.252  |  0.876  |  0.920  |
+        y         |  pixel data size  |  pixel data for G channel             |
+      scan line 2
+    
+.. code-block::
+       
+     f3   9a   3c   4d   ad   98   3e   1c   14   08   3f   4c   f3   03   3f
+    0.0189148     |   0.298197        |   0.531557        |   0.515431       
+    pixel data for Z channel                                                 
+                                                                  end of file

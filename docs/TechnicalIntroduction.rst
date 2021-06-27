@@ -23,131 +23,117 @@ two years, ILM released OpenEXR as an open-source C++ library.
 A unique combination of features makes OpenEXR a good fit for
 high-quality image processing and storage applications:
 
-* high dynamic range
+**high dynamic range**
+  Pixel data are stored as 16-bit or 32-bit floating-point numbers. With 16
+  bits, the representable dynamic range is significantly higher than the range
+  of most image capture devices: 109 or 30 f-stops without loss of precision,
+  and an additional 10 f-stops at the low end with some loss of precision. Most
+  8-bit file formats have around 7 to 10 stops.
 
-  Pixel data are stored as 16-bit or 32-bit floating-point
-  numbers. With 16 bits, the representable dynamic range is
-  significantly higher than the range of most image capture devices:
-  109 or 30 f-stops without loss of precision, and an additional 10
-  f-stops at the low end with some loss of precision. Most 8-bit file
-  formats have around 7 to 10 stops.
+**good color resolution**
+  With 16-bit floating-point numbers, color resolution is 1024 steps per f-stop,
+  as opposed to somewhere around 20 to 70 steps per f-stop for most 8-bit file
+  formats. Even after significant processing (for example, extensive color
+  correction) images tend to show no noticeable color banding.
 
-* good color resolution
-
-  With 16-bit floating-point numbers, color resolution is 1024 steps
-  per f-stop, as opposed to somewhere around 20 to 70 steps per f-stop
-  for most 8-bit file formats. Even after significant processing (for
-  example, extensive color correction) images tend to show no
-  noticeable color banding.
-
-* compatible with graphics hardware
-
-  The 16-bit floating-point data format is fully compatible with the
-  16-bit frame-buffer data format used in some new graphics
-  hardware. Images can be transferred back and forth between an
-  OpenEXR file and a 16-bit floating-point frame buffer without losing
-  data.
-                                                   
-  Most of the data compression methods currently implemented in
-  OpenEXR are lossless; repeatedly compressing and uncompressing an
-  image does not change the image data. With the lossless compression
-  methods, photographic images with significant amounts of film grain
-  tend to shrink to somewhere between 35 and 55 percent of their
-  uncompressed size. OpenEXR also supports lossy compression, which
-  tends to shrink image files more than lossless compression, but
-  doesn't preserve the image data exactly. New lossless and lossy
+**compatible with graphics hardware**
+  The 16-bit floating-point data format is fully compatible with the 16-bit
+  frame-buffer data format used in some new graphics hardware. Images can
+  be transferred back and forth between an OpenEXR file and a 16-bit
+  floating-point frame buffer without losing data.
+                                                      
+  Most of the data compression methods currently implemented in OpenEXR are
+  lossless; repeatedly compressing and uncompressing an image does not change
+  the image data. With the lossless compression methods, photographic images
+  with significant amounts of film grain tend to shrink to somewhere between 35
+  and 55 percent of their uncompressed size. OpenEXR also supports lossy
+  compression, which tends to shrink image files more than lossless compression,
+  but doesn't preserve the image data exactly. New lossless and lossy
   compression schemes can be added in the future.
 
-* arbitrary image channels
+**arbitrary image channels**
 
-  OpenEXR images can contain an arbitrary number and combination of
-  image channels, for example red, green, blue, and alpha; luminance
-  and sub-sampled chroma channels; depth, surface normal directions,
-  or motion vectors.
+  OpenEXR images can contain an arbitrary number and combination of image
+  channels, for example red, green, blue, and alpha; luminance and sub-sampled
+  chroma channels; depth, surface normal directions, or motion vectors.
 
-* scan line and tiled images, multi-resolution images
+**scan line and tiled images, multi-resolution images**
 
   Pixels in an OpenEXR file can be stored either as scan lines or as
-  tiles. Tiled image files allow random-access to rectangular
-  sub-regions of an image. Multiple versions of a tiled image, each
-  with a different resolution, can be stored in a single
-  multi-resolution OpenEXR file.
+  tiles. Tiled image files allow random-access to rectangular sub-regions of an
+  image. Multiple versions of a tiled image, each with a different resolution,
+  can be stored in a single multi-resolution OpenEXR file.
+                                                      
+  Multi-resolution images, often called "mipmaps" or "ripmaps", are commonly
+  used as texture maps in 3D rendering programs to accelerate filtering during
+  texture lookup, or for operations like stereo image matching. Tiled
+  multiresultion images are also useful for implementing fast zooming and
+  panning in programs that interactively display very large images.
+
+**ability to store additional data**
+
+  Often it is necessary to annotate images with additional data; for example,
+  color timing information, process tracking data, or camera position and view
+  direction. OpenEXR allows storing of an arbitrary number of extra attributes,
+  of arbitrary type, in an image file. Software that reads OpenEXR files ignores
+  attributes it does not understand.
+
+**easy-to-use C++ and C programming interfaces**
+
+  In order to make writing and reading OpenEXR files easy, the file format was
+  designed together with a C++ programming interface. Two levels of access to
+  image files are provided: a fully general interface for writing and reading
+  files with arbitrary sets of image channels, and a specialized interface for
+  the most common case (red, green, blue, and alpha channels, or some subset of
+  those). Additionally, a C-callable version of the programming interface
+  supports reading and writing OpenEXR files from programs written in C.
+                                                      
+  Many application programs expect image files to be scan line based. With the
+  OpenEXR programming interface, applications that cannot handle tiled images
+  can treat all OpenEXR files as if they were scan line based; the interface
+  automatically converts tiles to scan lines.
+                                                      
+  The C++ and C interfaces are implemented in the open-source IlmImf library.
+
+**fast multi-threaded file reading and writing**
+  The IlmImf library supports multi-threaded reading or writing of an OpenEXR
+  image file: while one thread performs low-level file input or output, multiple
+  other threads simultaneously encode or decode individual pieces of the file.
+
+**portability**
+  The OpenEXR file format is hardware and operating system independent. While
+  implementing the C and C++ programming interfaces, an effort was made to use
+  only language features and library functions that comply with the C and C++
+  ISO standards.
+
+**multi-view**
+  A “multi-view” image shows the same scene from multiple different points of
+  view. A common application is 3D stereo imagery, where a left-eye and a
+  right-eye view of a scene are stored in a single file.
                                                    
-  Multi-resolution images, often called "mipmaps" or "ripmaps", are
-  commonly used as texture maps in 3D rendering programs to accelerate
-  filtering during texture lookup, or for operations like stereo image
-  matching. Tiled multiresultion images are also useful for
-  implementing fast zooming and panning in programs that interactively
-  display very large images.
+**deep data**
 
-* ability to store additional data
-
-  Often it is necessary to annotate images with additional data; for
-  example, color timing information, process tracking data, or camera
-  position and view direction. OpenEXR allows storing of an arbitrary
-  number of extra attributes, of arbitrary type, in an image
-  file. Software that reads OpenEXR files ignores attributes it does
-  not understand.
-
-* easy-to-use C++ and C programming interfaces
-
-  In order to make writing and reading OpenEXR files easy, the file
-  format was designed together with a C++ programming interface. Two
-  levels of access to image files are provided: a fully general
-  interface for writing and reading files with arbitrary sets of image
-  channels, and a specialized interface for the most common case (red,
-  green, blue, and alpha channels, or some subset of
-  those). Additionally, a C-callable version of the programming
-  interface supports reading and writing OpenEXR files from programs
-  written in C. 
-                                                   
-  Many application programs expect image files to be scan line
-  based. With the OpenEXR programming interface, applications that
-  cannot handle tiled images can treat all OpenEXR files as if they
-  were scan line based; the interface automatically converts tiles to
-  scan lines.
-                                                   
-  The C++ and C interfaces are implemented in the open-source IlmImf
-  library.
-
-* fast multi-threaded file reading and writing
-
-  The IlmImf library supports multi-threaded reading or writing of an
-  OpenEXR image file: while one thread performs low-level file input
-  or output, multiple other threads simultaneously encode or decode
-  individual pieces of the file.
-  
-* portability
-
-  The OpenEXR file format is hardware and operating system
-  independent. While implementing the C and C++ programming
-  interfaces, an effort was made to use only language features and
-  library functions that comply with the C and C++ ISO standards.
-
-* multi-view
-
-  A “multi-view” image shows the same scene from multiple different
-  points of view. A common application is 3D stereo imagery, where a
-  left-eye and a right-eye view of a scene are stored in a single
-  file. 
-                                                   
-For more information about multi-view files, see *Storing Multi-View Images in OpenEXR Files*.
-
-Features Which Have Been Added in 2.0
--------------------------------------
-
-For the 2.0 release of OpenEXR, these features have been added:
-
-==========
-===========================================================================================================================================================================================================================================================================================================================================================================
-deep data  Support for a new data type has been added: deep data. Deep images store an arbitrarily long list of data at each pixel location. This is different from multichannel or 'deep channel images' which can store a potentially large, but fixed, amount of information at each pixel. In a deep image, each pixel stores a different amount of data.
+  Support for a new data type has been added: deep data. Deep images store an
+  arbitrarily long list of data at each pixel location. This is different from
+  multichannel or 'deep channel images' which can store a potentially large, but
+  fixed, amount of information at each pixel. In a deep image, each pixel stores
+  a different amount of data.
           
-           This allows for more accurate compositing of objects which occlude each other, and provides a method for storing opacity data in the z direction (particularly useful for stereo images which have atmospheric effects such fog).
-multi-part Multi-part files allow for storing multiple images in one OpenEXR file. One important application is to store layers of channels separately. This allows for faster access when only a subset of the channels needs reading. It also permits layers to have differing data layout (for example, for different compression, or different layout) and different data windows.
+  This allows for more accurate compositing of objects which occlude each other,
+  and provides a method for storing opacity data in the z direction
+  (particularly useful for stereo images which have atmospheric effects such
+  fog).
+
+**multi-part**
+  Multi-part files allow for storing multiple images in one OpenEXR file. One
+  important application is to store layers of channels separately. This allows
+  for faster access when only a subset of the channels needs reading. It also
+  permits layers to have differing data layout (for example, for different
+  compression, or different layout) and different data windows.
           
-           It also allows some layers to be stored as deep data and others as regular images. With multi-part files, different views are stored in different parts.
-==========
-===========================================================================================================================================================================================================================================================================================================================================================================
+  It also allows some layers to be stored as deep data and others
+  as regular images. With multi-part files, different views are
+  stored in different parts.
 
 Overview of the OpenEXR File Format
 ===================================
@@ -193,7 +179,10 @@ Examples:
    window is set to (-100, -100) - (2019, 1179). The extra pixels are
    not normally displayed. Their existence allows operations such as
    large-kernel blurs or simulated camera shake to avoid edge artifacts.
+
 .. image:: images/windowExample1.png 
+   :align: center
+
 3. While tweaking a computer-generated element, an artist
    repeatedly renders the same frame. To save time, the artist renders
    only a small region of interest close to the center of the image. The
@@ -201,8 +190,9 @@ Examples:
    the image is displayed, the display program fills the area outside of
    the data window with some default color.
 
-.. image1:: images/windowExample2.png
-
+.. image:: images/windowExample2.png
+   :align: center
+           
 Image channels and sampling rates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -230,10 +220,8 @@ For a few channel names, interpretation of the data is predefined:
      - alpha/opacity: 0.0 means the pixel is transparent; 1.0 means
        the pixel is opaque. By convention, all color channels are
        premultiplied by alpha, so that
-       "foreground + (1-alpha) × background" performs a correct "over"
-       operation. (See `Premultiplied vs. Un-Premultiplied Color
-       Channels`)
-
+       "foreground + (1-alpha) x background" performs a correct "over"
+       operation. (See _`Premultiplied vs. Un-Premultiplied Color Channels`)
 
 Three channel data types are currently supported:
 
@@ -244,8 +232,7 @@ Three channel data types are currently supported:
      - description
    * - HALF
      - 16-bit floating-point numbers; for regular image data. (See
-       `The HALF Data Type <#anchor-1>`__, on page `18
-       <#anchor-2>`__.)
+       _`The HALF Data Type`.
    * - FLOAT
      - 32-bit IEEE-754 floating-point numbers; used where the range or
        precision of 16-bit number is not sufficient (for example,
@@ -272,11 +259,11 @@ example, in images with one luminance channel, Y, and two croma
 channels, RY and BY, s\ :sub:`x` and s\ :sub:`y` would be 1 for the Y
 channel, but for the RY and BY channels, s\ :sub:`x` and s\ :sub:`y`
 might be set to 2, indicating that chroma data are only given for one
-out of every four pixels. (See also `Luminance/Chroma
-Images`).
+out of every four pixels. (See also _`Luminance/Chroma Images`).
 
 .. image:: images/screenwin.png
-           
+   :align: center
+      
 Projection, camera coordinate system and screen window
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -313,17 +300,18 @@ p\ :sub:`y` pixels. An image whose data window is
 ceil(w/p\ :sub:`x`) by ceil(h/p\ :sub:`y`) tiles, where w and h are the
 width and height of the data window:
 
-w = x\ :sub:`max` - x:sub:`min` + 1
+    w = x\ :sub:`max` - x:sub:`min` + 1
 
-h = y\ :sub:`max` - y:sub:`min` + 1
+    h = y\ :sub:`max` - y:sub:`min` + 1
 
 The upper left corner of the upper left tile is aligned with the upper
-left corner of the data window, at (x:sub:`min`, y\ :sub:`min`). The
+left corner of the data window, at (x:sub:`min`, y\ :sub:`min`). The
 rightmost column and the bottom row of tiles may extend outside the data
 window. If a tile contains pixels that are outside the data window, then
 those extra pixels are discarded when the tile is stored in the file.
 
 .. image:: images/tiles.png
+   :align: center
            
 Levels and level modes
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -333,32 +321,55 @@ image, each with a different resolution. Each version is called a
 *level*. The number of levels in a file and their resolutions depend on
 the file's *level mode*. Currently, OpenEXR supports three level modes:
 
-ONE_LEVEL     The file contains only a single full-resolution level. A tiled ONE_LEVEL file is equivalent to a scan line based file; the only difference is that pixels are accessed by tile rather than by scan line.
-MIPMAP_LEVELS The file contains multiple versions of the image. Each successive level is half the resolution of the previous level in both dimensions. The lowest-resolution level contains only a single pixel. For example, if the first level, with full resolution, contains 16×8 pixels, then the file contains four more levels with 8×4, 4×2, 2×1, and 1×1 pixels respectively.
-RIPMAP_LEVELS Like MIPMAP_LEVELS, but with more levels. The levels include all combinations of reducing the resolution of the first level by powers of two independently in both dimensions. For example, if the first level contains 4×4 pixels, then the file contains eight more levels, with the following resolutions:
-\            
-=============
-========================================================================================================================================================================================================================================================================================================================================================================
-
++---------------+-------------------------------------------------------------------+
+| mode name     | description                                                       |
++---------------+-------------------------------------------------------------------+
+| ONE_LEVEL     | The file contains only a single full-resolution level. A tiled    |
+|               | ONE_LEVEL file is equivalent to a scan line based file; the       |
+|               | only difference is that pixels are accessed by tile rather than   |
+|               | by scan line.                                                     |
++---------------+-------------------------------------------------------------------+
+| MIPMAP_LEVELS | The file contains multiple versions of the image. Each            |
+|               | successive level is half the resolution of the previous level     |
+|               | in both dimensions. The lowest-resolution level contains only a   |
+|               | single pixel. For example, if the first level, with full          |
+|               | resolution, contains 16×8 pixels, then the file contains four     |
+|               | more levels with 8×4, 4×2, 2×1, and 1×1 pixels respectively.      |
++---------------+-------------------------------------------------------------------+
+| RIPMAP_LEVELS | Like MIPMAP_LEVELS, but with more levels. The levels include      |
+|               | all combinations of reducing the resolution of the first level    |
+|               | by powers of two independently in both dimensions. For example,   |
+|               | if the first level contains 4×4 pixels, then the file contains    |
+|               | eight more levels, with the following resolutions:                |
+|               |                                                                   |
+|               |  +-----+-----+-----+                                              |
+|               |  |     | 2x4 | 1x4 |                                              |
+|               |  +-----+-----+-----+                                              |
+|               |  | 4x2 | 2x2 | 1x2 |                                              |
+|               |  +-----+-----+-----+                                              |
+|               |  | 4x1 | 2x1 | 1x1 |                                              |
+|               |  +-----+-----+-----+                                              |
++---------------+-------------------------------------------------------------------+
+       
 Level numbers, level size and rounding mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Levels are identified by *level numbers*. A level number is a pair of
-integers, (l:sub:`x`, l\ :sub:`y`). Level (0,0) is the
+integers, (l:sub:`x`, l\ :sub:`y`). Level (0,0) is the
 highest-resolution level, with w by h pixels. Level
-(l:sub:`x`, l\ :sub:`y`) contains
+(l:sub:`x`, l\ :sub:`y`) contains
 
-|image4|
+    rf (w / 2 ^ l_x)
 
 by
 
-|image5|
+    rf (h / 2 ^ l_y)
 
 pixels, where rf(x) is a rounding function, either floor(x) or ceil(x),
 depending on the file's *level size rounding mode* (ROUND_DOWN or
 ROUND_UP).
 
-MIPMAP_LEVELS files contain only levels where l\ :sub:`x` = l:sub:`y`.
+MIPMAP_LEVELS files contain only levels where l\ :sub:`x` = l:sub:`y`.
 ONE_LEVEL files contain only level (0,0).
 
 Examples:
@@ -366,24 +377,34 @@ Examples:
 1. The levels in a RIPMAP_LEVELS file whose highest-resolution level
    contains 4 by 4 pixels have the following level numbers:
 
-========== ===== ===== ===== =====
-\                **4** **2** **1**
-\          **4** (0,0) (1,0) (2,0)
-**height** **2** (0,1) (1,1) (2,1)
-\          **1** (0,2) (1,2) (2,2)
-========== ===== ===== ===== =====
++------------+-------+------------------------+
+|            |       | .. centered: **width** |
++------------+-------+-------+-------+--------+
+|            |       | **4** | **2** | **1**  |
++------------+-------+-------+-------+--------+
+|            | **4** | (0,0) | (1,0) | (2,0)  |
++------------+-------+-------+-------+--------+
+| **height** | **2** | (0,1) | (1,1) | (2,1)  |
++------------+-------+-------+-------+--------+
+|            | **1** | (0,2) | (1,2) | (2,2)  |
++------------+-------+-------+-------+--------+
 
 In an equivalent MIPMAP_LEVELS file, only levels (0,0), (1,1), and (2,2)
 are present.
 
-1. In a MIPMAP_LEVELS file with a highest-resolution level of 15 by 17
+2. In a MIPMAP_LEVELS file with a highest-resolution level of 15 by 17
    pixels, the resolutions of the remaining levels depend on the level
    size rounding mode:
 
-========== ==============================
-ROUND_DOWN 15×17, 7×8, 3×4, 1×2, 1×1
-ROUND_UP   15×17, 8×9, 4×5, 2×3, 1×2, 1×1
-========== ==============================
+.. list-table::
+   :header-rows: 1
+
+   * - rounding mode
+     - level resolution
+   * - ROUND_DOWN
+     - 15×17, 7×8, 3×4, 1×2, 1×1
+   * - ROUND_UP
+     - 15×17, 8×9, 4×5, 2×3, 1×2, 1×1
 
 Tile coordinates
 ~~~~~~~~~~~~~~~~
@@ -457,17 +478,35 @@ attribute is a named data item of an arbitrary type. To ensure that
 OpenEXR files written by one program can be read by other programs,
 certain required attributes must be present in all OpenEXR file headers:
 
-=====================================
-========================================================================================================================================================================================================================================================================================================================================
-displayWindow, dataWindow             The image's display and data window.
-pixelAspectRatio                      Width divided by height of a pixel when the image is displayed with the correct aspect ratio. A pixel's width (height) is the distance between the centers of two horizontally (vertically) adjacent pixels on the display.
-channels                              Description of the image channels stored in the file.
-compression                           Specifies the compression method applied to the pixel data of all channels in the file.
-lineOrder                             Specifies in what order the scan lines in the file are stored in the file (increasing Y, decreasing Y, or, for tiled images, also random Y).
-screenWindowWidth, screenWindowCenter Describe the perspective projection that produced the image (see page `6 <#definition of "projection">`__). Programs that deal with images as purely two-dimensional objects may not be able so generate a description of a perspective projection. Those programs should set screenWindowWidth to 1, and screenWindowCenter to  (0, 0).
-tileDescription                       This attribute is required only for tiled files. It specifies the size of the tiles, and the file's level mode.
-=====================================
-========================================================================================================================================================================================================================================================================================================================================
+.. list-table::
+   :header-rows: 1
+   
+   * - attribute name
+     - description
+   * - displayWindow, dataWindow
+     - The image's display and data window.
+   * - pixelAspectRatio
+     - Width divided by height of a pixel when the image is displayed
+       with the correct aspect ratio. A pixel's width (height) is the
+       distance between the centers of two horizontally (vertically)
+       adjacent pixels on the display. 
+   * - channels
+     - Description of the image channels stored in the file. 
+   * - compression
+     - Specifies the compression method applied to the pixel data of
+       all channels in the file. 
+   * - lineOrder
+     - Specifies in what order the scan lines in the file are stored
+       in the file (increasing Y, decreasing Y, or, for tiled images,
+       also random Y). 
+   * - screenWindowWidth, screenWindowCenter
+     - Describe the perspective projection that produced the image.  Programs that
+       deal with images as purely two-dimensional objects may not be able so
+       generate a description of a perspective projection. Those programs should
+       set screenWindowWidth to 1, and screenWindowCenter to (0, 0).
+   * - tileDescription
+     - This attribute is required only for tiled files. It specifies
+       the size of the tiles, and the file's level mode. 
 
 In addition to the required attributes, a program may place any number
 of additional attributes in the file's header. Often it is necessary to
@@ -481,16 +520,21 @@ Multi-view header attributes
 
 This attribute is required in the header for multi-view OpenEXR files.
 
-====
-====================================================================================================================
-view Specifies the view this part is associated with (mostly used for files which stereo views).
-    
-     If there is no view attribute in the header, the entire part contains information not dependent on a particular eye.
-====
-====================================================================================================================
+.. list-table::
+   :header-rows: 1
+   
+   * - attribute name
+     - notes
+   * - view
+     - Specifies the view this part is associated with (mostly used
+       for files which stereo views). 
+       * A value of left indicate the part is associated with the left eye.
+       * A value of right indicates the right eye
+       If there is no view attribute in the header, the entire part
+       contains information not dependent on a particular eye. 
 
-For more information about multi-view files, see *Storing Multi-View
-Image in OpenEXR Files*.
+For more information about multi-view files, see _`Storing Multi-View Image in
+OpenEXR Files`.
 
 Multi-part and deep data attributes (New in 2.0)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -498,17 +542,29 @@ Multi-part and deep data attributes (New in 2.0)
 These attributes are required in the header for all multi-part and/or
 deep data OpenEXR files.
 
-==========
-===================================================================================================================================================================================
-name       The name attribute defines the name of each part. The name of each part must be unique. Names may contain '*.*' characters to present a tree-like structure of the parts in a file.
-type       Data types are defined by the type attribute. There are four types:
-version    version 1 data for all part types is described in *OpenEXR File Layout*.
-chunkCount chunkCount indicates the number of chunks in this part.
-          
-           Required if the multipart bit (12) is set.
-tiles      Required for parts of type tiledimage and deeptile.
-==========
-===================================================================================================================================================================================
+.. list-table::
+   :header-rows: 1
+   
+   * - attribute name
+     - notes
+   * - name
+     - The name attribute defines the name of each part. The name of
+       each part must be unique. Names may contain '*.*' characters to
+       present a tree-like structure of the parts in a file. 
+   * - type
+     - Data types are defined by the type attribute. There are four
+       types:
+       1. Scan line images: indicated by a type attribute of “scanlineimage”. 
+       2. Tiled images:  indicated by a type attribute of “tiledimage”. 
+       3. Deep scan line images:  indicated by a type attribute of “deepscanline”. 
+       4. Deep tiled images:  indicated by a type attribute of “deeptile”.      
+   * - version
+     - version 1 data for all part types is described in *OpenEXR File Layout*.
+   * - chunkCount
+     - chunkCount indicates the number of chunks in this part. 
+       Required if the multipart bit (12) is set.
+   * - tiles
+     - Required for parts of type tiledimage and deeptile.
 
 Deep data header attributes (New in 2.0)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -516,14 +572,25 @@ Deep data header attributes (New in 2.0)
 These attributes are required in the header for all files which contain
 deep data (deepscanline or deeptile):
 
-==================
-=====================================================================================================================================================================================================================================
-maxSamplesPerPixel Stores the maximum number of samples used by any single pixel within the image. If this number is small, it may be appropriate to read the deep image into a fix-sized buffer for processing. However, this number may be very large.
-type               There are two deep data types:
-version            Should be set to 1. ( It will be changed if the format is updated.)
-tiles              Required if type is deeptile.
-==================
-=====================================================================================================================================================================================================================================
+.. list-table::
+   :header-rows: 1
+
+   * - name
+     - notes
+   * - maxSamplesPerPixel
+     - Stores the maximum number of samples used by any single pixel
+       within the image. If this number is small, it may be
+       appropriate to read the deep image into a fix-sized buffer for
+       processing. However, this number may be very large. 
+   * - type
+     - There are two deep data types:
+         1. Deep scane line images ("deepscanline")
+         2. Deep tiled images ("deeptile")
+   * - version
+     - Should be set to 1. ( It will be changed if the format is
+       updated.) 
+   * - tiles
+     - Required if type is deeptile.
 
 Pixels
 ~~~~~~
@@ -558,35 +625,76 @@ the tiles sequentially, in the order as they appear in the file.
 
 For tiled files, line order is interpreted as follows:
 
-============
-================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
-INCREASING_Y The tiles for each level are stored in a contiguous block. The levels are ordered like this:
-            
-\            where
-            
-             n\ :sub:`x` = rf(log\ :sub:`2`\ (w)) + 1,
-            
-             n\ :sub:`y` = rf(log\ :sub:`2`\ (h)) + 1
-            
-             if the file's level mode is RIPMAP_LEVELS, or
-            
-             n\ :sub:`x` = n\ :sub:`y` = rf(log\ :sub:`2`\ (max(w,h)) + 1
-            
-             if the level mode is MIPMAP_LEVELS, or
-            
-             n\ :sub:`x` = n:sub:`y` = 1
-            
-             if the level mode is ONE_LEVEL.
-\            In each level, the tiles are stored in the following order:
-            
-             where t\ :sub:`x` and t\ :sub:`y` are the number of tiles in the x and y direction respectively, for that particular level.
-DECREASING_Y Levels are ordered as for INCREASING_Y, but within each level, the tiles are stored in this order:
-            
-RANDOM_Y     When a file is written, tiles are not sorted; they are stored in the file in the order they are produced by the application program.
-            
-             If an application program produces tiles in an essentially random order, selecting INCREASSING_Y or DECREASING_Y line order may force the IlmImf library to allocate significant amounts of memory to buffer tiles until they can be stored in the file in the proper order. If memory is scarce, allocating this extra memory can be avoided by setting the file's line order to RANDOM_Y. In this case the library doesn't buffer and sort tiles; each tile is immediately stored in the file.
-============
-================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
++--------------+------------------------------------------------------------------------------------+
+| line order   | description                                                                        |
++==============+====================================================================================+
+| INCREASING_Y | The tiles for each level are stored in a contiguous                                |
+|              | block. The levels are ordered like this:                                           |
+|              |                                                                                    |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | (0, 0)             | (1, 0)            | ... | (n :sub:`x` -1, 0)             |  | 
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | (0, 1)             | (1, 1)            | ... | (n :sub:`x` -1, 1)             |  |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | ...                | ...               | ... | ...                            |  |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | (0, n :sub:`y` -1) | (1,n :sub:`y` -1) | ... | (n :sub:`x` -1, n :sub:`y` -1) |  |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              |                                                                                    |
+|              | where:                                                                             |
+|              |                                                                                    |
+|              |     n\ :sub:`x` = rf(log\ :sub:`2`\ (w)) + 1,                                      |
+|              |     n\ :sub:`y` = rf(log\ :sub:`2`\ (h)) + 1                                       |
+|              |                                                                                    |
+|              | if the file's level mode is RIPMAP_LEVELS, or                                      |
+|              |                                                                                    |
+|              |     n\ :sub:`x` = n\ :sub:`y` = rf(log\ :sub:`2`\ (max(w,h)) + 1                   |
+|              |                                                                                    |
+|              | if the level mode is MIPMAP_LEVELS, or                                             |
+|              |                                                                                    |
+|              |     n\ :sub:`x` = n:sub:`y` = 1                                                    |
+|              |                                                                                    |
+|              | if the level mode is ONE_LEVEL.                                                    |
+|              |                                                                                    |
+|              | In each level, the tiles are stored in the following order:                        |
+|              |                                                                                    |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | (0, 0)             | (1, 0)            | ... | (t :sub:`x` -1, 0)             |  |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | (0, 1)             | (1, 1)            | ... | (t :sub:`x` -1, 1)             |  |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | ...                | ...               | ... | ...                            |  |  
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | (0, t :sub:`y` -1) | (1,t :sub:`y` -1) | ... | (t :sub:`x` -1, t :sub:`y` -1) |  |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              |                                                                                    |
+|              | where t\ :sub:`x` and t\ :sub:`y` are the number of tiles in the x and y           |
+|              | direction respectively, for that particular level.                                 |
++--------------+------------------------------------------------------------------------------------+
+| DECREASING_Y | Levels are ordered as for INCREASING_Y, but within each level, the tiles are       |
+|              | stored in this order:                                                              |
+|              |                                                                                    |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | (0, t :sub:`y` -1) | (1,t :sub:`y` -1) | ... | (t :sub:`x` -1, t :sub:`y` -1) |  |  
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | (0, t :sub:`y` -2) | (1,t :sub:`y` -2) | ... | (t :sub:`x` -1, t :sub:`y` -2) |  |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | ...                | ...               | ... | ...                            |  |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              | | (0, 0)             | (1, 0)            | ... | (t :sub:`x` -1, 0)             |  |
+|              | +--------------------+-------------------+-----+--------------------------------+  |
+|              |                                                                                    |
++--------------+------------------------------------------------------------------------------------+
+| RANDOM_Y     | When a file is written, tiles are not sorted; they are stored in the file in the   |
+|              | order they are produced by the application program.                                |
+|              |                                                                                    |
+|              | If an application program produces tiles in an essentially random order, selecting | 
+|              | INCREASSING_Y or DECREASING_Y line order may force the IlmImf library to allocate  |
+|              | significant amounts of memory to buffer tiles until they can be stored in the file |
+|              | in the proper order. If memory is scarce, allocating this extra memory can be      |
+|              | avoided by setting the file's line order to RANDOM_Y. In this case the library     |
+|              | doesn't buffer and sort tiles; each tile is immediately stored in the file.        |
++--------------+------------------------------------------------------------------------------------+
 
 .. _deep-data-new-in-2.0-1:
 
@@ -614,33 +722,84 @@ the original, but the data in the pixels may have changed slightly.
 
 Supported compression schemes:
 
-===============
-===================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
-PIZ (lossless)  A wavelet transform is applied to the pixel data, and the result is Huffman-encoded. This scheme tends to provide the best compression ratio for the types of images that are typically processed at Industrial Light & Magic. Files are compressed and decompressed at roughly the same speed. For photographic images with film grain, the files are reduced to between 35 and 55 percent of their uncompressed size.
+.. list-table::
+   :header-rows: 1
+   
+   * - name
+     - description
+   * - PIZ (lossless)
+     - A wavelet transform is applied to the pixel data, and the result is
+       Huffman-encoded. This scheme tends to provide the best compression ratio
+       for the types of images that are typically processed at Industrial Light
+       & Magic. Files are compressed and decompressed at roughly the same
+       speed. For photographic images with film grain, the files are reduced to
+       between 35 and 55 percent of their uncompressed size. 
                
-                PIZ compression works well for scan line based files, and also for tiled files with large tiles, but small tiles do not shrink much. (PIZ-compressed data start with a relatively long header; if the input to the compressor is short, adding the header tends to offset any size reduction of the input.)
-ZIPS (lossless) Uses the open source zlib library for compression. Unlike ZIP compression, this operates one scan line at a time.
-ZIP (lossless)  Differences between horizontally adjacent pixels are compressed using the open source zlib library. ZIP decompression is faster than PIZ decompression, but ZIP compression is significantly slower. Photographic images tend to shrink to between 45 and 55 percent of their uncompressed size.
+       PIZ compression works well for scan line based files, and also for tiled
+       files with large tiles, but small tiles do not shrink
+       much. (PIZ-compressed data start with a relatively long header; if the
+       input to the compressor is short, adding the header tends to offset any
+       size reduction of the input.) 
+   * - ZIPS (lossless)
+     - Uses the open source zlib library for compression. Unlike ZIP
+       compression, this operates one scan line at a time. 
+   * - ZIP (lossless)
+     - Differences between horizontally adjacent pixels are compressed using the
+       open source zlib library. ZIP decompression is faster than PIZ
+       decompression, but ZIP compression is significantly slower. Photographic
+       images tend to shrink to between 45 and 55 percent of their uncompressed
+       size. 
                
-                Multi-resolution files are often used as texture maps for 3D renderers. For this application, fast read accesses are usually more important than fast writes, or maximum compression. For texture maps, ZIP is probably the best compression method.
+       Multi-resolution files are often used as texture maps for 3D
+       renderers. For this application, fast read accesses are usually more
+       important than fast writes, or maximum compression. For texture maps, ZIP
+       is probably the best compression method. 
                
-                Unlike ZIPS compression, this operates in in blocks of 16 scan lines.
-RLE (lossless)  Differences between horizontally adjacent pixels are run-length encoded. This method is fast, and works well for images with large flat areas, but for photographic images, the compressed file size is usually between 60 and 75 percent of the uncompressed size.
-PXR24 (lossy)   After reducing 32-bit floating-point data to 24 bits by rounding, differences between horizontally adjacent pixels are compressed with zlib, similar to ZIP. PXR24 compression preserves image channels of type HALF and UINT exactly, but the relative error of FLOAT data increases to about 3×10\ :sup:`-5`. This compression method works well for depth buffers and similar images, where the possible range of values is very large, but where full 32-bit floating-point accuracy is not necessary. Rounding improves compression significantly by eliminating the pixels' 8 least significant bits, which tend to be very noisy, and difficult to compress.
+       Unlike ZIPS compression, this operates in in blocks of 16 scan lines.
+   * - RLE (lossless)
+     - Differences between horizontally adjacent pixels are run-length
+       encoded. This method is fast, and works well for images with large flat
+       areas, but for photographic images, the compressed file size is usually
+       between 60 and 75 percent of the uncompressed size. 
+   * - PXR24 (lossy)
+     - After reducing 32-bit floating-point data to 24 bits by rounding,
+       differences between horizontally adjacent pixels are compressed with
+       zlib, similar to ZIP. PXR24 compression preserves image channels of type
+       HALF and UINT exactly, but the relative error of FLOAT data increases to
+       about 3×10\ :sup:`-5`. This compression method works well for depth
+       buffers and similar images, where the possible range of values is very
+       large, but where full 32-bit floating-point accuracy is not
+       necessary. Rounding improves compression significantly by eliminating the
+       pixels' 8 least significant bits, which tend to be very noisy, and
+       difficult to compress. 
                
-                Note: This lossy compression scheme is not supported in deep files.
-B44 (lossy)     Channels of type HALF are split into blocks of four by four pixels or 32 bytes. Each block is then packed into 14 bytes, reducing the data to 44 percent of their uncompressed size. When B44 compression is applied to RGB images in combination with luminance/chroma encoding (see below), the size of the compressed pixels is about 22 percent of the size of the original RGB data. Channels of type UINT or FLOAT are not compressed.
+       Note: This lossy compression scheme is not supported in deep files.
+   * - B44 (lossy)
+     - Channels of type HALF are split into blocks of four by four pixels or 32
+       bytes. Each block is then packed into 14 bytes, reducing the data to 44
+       percent of their uncompressed size. When B44 compression is applied to
+       RGB images in combination with luminance/chroma encoding (see below), the
+       size of the compressed pixels is about 22 percent of the size of the
+       original RGB data. Channels of type UINT or FLOAT are not compressed. 
                
-                Decoding is fast enough to allow real-time playback of B44-compressed OpenEXR image sequences on commodity hardware.
+       Decoding is fast enough to allow real-time playback of B44-compressed
+       OpenEXR image sequences on commodity hardware. 
                
-                The size of a B44-compressed file depends on the number of pixels in the image, but not on the data in the pixels. All files with the same resolution and the same set of channels have the same size. This can be advantageous for systems that support real-time playback of image sequences; the predictable file size makes it easier to allocate space on storage media efficiently.
+       The size of a B44-compressed file depends on the number of pixels in the
+       image, but not on the data in the pixels. All files with the same
+       resolution and the same set of channels have the same size. This can be
+       advantageous for systems that support real-time playback of image
+       sequences; the predictable file size makes it easier to allocate space on
+       storage media efficiently.
                
-                Note: This lossy compression scheme is not supported in deep files.
-B44A (lossy)    Like B44, except for blocks of four by four pixels where all pixels have the same value, which are packed into 3 instead of 14 bytes. For images with large uniform areas, B44A produces smaller files than B44 compression.
+       Note: This lossy compression scheme is not supported in deep files.
+   * - B44A (lossy)
+     - Like B44, except for blocks of four by four pixels where all pixels have
+       the same value, which are packed into 3 instead of 14 bytes. For images
+       with large uniform areas, B44A produces smaller files than B44
+       compression. 
                
-                Note: This lossy compression scheme is not supported in deep files.
-===============
-===================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+       Note: This lossy compression scheme is not supported in deep files.
 
 Luminance/Chroma Images
 =======================
@@ -659,19 +818,18 @@ data is read, the library automatically converts the pixels back to RGB.
 Given linear RGB data, luminance, Y, is computed as a weighted sum of R,
 G, and B:
 
-|image6|
+    Y = R x w_R + G * w_G + B x w_B
 
 The values of the weighting factors, w\ :sub:`R`, w\ :sub:`G`, and
 w\ :sub:`B`, are derived from the chromaticities of the image's
-primaries and white point. (See `RGB Color <#anchor-4>`__, on page
-`16 <#anchor-4>`__.)
+primaries and white point. (See _`RGB Color`)
 
 Chroma information is stored in two channels, RY and BY, which are
 computed like this:
 
-|image7|
+    RY = (R - Y) / Y
 
-|image8|
+    BY = (B - Y) / Y
 
 The RY and BY channels can be low-pass filtered and subsampled without
 degrading the original image very much. The RGBA interface in IlmImf
@@ -702,7 +860,7 @@ arithmetic expressions, numbers of type half can be mixed freely with
 The interpretation of the sign, exponent and mantissa is analogous to
 IEEE-754 floating-point numbers. *half* supports normalized and
 denormalized numbers, infinities and NANs (Not A Number). The range of
-representable numbers is roughly 6.0×10\ :sup:`-8 `- 6.5×10\ :sup:`4`;
+representable numbers is roughly 6.0×10\ :sup:`-8 `- 6.5×10\ :sup:`4`;
 numbers smaller than 6.1×10\ :sup:`-5` are denormalized. Conversions
 from *float* to *half* round the mantissa to 10 bits; the 13 least
 significant bits are lost. Conversions from *half* to *float* are
@@ -710,7 +868,7 @@ lossless; all *half* numbers are exactly representable as *float*
 values.
 
 The data type implemented by class half is identical to Nvidia's 16-bit
-floating-point format ("*fp16 */* half*"). 16-bit data, including
+floating-point format ("*fp16 */* half*"). 16-bit data, including
 infinities and NANs, can be transferred between OpenEXR files and Nvidia
 16-bit floating-point frame buffers without losing any bits.
 
@@ -754,8 +912,8 @@ Simply calling the R channel red is not sufficient information to
 determine accurately the color that should be displayed for a given
 pixel value. The IlmImf library defines a "chromaticities" attribute,
 which specifies the CIE x,y coordinates for red, green, blue, and white;
-that is, for the RGB triples (1, 0, 0), (0, 1, 0), (0, 0, 1), and
-(1, 1, 1). The x,y coordinates of all possible RGB triples can be
+that is, for the RGB triples (1, 0, 0), (0, 1, 0), (0, 0, 1), and
+(1, 1, 1). The x,y coordinates of all possible RGB triples can be
 derived from the chromaticities attribute. If the primaries and white
 point for a given display are known, a file-to-display color transform
 can correctly be done. The IlmImf library does not perform this
@@ -765,12 +923,17 @@ a file doesn't have a chromaticities attribute, display software should
 assume that the file's primaries and the white point match Rec. ITU-R
 BT.709-3:
 
-===== ==============
-red   0.6400, 0.3300
-green 0.3000, 0.6000
-blue  0.1500, 0.0600
-white 0.3127, 0.3290
-===== ==============
++-------+----------------+
+|       | CIE x,y        |
++=======+================+
+| red   | 0.6400, 0.3300 |
++-------+----------------+
+| green | 0.3000, 0.6000 |
++-------+----------------+
+| blue  | 0.1500, 0.0600 |
++-------+----------------+
+| white | 0.3127, 0.3290 |
++-------+----------------+
 
 CIE XYZ Color
 -------------
@@ -780,12 +943,17 @@ the pixels' X, Y and Z components should be stored in the file's R, G
 and B channels. The file header should contain a chromaticities
 attribute with the following values:
 
-===== ========
-red   1, 0
-green 0, 1
-blue  0, 0
-white 1/3, 1/3
-===== ========
++-------+----------------+
+|       | CIE x,y        |
++=======+================+
+| red   | 1, 0           |
++-------+----------------+
+| green | 0, 1           |
++-------+----------------+
+| blue  | 0, 0           |
++-------+----------------+
+| white | 1/3, 1/3       |
++-------+----------------+
 
 Channel Names
 -------------
@@ -799,13 +967,19 @@ below. We expect this table to grow over time as users employ OpenEXR
 for data such as shadow maps, motion-vector fields or images with more
 than three color channels.
 
-==========
-=============================================================================================================================
-Y          luminance, used either alone, for gray-scale images, or in combination with RY and BY for color images.
-RY, BY     chroma for luminance/chroma images, see above.
-AR, AG, AB red, green and blue alpha/opacity, for colored mattes (required to composite images of objects like colored glass correctly).
-==========
-=============================================================================================================================
+.. list-table::
+   :header-rows: 1
+   
+   * - name
+     - interpretation
+   * - Y
+     - luminance, used either alone, for gray-scale images, or in combination with
+       RY and BY for color images.
+   * - RY, BY
+     - chroma for luminance/chroma images, see above.
+   * - AR, AG, AB
+     - red, green and blue alpha/opacity, for colored mattes (required to composite
+       images of objects like colored glass correctly).
 
 In an image file with many channels it is sometimes useful to group the
 channels into *layers*, that is, into sets of channels that logically
@@ -830,8 +1004,8 @@ Note that this naming convention does not describe a back-to-front
 stacking order or any compositing operations for combining the layers
 into a final image.
 
-For another example of a channel naming convention, see *Storing
-Multi-View Images in OpenEXR Files*.
+For another example of a channel naming convention, see _`Storing Multi-View
+Images in OpenEXR Files`.
 
 Deep data - special purpose channels and reserved channel names (New in 2.0)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -841,16 +1015,33 @@ used by developers. Only use these channel names for the correct purpose
 (listed below). If there is a reserved channel name for the data you are
 handling, always use the appropriate channel name.
 
-============ ==================================================
-=============================================================================================================================================================
-*Z*          depth of front (closest point) of sample [1]_      All samples should be sorted according to their *Z* value.
-*ZBack*      Depth of back (farthest point) of sample\ :sup:`1` If a sample has *ZBack > Z*, then the sample is a volumetric sample. If a sample has no *ZBack* channel, assume *Zback=Z*.
-*A*          sample opacity value                               The light attenuated by this sample in isolation.
-*R, G, B*    red, green blue values of sample                   If a channel is present, then the cumulative pre-multiplied colour between the front and the back of this sample (*Z*).
-*RA, GA, BA* red, green, blue sample alpha values               Per-channel light attenuation of sample in isolation (similar to *A\ ,*\ but each channel recorded separately). Intended for computing coloured shadows [2]_.
-*id*         object ID number                                   Samples belonging to the same object have the same ID number.
-============ ==================================================
-=============================================================================================================================================================
+.. list-table::
+   :header-rows: 1
+   
+   * - name
+     - definition
+     - notes  
+   * - *Z*
+     - depth of front (closest point) of sample [1]_
+     - All samples should be sorted according to their *Z* value.
+   * - *ZBack*
+     - Depth of back (farthest point) of sample [1]_
+     - If a sample has *ZBack > Z*, then the sample is a volumetric sample. If a sample has no *ZBack* channel, assume *Zback=Z*.
+   * - *A*
+     - sample opacity value
+     - The light attenuated by this sample in isolation.
+   * - *R, G, B*
+     - red, green blue values of sample
+     - If a channel is present, then the cumulative pre-multiplied colour between the front and the back of this sample (*Z*).
+   * - *RA, GA, BA*
+     - red, green, blue sample alpha values
+     - Per-channel light attenuation of sample in isolation (similar to *A\ ,*\
+       but each channel recorded separately). Intended for computing coloured
+       shadows [2]_
+   * - *id*
+     - object ID number
+     - Samples belonging to the same object have the same ID number.
+
 
 Volumetric sample representation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -861,26 +1052,24 @@ back. If it is necessary to split a sample at some depth *d* (where
 *Z*\ <*d*\ <*ZBack*), Beer-Lambert's equation should be used to compute
 the alpha for the split sample:
 
-|image9|
+    a = 1 - (1-A)^((d-Z)/(ZBack-Z))
 
-**Note:**\ This is **not** a linear increase in alpha between the front
+**Note:** This is *not* a linear increase in alpha between the front
 and back and distances.
 
 Standard Attributes
 -------------------
 
-By adding attributes to an OpenEXR file, application programs can store
-arbitrary auxiliary data along with the image. In order to make it
-easier to exchange data among programs written by different people, the
-IlmImf library defines a set of standard attributes for commonly used
-data, such as colorimetric data (see `RGB Color <#anchor-4>`__,
-`above <#anchor-4>`__), time and place where an image was recorded, or
-the owner of an image file's content. Whenever possible, application
-programs should store data in standard attributes, instead of defining
-their own. For a current list of all standard attributes, see the IlmImf
-library's source code. The list grows over time as OpenEXR users
-identify new types of data they would like to represent in a standard
-way.
+By adding attributes to an OpenEXR file, application programs can store arbitrary
+auxiliary data along with the image. In order to make it easier to exchange data
+among programs written by different people, the IlmImf library defines a set of
+standard attributes for commonly used data, such as colorimetric data (see
+_`RGB Color`, time and place where an image was recorded, or the owner of an
+image file's content. Whenever possible, application programs should store data in
+standard attributes, instead of defining their own. For a current list of all
+standard attributes, see the IlmImf library's source code. The list grows over
+time as OpenEXR users identify new types of data they would like to represent in a
+standard way.
 
 Premultiplied vs. Un-Premultiplied Color Channels
 -------------------------------------------------
@@ -890,7 +1079,7 @@ opacity: 0.0 means the pixel is transparent; 1.0 means the pixel is
 opaque. By convention, all color channels are premultiplied by alpha, so
 that
 
-composite = foreground + (1-alpha) × background
+    composite = foreground + (1-alpha) × background
 
 performs a correct "over" operation.
 
@@ -898,7 +1087,7 @@ Describing the color channels as "premultiplied" is a shorthand for
 describing a correct "over" operation. With un-premultiplied color
 channels "over" operations would require computing
 
-composite = alpha × foreground + (1-alpha) × background.
+    composite = alpha × foreground + (1-alpha) × background.
 
 "Premultiplied" does not mean that pixels with zero alpha and non-zero
 color channels are illegal. Such a pixel represents an object that emits
@@ -938,15 +1127,15 @@ Credits
 =======
 
 The ILM OpenEXR file format was designed and implemented by
-Florian Kainz, Wojciech Jarosz, and Rod Bogart. The PIZ compression
-scheme is based on an algorithm by Christian Rouet. Josh Pines helped
+Florian Kainz, Wojciech Jarosz, and Rod Bogart. The PIZ compression
+scheme is based on an algorithm by Christian Rouet. Josh Pines helped
 extend the PIZ algorithm for 16-bit and found optimizations for the
-float-to-half conversions. Drew Hess packaged and adapted ILM's internal
+float-to-half conversions. Drew Hess packaged and adapted ILM's internal
 source code for public release and maintains the OpenEXR software
 distribution. The PXR24 compression method is based on an algorithm
 written by Loren Carpenter at Pixar Animation Studios.
 
-OpenEXR was developed at Industrial Light & Magic, a division of Lucas
+OpenEXR was developed at Industrial Light & Magic, a division of Lucas
 Digital Ltd. LLC, Marin County, California.
 
 .. [1]
@@ -958,33 +1147,3 @@ Digital Ltd. LLC, Marin County, California.
    If a part contains RA,GA and/or BA channels, it must not also contain
    an A channel.
 
-.. |image0| image:: Pictures/100000000000060B0000047B5A02625C.png
-   :width: 3.8689in
-   :height: 2.8689in
-.. |image1| image:: Pictures/10000000000005BE0000040AE749B32F.png
-   :width: 3.6799in
-   :height: 2.5799in
-.. |image2| image:: Pictures/10000000000005A20000041711976AE4.png
-   :width: 3.6098in
-   :height: 2.6244in
-.. |image3| image:: Pictures/10000000000004EA00000453117FA4E4.png
-   :width: 3.148in
-   :height: 2.7689in
-.. |image4| image:: ./ObjectReplacements/ObjBFFFDCA5
-   :width: 0.448in
-   :height: 0.3571in
-.. |image5| image:: ./ObjectReplacements/ObjBFFFDCA7
-   :width: 0.448in
-   :height: 0.3571in
-.. |image6| image:: ./ObjectReplacements/ObjBFFFDCA1
-   :width: 1.6689in
-   :height: 0.178in
-.. |image7| image:: ./ObjectReplacements/ObjBFFFDCA3
-   :width: 0.7398in
-   :height: 0.3307in
-.. |image8| image:: ./ObjectReplacements/ObjBFFFDCA4
-   :width: 0.7398in
-   :height: 0.3307in
-.. |image9| image:: ./ObjectReplacements/Object 1
-   :width: 1.5516in
-   :height: 0.3437in
