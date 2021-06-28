@@ -10,12 +10,12 @@ deep data is handled.
 
 The text assumes that the reader is familiar with OpenEXR terms such as
 "channel", "attribute", "data window" or "chunk". For an explanation of
-those terms see the *Technical Introduction to OpenEXR*.
+those terms see the _`Technical Introduction to OpenEXR`.
 
-**Note:**\ This document does not define the OpenEXR file format.
-OpenEXR is defined as the file format that is read and written by the
-IlmImf open-source C++ library. If this document and the IlmImf library
-disagree, then the library takes precedence.
+**Note:** This document does not define the OpenEXR file format.  OpenEXR is
+defined as the file format that is read and written by the IlmImf open-source
+C++ library. If this document and the IlmImf library disagree, then the library
+takes precedence.
 
 Backwards Compatibility and New or Changed Functionality
 ========================================================
@@ -50,31 +50,28 @@ features:
    * - Version field
      - Bits 11 and 12 indicate whether the file contains deep data
        (bit 11), or more than one part (bit 12).
-     - `Deep Data <#anchor>`__ on page `6 <#anchor-1>`__
+     - _`Deep Data`
    * - Header
      - To store more than one part in the file, you need to have a
        header for each part.
-     - `Structure <#anchor-2>`__ on page `7 <#anchor-2>`__
+     - _`Structure`
    * - Header attributes
      - There are a number of attributes which have been defined to
        store data which is relevant to deep data and multi-part
        files. These include: name (one for each part), data type (you
        can have different types of data in different views), and the
        maximum number of samples to take in a deep data channel.
-     - `Multi-Part and Deep Data Header Attributes <#anchor-3>`__ on
-       page `9 <#anchor-3>`__
+     - _`Multi-Part and Deep Data Header Attributes`
    * - Offset tables and chunks
      - To store more than one part in the file, you need to have an
        offset table for each part, and chunks for each part.
 
        The chunks must begin with a part number.
-     - `Component Four: Offset Tables <#anchor-4>`__ on page `10
-       <#anchor-4>`__, and `Chunk Layout <#anchor-5>`__ on page `11
-       <#anchor-5>`__.
+     - _`Component Four: Offset Tables` and _`Chunk Layout`.
        
    * - Deep Data
      - Deep data has a unique storage format.
-     - `Deep Data <#anchor>`__ on page `13 <#anchor>`__
+     - _`Deep Data`.
 
 Basic Data Types
 ================
@@ -100,22 +97,22 @@ OpenEXR uses the following six integer data types:
    * - name
      - signed
      - size in bytes
-   * - *unsigned char*
+   * - ``unsigned char``
      - no
      - 1
-   * - *short*
+   * - ``short``
      - yes
      - 2
-   * - *unsigned short*
+   * - ``unsigned short``
      - no
      - 2
-   * - *int*
+   * - ``int``
      - yes
      - 4
-   * - *unsigned int*
+   * - ``unsigned int``
      - no
      - 4
-   * - *unsigned long*
+   * - ``unsigned long``
      - no
      - 8
 
@@ -139,20 +136,20 @@ floating-point data types:
 
    * - name
      - size in bytes
-   * - *half*
+   * - ``half``
      - 2
-   * - *float*
+   * - ``float``
      - 4
-   * - *double*
+   * - ``double``
      - 8
 
 Text
 ----
 
 Text strings are represented as sequences of 1-byte characters of type
-*char*. Depending on the context, either the end of a string is
+``char``. Depending on the context, either the end of a string is
 indicated by a null character (0x00), or the length of the string is
-indicated by an *int* that precedes the string.
+indicated by an ``int`` that precedes the string.
 
 Packing
 -------
@@ -168,10 +165,10 @@ Data in an OpenEXR file are densely packed; the file contains no
         int i;
     };
 
-On most computers, the in-memory representation of an *SI* object
-occupies 8 bytes: 2 bytes for *s*, 2 padding bytes to ensure four-byte
-alignment of *i*, and 4 bytes for *i*. In an OpenEXR file the same
-object would consume only 6 bytes: 2 bytes for *s* and 4 bytes for *i*.
+On most computers, the in-memory representation of an ``SI`` object
+occupies 8 bytes: 2 bytes for ``s``, 2 padding bytes to ensure four-byte
+alignment of ``i``, and 4 bytes for ``i``. In an OpenEXR file the same
+object would consume only 6 bytes: 2 bytes for ``s`` and 4 bytes for ``i``.
 The 2 padding bytes are not stored in the file.
 
 File Layout
@@ -183,26 +180,26 @@ High-Level Layout
 Depending on whether the pixels in an OpenEXR file are stored as scan
 lines or as tiles, the file consists of the following components:
 
-+-----------+---------------------------------------+-------------------------------+
-| Component | single-part file with...              | multi-part file:              |
-+===========+===================+===================+===============================+
-|           | scan-lines:       | tiles:            |                               |
-+-----------+-------------------+-------------------+-------------------------------+
-| one       | magic number      | magic number      | magic number                  |
-+-----------+-------------------+-------------------+-------------------------------+
-| two       | version field     | version field     | version field                 | 
-+-----------+-------------------+-------------------+-------------------------------+
-| three     | header            | header            | * part 0 header               | 
-|           |                   |                   | * [part 1 header]             | 
-|           |                   |                   | * ...                         | 
-|           |                   |                   | * [<empty header>]            | 
-+-----------+-------------------+-------------------+-------------------------------+
-| four      | line offset table | line offset table | * part 0 chunk offset table   |
-|           |                   |                   | * [part 0 chunk offset table] |
-|           |                   |                   | * ...                         |
-+-----------+-------------------+-------------------+-------------------------------+
-| five      | scan line blocks  | tiles             | chunks                        |
-+-----------+-------------------+-------------------+-------------------------------+
++-----------+-----------------------------------------------+-----------------------------------+
+| Component | single-part file with...                      |  multi-part file:                 |
++===========+=======================+=======================+===================================+
+|           | scan-lines:           | tiles:                |                                   |
++-----------+-----------------------+-----------------------+-----------------------------------+
+| one       | ``magic number``      | ``magic number``      | ``magic number``                  |
++-----------+-----------------------+-----------------------+-----------------------------------+
+| two       | ``version field``     | ``version field``     | ``version field``                 | 
++-----------+-----------------------+-----------------------+-----------------------------------+
+| three     | ``header``            | ``header``            | * ``part 0 header``               | 
+|           |                       |                       | * ``[part 1 header]``             | 
+|           |                       |                       | * ``...``                         | 
+|           |                       |                       | * ``[<empty header>]``            | 
++-----------+-----------------------+-----------------------+-----------------------------------+
+| four      | ``line offset table`` | ``line offset table`` | * ``part 0 chunk offset table``   |
+|           |                       |                       | * ``[part 0 chunk offset table]`` |
+|           |                       |                       | * ``...``                         |
++-----------+-----------------------+-----------------------+-----------------------------------+
+| five      | ``scan line blocks``  | ``tiles``             | ``chunks``                        |
++-----------+-----------------------+-----------------------+-----------------------------------+
 
 It is the version field part which indicates whether the file is single
 or multi-part and whether the file contains deep data. “Chunk” is a
@@ -229,7 +226,7 @@ Components One and Two: Magic Number and Version Field
 Magic Number
 ------------
 
-The magic number, of type *int*, is always 20000630 (decimal). It allows
+The magic number, of type ``int``, is always 20000630 (decimal). It allows
 file readers to distinguish OpenEXR files from other files, since the
 first four bytes of an OpenEXR file are always 0x76, 0x2f, 0x31 and
 0x01.
@@ -237,7 +234,7 @@ first four bytes of an OpenEXR file are always 0x76, 0x2f, 0x31 and
 Version Field
 -------------
 
-The version field, of type *int*, is the four-byte group following the
+The version field, of type ``int``, is the four-byte group following the
 magic number, and it is treated as two separate bit fields.
 
 +---------------------+-------------------------------------------------------------------------------------------------------------------------+
@@ -306,7 +303,8 @@ Version field, valid values
 All valid combinations of the version field bits are as follows:
 
 .. list-table::
-   
+   :header-rows: 1
+                 
    * - Description
      - Compatible with
      - bit 9
@@ -344,7 +342,7 @@ All valid combinations of the version field bits are as follows:
      - 1
      - 1
 
-**Note:**\ The version field bits define what capabilities must be
+**Note:** The version field bits define what capabilities must be
 available in the software so it can handle the file, rather than the
 exact format of the file. While the 9 and 11 bit settings must agree
 with the type attributes of all parts, in OpenEXR 2.0 the data format of
@@ -377,10 +375,12 @@ The header component of a multi-part file holds a set of headers, with a
 separate header for each part (in multi-part files) and a null byte
 signalling the end of the header component:
 
-* part 0 header
-* [part 1 header]
-* ...
-* [<empty header>]
+===================== =
+``part 0 header``
+``[part 1 header]``
+``...``
+``[<empty header>]``
+===================== =
 
 Each header is a sequence of attributes ended by a null byte.
 
@@ -393,11 +393,13 @@ Attribute Layout
 
 The layout of an attribute is as follows:
 
-* attribute type
-* attribute size
-* attribute value
+===================== =
+attribute type
+attribute size
+attribute value
+===================== =
 
-The **attribute name** and the **attribute type** are null-terminated
+The ``attribute name`` and the ``attribute type`` are null-terminated
 text strings. Excluding the null byte, the name and type must each be as
 least 1 byte and at most :
 
@@ -406,12 +408,12 @@ least 1 byte and at most :
 
 Both single-part and multi-part files use the same attribute types.
 
-The **attribute size**, of type *int*, indicates the size (in bytes) of
+The ``attribute size``, of type ``int``, indicates the size (in bytes) of
 the attribute value.
 
-The layout of the **attribute value** depends on the attribute type. The
+The layout of the ``attribute value`` depends on the attribute type. The
 IlmImf library predefines several different attribute types (see page
-`14 <#anchor-6>`__). Application programs can define and store
+_`14`. Application programs can define and store
 additional attribute types.
 
 Header Attributes (All Files)
@@ -421,28 +423,29 @@ The header of every OpenEXR file must contain at least the following
 attributes:
 
 .. list-table::
+   :header-rows: 1
 
    * - attribute name
      - attribute type
-   * - *channels*
-     - *chlist*
-   * - *compression*
-     - *compression*
-   * - *dataWindow*
-     - *box2i*
-   * - *displayWindow*
-     - *box2i*
-   * - *lineOrder*
-     - *lineOrder*
-   * - *pixelAspectRatio*
-     - *float*
-   * - *screenWindowCenter*
-     - *v2f*
-   * - *screenWindowWidth*
-     - *float*
+   * - ``channels``
+     - ``chlist``
+   * - ``compression``
+     - ``compression``
+   * - ``dataWindow``
+     - ``box2i``
+   * - ``displayWindow``
+     - ``box2i``
+   * - ``lineOrder``
+     - ``lineOrder``
+   * - ``pixelAspectRatio``
+     - ``float``
+   * - ``screenWindowCenter``
+     - ``v2f``
+   * - ``screenWindowWidth``
+     - ``float``
 
-For descriptions of what these attributes are for, see the *Technical
-Introduction to OpenEXR*.
+For descriptions of what these attributes are for, see the _`Technical
+Introduction to OpenEXR`.
 
 Tile Header Attribute
 ---------------------
@@ -451,12 +454,13 @@ This attributes is required in the header for all files which contain
 one or more tiles:
 
 .. list-table::
+   :header-rows: 1
 
    * - attribute name
      - attribute type
      - notes
-   * - tiles
-     - tiledesc
+   * - ``tiles``
+     - ``tiledesc``
      - Determines the size of the tiles and the number of resolution levels
        in the file. 
 
@@ -471,12 +475,13 @@ Multi-View Header Attribute
 This attribute can be used in the header for multi-part files:
 
 .. list-table::
+   :header-rows: 1
 
    * - attribute name
      - attribute type
      - notes
-   * - *view*
-     - *text*
+   * - ``view``
+     - ``text``
      -
 
 Multi-Part and Deep Data Header Attributes (New in 2.0)
@@ -486,39 +491,36 @@ These attributes are required in the header for all multi-part and/or
 deep data OpenEXR files.
 
 .. list-table::
+   :header-rows: 1
 
    * - attribute name
      - attribute type
      - notes
-   * - *name*
-     - *string*
+   * - ``name``
+     - ``string``
      - Required if either the multipart bit (12) or the non-image bit (11) is set.
        
-   * - type
-     - string
+   * - ``type``
+     - ``string``
      - Required if either the multipart bit (12) or the non-image bit (11) is set.
        Set to one of:
-       * scanlineimage
-       * tiledimage
-       * deepscanline, or
-       * deeptile
+       * ``scanlineimage``
+       * ``tiledimage``
+       * ``deepscanline``, or
+       * ``deeptile``
        **Note:** This value must agree with the version field's tile bit (9) and
        non-image (deep data) bit (11) settings.  
-   * - version
-     - int
+   * - ``version``
+     - ``int``
      - This document describes version 1 data for all part types.
        version is required for deep data (deepscanline and deeptile) parts. If
        not specified for other parts, assume version=1.  
-   * - *chunkCount*
-     - *int*
+   * - ``chunkCount``
+     - ``int``
      - Required if either the multipart bit (12) or the non-image bit (11) is set.
-   * - *tiles*
-     - *tileDesc*
-     - Required for parts of type *tiledimage* and *deeptile*.
-
-For more information about the standard OpenEXR attributes and optional
-attributes such as *preview images*, see the *OpenEXR File Layout*
-document.
+   * - ``tiles``
+     - ``tileDesc``
+     - Required for parts of type ``tiledimage`` and ``deeptile``.
 
 Deep Data Header Attributes (New in 2.0)
 ----------------------------------------
@@ -527,32 +529,32 @@ These attributes are required in the header for all files which contain
 deep data (deepscanline or deeptile):
 
 .. list-table::
+   :header-rows: 1
 
    * - attribute name
      - attribute type
      - notes
-   * - *tiles*
-     - *tileDesc*
+   * - ``tiles``
+     - ``tileDesc``
      - Required for parts of type tiledimage and deeptile.
-   * - *maxSamplesPerPixel*
-     - *int*
+   * - ``maxSamplesPerPixel``
+     - ``int``
      - Required for deep data (deepscanline and deeptile) parts.
-       **Note:**\ Since the value of **maxSamplesPerPixel** maybe be unknown at
+       **Note:** Since the value of ``maxSamplesPerPixel`` maybe be unknown at
        the time of opening the file, the value “\ *-1*\ ” is written to the file
        to indicate an unknown value. When the file is closed, this will be
        overwritten with the correct value. If file writing does not complete
        correctly due to an error, the value *-1* will remain. In this case, the
        value must be derived by decoding each chunk in the part. 
-   * - version
-     - int
-     - Should be set to *1*. It will be changed if the format is updated. 
-   * - type
-     - string
-     - Must be set to *deepscanline* or *deeptile*.
+   * - ``version``
+     - ``int``
+     - Should be set to ``1``. It will be changed if the format is updated. 
+   * - ``type``
+     - ``string``
+     - Must be set to ``deepscanline`` or ``deeptile``.
 
-For information about channel layout and a list of reserved channel
-names, see the *Technical Introduction to OpenEXR* document, C\ *hannel
-Names* section.
+For information about channel layout and a list of reserved channel names, see
+the _`Technical Introduction to OpenEXR` document, _`Channel Names` section.
 
 Component Four: Offset Tables
 =============================
@@ -562,7 +564,7 @@ Offset Tables
 
 An offset table allows random access to pixel data chunks. An offset
 table is a sequence of offsets, with one offset per chunk. Each offset
-(of type *unsigned long*) indicates the distance, in bytes, between the
+(of type ``unsigned long``) indicates the distance, in bytes, between the
 start of the file and the start of the chunk.
 
 Chunks can be of any of the four data types.
@@ -591,7 +593,7 @@ Tiles
 
 For tiles, the offset table is a sequence of tile offsets, one offset
 per tile. In the table, scan line offsets are sorted the same way as
-tiles in *INCREASING_Y* order.
+tiles in ``INCREASING_Y`` order.
 
 Multi-part (New in 2.0)
 -----------------------
@@ -611,21 +613,24 @@ tile images have the same format that they did in OpenEXR 1.7. OpenEXR
 
 The layout of each chunk is as follows:
 
-* [part number] (if multi-part bit is set)
-* chunk data
+============================================== =
+``[part number]`` (if multi-part bit is set)
+``chunk data``
+============================================== =
 
-The **part number** (of type *unsigned long*) is only present in
+The ``part number`` (of type ``unsigned long``) is only present in
 multi-part files. It indicates which part this chunk belongs to. 0
 indicates the chunk belongs to the part defined by the first header and
 the first chunk offset table. The part number is omitted if the
 multi-part bit (12) is not set (this saves space and enforces backwards
 compatibility to software which does not support multi-part files).
 
-The **chunk data** is dependent on the type attribute - but (other than
+The ``chunk data`` is dependent on the type attribute - but (other than
 the part number) has the same structure as a single-part file of the
 same format:
 
 .. list-table::
+   :header-rows: 1
 
    * - part type
      - type attribute
@@ -634,22 +639,18 @@ same format:
      - indicated by a type attribute of “scanlineimage”
      - Each chunk stores a scan line block, with the minimum y coordinate of the
        scan line(s) within the chunk.
-       See `Regular scan line image block layout <#anchor-7>`__\ *,* on page `12
-       <#anchor-7>`__.
+       See `Regular scan line image block layout`.
    * - tiled
      - indicated by a type attribute of “tiledimage”
-     - See `Regular image tile layout <#anchor-8>`__\ *,* on page `12
-       <#anchor-8>`__. 
+     - See _`Regular image tile layout`.
    * - deep scan line
      - indicated by a type attribute of “deepscanline”
-     - See `Deep scan line layout <#anchor-9>`__\ *,* on page `13
-       <#anchor-9>`__.
+     - See _`Deep scan line layout`.
    * - deep tile
      - indicated by a type attribute of “deeptile”
-     - See `Deep tiled layout <#anchor-10>`__\ *,* on page `13 <#anchor-10>`__. 
+     - See _`Deep tiled layout`.
 
-For more information about data types, see page `Error: Reference source
-not found <#anchor-11>`__.
+For more information about data types, see XXX.
 
 Regular Scan Line Blocks
 ------------------------
@@ -660,28 +661,28 @@ per block depends on how the pixel data are compressed:
 
 .. list-table::
 
-   * - *NO_COMPRESSION*
+   * - ``NO_COMPRESSION``
      - 1 
-   * - *RLE_COMPRESSION*
+   * - ``RLE_COMPRESSION``
      - 1 
-   * - *ZIPS_COMPRESSION*
+   * - ``ZIPS_COMPRESSION``
      - 1 
-   * - *ZIP_COMPRESSION*
+   * - ``ZIP_COMPRESSION``
      - 16
-   * - *PIZ_COMPRESSION*
+   * - ``PIZ_COMPRESSION``
      - 32
-   * - *PXR24_COMPRESSION*
+   * - ``PXR24_COMPRESSION``
      - 16
-   * - *B44_COMPRESSION*
+   * - ``B44_COMPRESSION``
      - 32
-   * - *B44A_COMPRESSION*
+   * - ``B44A_COMPRESSION``
      - 32
 
-Each scan line block has a y coordinate of type *int*. The block's y
+Each scan line block has a y coordinate of type ``int``. The block's y
 coordinate is equal to the pixel space y coordinate of the top scan line
 in the block. The top scan line block in the image is aligned with the
 top edge of the data window (that is, the y coordinate of the top scan
-line block is equal to the data window's minimum y).
+line block is equal to the data window's minimum y).
 
 If the height of the image's data window is not a multiple of the number
 of scan lines per block, then the block that contains the bottom scan
@@ -692,14 +693,16 @@ Regular scan line image block layout
 
 The layout of a regular image scan line block is as follows:
 
-* y coordinate
-* pixel data size
-* pixel data
+=================== =
+y coordinate
+pixel data size
+pixel data
+=================== =
 
-The **pixel data size**, of type *int*, indicates the number of bytes
+The ``pixel data size``, of type ``int``, indicates the number of bytes
 occupied by the actual pixel data.
 
-Within the **pixel data**, scan lines are stored top to bottom. Each
+Within the ``pixel data``, scan lines are stored top to bottom. Each
 scan line is contiguous, and within a scan line the data for each
 channel are contiguous. Channels are stored in alphabetical order,
 according to channel names. Within a channel, pixels are stored left to
@@ -708,7 +711,7 @@ right.
 Compressed data
 ~~~~~~~~~~~~~~~
 
-If the file's compression method is *NO_COMPRESSION*, then the original,
+If the file's compression method is ``NO_COMPRESSION``, then the original,
 uncompressed pixel data are stored directly in the file. Otherwise, the
 uncompressed pixels are fed to the appropriate compressor, and either
 the compressed or the uncompressed data are stored in the file,
@@ -727,16 +730,18 @@ Regular image tile layout
 
 The layout of a regular image tile is as follows:
 
-* tile coordinates
-* pixel data size
-* pixel data
+=================== =
+tile coordinates
+pixel data size
+pixel data
+=================== =
 
-The **tile coordinates**, a sequence of four *int*\ s (tileX, tileY,
-levelX, levelY) indicates the tile's position and resolution level. The
-**pixel data size**, of type *int*, indicates the number of bytes
+The ``tile coordinates``, a sequence of four ``int`'s (``tileX``, ``tileY``,
+``levelX``, ``levelY``) indicates the tile's position and resolution level. The
+``pixel data size``, of type ``int``, indicates the number of bytes
 occupied by the pixel data.
 
-The **pixel data** in a tile are laid out in the same way as in a scan
+The ``pixel data`` in a tile are laid out in the same way as in a scan
 line block, but the length of the scan lines is equal to the width of
 the tile, and the number of scan lines is equal to the height of the
 tile.
@@ -761,23 +766,17 @@ Deep scan line images are indicated by a type attribute of
 “deepscanline”. Each chunk of deep scan line data is a single scan line
 of data. The data in each chunk is laid out as follows:
 
-+-----------------------------------------+
-| [part number] (if multipart bit is set) |
-+-----------------------------------------+
-| y coordinate                            |
-+-----------------------------------------+
-| packed size of pixel offset table       |
-+-----------------------------------------+
-| packed size of sample data              |
-+-----------------------------------------+
-| unpacked size of sample data            |
-+-----------------------------------------+
-| compressed pixel offset table           |
-+-----------------------------------------+
-| compressed sample data                  |
-+-----------------------------------------+
+======================================== =
+[part number] (if multipart bit is set) 
+y coordinate                            
+packed size of pixel offset table       
+packed size of sample data              
+unpacked size of sample data            
+compressed pixel offset table           
+compressed sample data                  
+======================================== =
 
-The **unpacked size of the sample data** (an *unsigned long*) is the
+The ``unpacked size of the sample data`` (an ``unsigned long``) is the
 size of the deep sample data once it is unpacked. It is necessary to
 specify the unpacked size since the data may be arbitrarily large (so
 generally cannot otherwise be determined without decompressing the data
@@ -790,33 +789,27 @@ Tiled images are indicated by a type attribute of “deeptile”. Each chunk
 of deep tile data is a single tile. The data in each chunk is laid out
 as follows:
 
-+-----------------------------------------+
-| [part number] (if multipart bit is set) |
-+-----------------------------------------+
-| tile coordinates                        |
-+-----------------------------------------+
-| packed size of pixel offset table       |
-+-----------------------------------------+
-| packed size of sample data              |
-+-----------------------------------------+
-| unpacked size of sample data            |
-+-----------------------------------------+
-| compressed pixel offset table           |
-+-----------------------------------------+
-| compressed sample data                  |
-+-----------------------------------------+
+=========================================== =
+[part number] (if multipart bit is set) 
+tile coordinates                        
+packed size of pixel offset table       
+packed size of sample data              
+unpacked size of sample data            
+compressed pixel offset table           
+compressed sample data                  
+=========================================== =
 
-The **unpacked size of the sample data** (an *unsigned long*) is the
+The ``unpacked size of the sample data`` (an ``unsigned long``) is the
 size of the deep data once it is unpacked. It is necessary to specify
 the unpacked size since the data may be arbitrarily large (so generally
 cannot otherwise be determined without decompressing the data first).
 
-The **pixel offset table** is a list of *int*\ s, one for each column
-within the dataWindow. Each entry *n* in the table indicates the total
-number of samples required to store the pixel in *n* as well as all
-pixels to the left of it. Thus, the first samples stored in each channel
-of the pixel data are for the pixel in column 0, which contains table[1]
-samples. Each channel contains table[width-1] samples in total.
+The ``pixel offset table`` is a list of ``int``, one for each column within
+the dataWindow. Each entry ``n`` in the table indicates the total number of
+samples required to store the pixel in ``n`` as well as all pixels to the left
+of it. Thus, the first samples stored in each channel of the pixel data are for
+the pixel in column 0, which contains ``table[1]`` samples. Each channel
+contains ``table[width-1]`` samples in total.
 
 Unpacked deep data chunks
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -824,39 +817,28 @@ Unpacked deep data chunks
 When decompressed, the unpacked chunk consists of the channel data
 stored in a non-interleaved fashion:
 
-+------------------------------------+
-| pixel sample data for channel 0    |
-+------------------------------------+
-| pixel sample data for channel 1    |
-+------------------------------------+
-| pixel sample data for channel ...  |
-+------------------------------------+
-| pixel sample data for channel n    |
-+------------------------------------+
+=========================================== =
+pixel sample data for channel 0    
+pixel sample data for channel 1    
+pixel sample data for channel ...  
+pixel sample data for channel n    
+=========================================== =
 
 
-**Exception:**\ For ZIP_COMPRESSION only there will be up to 16
+**Exception:** For ``ZIP_COMPRESSION`` only there will be up to 16
 scanlines in the packed sample data block:
 
-+--------------------------------------------------+
-| pixel sample data for channel 0 for scanline 0   |
-+--------------------------------------------------+
-| pixel sample data for channel 1 for scanline 0   |
-+--------------------------------------------------+
-| pixel sample data for channel ... for scanline 0 |
-+--------------------------------------------------+
-| pixel sample data for channel n for scanline 0   |
-+--------------------------------------------------+
-| pixel sample data for channel 0 for scanline 1   |
-+--------------------------------------------------+
-| pixel sample data for channel 1 for scanline 1   |
-+--------------------------------------------------+
-| pixel sample data for channel ... for scanline 1 |
-+--------------------------------------------------+
-| pixel sample data for channel n for scanline 1   |
-+--------------------------------------------------+
-| ...                                              |
-+--------------------------------------------------+
+================================================= =
+pixel sample data for channel 0 for scanline 0   
+pixel sample data for channel 1 for scanline 0   
+pixel sample data for channel ... for scanline 0 
+pixel sample data for channel n for scanline 0   
+pixel sample data for channel 0 for scanline 1   
+pixel sample data for channel 1 for scanline 1   
+pixel sample data for channel ... for scanline 1 
+pixel sample data for channel n for scanline 1
+...                                              
+================================================= =
 
 
 Deep data compression
@@ -865,126 +847,125 @@ Deep data compression
 The following compression schemes are the only ones permitted for deep
 data:
 
-================== ==
-*NO_COMPRESSION*   1 
-*RLE_COMPRESSION*  1 
-*ZIPS_COMPRESSION* 1 
-*ZIP_COMPRESSION*  16
-================== ==
+==================== ==
+``NO_COMPRESSION``   1 
+``RLE_COMPRESSION``  1 
+``ZIPS_COMPRESSION`` 1 
+``ZIP_COMPRESSION``  16
+==================== ==
 
 Predefined Attribute Types
 ==========================
 
 The IlmImf library predefines the following attribute types:
 
-+----------------+---------------------------------------------------------------+
-| type name      | data                                                          |
-+================+===============================================================+
-| box2i          | Four *int*\ s: xMin, yMin, xMax, yMax                         |
-+----------------+---------------------------------------------------------------+
-| box2f          | Four *float*\ s: xMin, yMin, xMax, yMax                       |
-+----------------+---------------------------------------------------------------+
-| chlist         | A sequence of channels followed by a null byte (0x00).        |
-|                | Channel layout:                                               |
-|                +------------+--------------------------------------------------+
-|                | name       | zero-terminated string, from 1 to 255 bytes long |
-|                +------------+--------------------------------------------------+
-|                | pixel type | int, possible values are:                        |
-|                |            |                                                  |
-|                |            | * UINT=0                                         |
-|                |            | * HALF=1                                         |
-|                |            | * FLOAT=2                                        |
-|                |            |                                                  |
-|                +------------+--------------------------------------------------+
-|                | pLinear    | usigned char, possible values are 0 and 1        |
-|                +------------+--------------------------------------------------+
-|                | reserved   | three chars, should be zero                      |
-|                +------------+--------------------------------------------------+
-|                | xSampling  | int                                              |
-|                +------------+--------------------------------------------------+
-|                | ySampling  | int                                              |
-+----------------+------------+--------------------------------------------------+
-| chromaticities | Eight *float*\ s: redX, redY, greenX, greenY,                 |
-|                | blueX, blueY, whiteX, whiteY                                  |
-+----------------+---------------------------------------------------------------+
-| compression    | *unsigned* *char*, possible values are:                       |
-|                |                                                               |
-|                | * NO_COMPRESSION* = 0                                         |
-|                | * RLE_COMPRESSION* = 1                                        |
-|                | * ZIPS_COMPRESSION* = 2                                       |
-|                | * ZIP_COMPRESSION* = 3                                        |
-|                | * PIZ_COMPRESSION* = 4                                        |
-|                | * PXR24_COMPRESSION* = 5                                      |
-|                | * B44_COMPRESSION* = 6                                        |
-|                | * B44A_COMPRESSION* = 7                                       |
-|                |                                                               |
-+----------------+---------------------------------------------------------------+
-| double         | *double*                                                      |
-+----------------+---------------------------------------------------------------+
-| envmap         | *unsigned* *char*, possible values are:                       |
-|                | * ENVMAP_LATLONG* = 0                                         |
-|                | * ENVMAP_CUBE* = 1                                            |
-+----------------+---------------------------------------------------------------+
-| float          | *float*                                                       |
-+----------------+---------------------------------------------------------------+
-| int            | *int*                                                         |
-+----------------+---------------------------------------------------------------+
-| keycode        | Seven *int*\ s: filmMfcCode, filmType, prefix, count,         |
-|                | perfOffset, perfsPerFrame, perfsPerCount                      |
-+----------------+---------------------------------------------------------------+
-| lineOrder      | *unsigned* *char*, possible values are:                       |
-|                | * INCREASING_Y* = 0                                           |
-|                | * DECREASING_Y* = 1                                           |
-|                | * RANDOM_Y* = 2                                               |
-|                |                                                               |
-+----------------+---------------------------------------------------------------+
-| m33f           | 9 *float*\ s                                                  |
-+----------------+---------------------------------------------------------------+
-| m44f           | 16 *float*\ s                                                 |
-+----------------+---------------------------------------------------------------+
-| preview        | Two *unsigned int*\ s, width and height, followed by          |
-|                | 4×width×height *unsigned char*\ s of pixel data.              |
-|                | Scan lines are stored top to bottom; within a scan line       |
-|                | pixels are stored from left to right. A pixel consists of     |
-|                | four *unsigned char* s, R, G, B, A.                           |
-+----------------+---------------------------------------------------------------+
-| rational       | An *int*, followed by an *unsigned int*.                      |
-+----------------+---------------------------------------------------------------+
-| string         | String length, of type *int*, followed by a sequence of       |
-|                | *char*\ s.                                                    |
-+----------------+---------------------------------------------------------------+
-| stringvector   | A sequence of zero or more text strings. Each string is       | 
-|                | represented as a string length, of type *int*, followed by a  |
-|                | sequence of *chars*. The number of strings can be inferred    |
-|                | from the total attribute size                                 |
-|                | (see the `Attribute Layout <#Header Attribute>`__ section, on |
-|                | page `8 <#Header Attribute>`__).                              |
-+----------------+---------------------------------------------------------------+
-| tiledesc       | Two *unsigned* *int*\ s: xSize, ySize, followed by mode, of   |
-|                | type *unsigned char*, where                                   |
-|                |                                                               |
-|                |   mode = levelMode + roundingMode×16                          |
-|                |                                                               |
-|                | Possible values for levelMode:                                |
-|                | * ONE_LEVEL* = 0                                              |
-|                | * MIPMAP_LEVELS* = 1                                          |
-|                | * RIPMAP_LEVELS* = 2                                          |
-|                |                                                               |
-|                | Possible values for roundingMode:                             |
-|                | * ROUND_DOWN* = 0                                             |
-|                | * ROUND_UP* = 1                                               |
-|                |                                                               |
-+----------------+---------------------------------------------------------------+
-| timecode       | Two *unsigned int*\ s: timeAndFlags, userData.                |
-+----------------+---------------------------------------------------------------+
-| v2i            | Two *int*\ s                                                  |
-+----------------+---------------------------------------------------------------+
-| v2f            | Two *float*\ s                                                |
-+----------------+---------------------------------------------------------------+
-| v3i            | Three *int*\ s.                                               |
-+----------------+---------------------------------------------------------------+
-| v3f            | Three *float*\ s.                                             |
-+----------------+---------------------------------------------------------------+
++--------------------+----------------------------------------------------------------+
+| type name          | data                                                           |
++====================+================================================================+
+| ``box2i``          | Four ``int``'s: ``xMin``, ``yMin``, ``xMax``, ``yMax``         |
++--------------------+----------------------------------------------------------------+
+| ``box2f``          | Four ``float``'s: ``xMin``, ``yMin``, ``xMax``, ``yMax``       |
++--------------------+----------------------------------------------------------------+
+| ``chlist``         | A sequence of channels followed by a null byte (``0x00``).     |
+|                    | Channel layout:                                                |
+|                    +------------+---------------------------------------------------+
+|                    | name       | zero-terminated string, from 1 to 255 bytes long  |
+|                    +------------+---------------------------------------------------+
+|                    | ``pixel type`` | ``int``, possible values are:                 |
+|                    |                |                                               |
+|                    |                | * ``UINT`` = 0                                |
+|                    |                | * ``HALF`` = 1                                |
+|                    |                | * ``FLOAT`` = 2                               |
+|                    |                |                                               |
+|                    +----------------+-----------------------------------------------+
+|                    | ``pLinear``    | ``usigned char``, possible values are 0 and 1 |
+|                    +----------------+-----------------------------------------------+
+|                    | ``reserved``   | three ``char``, should be zero                |
+|                    +----------------+-----------------------------------------------+
+|                    | ``xSampling``  | ``int``                                       |
+|                    +----------------+-----------------------------------------------+
+|                    | ``ySampling``  | ``int``                                       |
++--------------------+----------------+-----------------------------------------------+
+| ``chromaticities`` | Eight ``float``: ``redX``, ``redY``, ``greenX``,               |
+|                    | ``greenY``, ``blueX``, ``blueY``, ``whiteX``, ``whiteY``       |
++--------------------+----------------------------------------------------------------+
+| ``compression``    | ``unsigned char``, possible values are:                        |
+|                    |                                                                |
+|                    | * ``NO_COMPRESSION`` = 0                                       |
+|                    | * ``RLE_COMPRESSION`` = 1                                      |
+|                    | * ``ZIPS_COMPRESSION`` = 2                                     |
+|                    | * ``ZIP_COMPRESSION`` = 3                                      |
+|                    | * ``PIZ_COMPRESSION`` = 4                                      |
+|                    | * ``PXR24_COMPRESSION`` = 5                                    |
+|                    | * ``B44_COMPRESSION`` = 6                                      |
+|                    | * ``B44A_COMPRESSION`` = 7                                     |
+|                    |                                                                |
++--------------------+----------------------------------------------------------------+
+| ``double``         | ``double``                                                     |
++--------------------+----------------------------------------------------------------+
+| ``envmap``         | ``unsigned char``, possible values are:                        |
+|                    | * ``ENVMAP_LATLONG`` = 0                                       |
+|                    | * ``ENVMAP_CUBE`` = 1                                          |
++--------------------+----------------------------------------------------------------+
+| ``float``          | ``float``                                                      |
++--------------------+----------------------------------------------------------------+
+| ``int``            | ``int``                                                        |
++--------------------+----------------------------------------------------------------+
+| ``keycode``        | Seven ``int``'s: ``filmMfcCode``, ``filmType``, ``prefix``,    |
+|                    | ``count``,``perfOffset``, ``perfsPerFrame``, ``perfsPerCount`` |
++--------------------+----------------------------------------------------------------+
+| ``lineOrder``      | ``unsigned char``, possible values are:                        |
+|                    | * ``INCREASING_Y`` = 0                                         |
+|                    | * ``DECREASING_Y`` = 1                                         |
+|                    | * ``RANDOM_Y`` = 2                                             |
+|                    |                                                                |
++--------------------+----------------------------------------------------------------+
+| ``m33f``           | 9 ``float``'s                                                  |
++--------------------+----------------------------------------------------------------+
+| ``m44f``           | 16 ``float``'s                                                 |
++--------------------+----------------------------------------------------------------+
+| ``preview``        | Two ``unsigned int``'s, width and height, followed by          |
+|                    | 4×width×height ``unsigned char``'s of pixel data.              |
+|                    | Scan lines are stored top to bottom; within a scan line        |
+|                    | pixels are stored from left to right. A pixel consists of      |
+|                    | four ``unsigned char``s, ``R``, ``G``, ``B``, ``A``.           |
++--------------------+----------------------------------------------------------------+
+| ``rational``       | An ``int``, followed by an ``unsigned int``.                   |
++--------------------+----------------------------------------------------------------+
+| ``string``         | String length, of type ``int``, followed by a sequence of      |
+|                    | ``char``'s.                                                    |
++--------------------+----------------------------------------------------------------+
+| ``stringvector``   | A sequence of zero or more text strings. Each string is        | 
+|                    | represented as a string length, of type ``int``, followed by a |
+|                    | sequence of ``chars``. The number of strings can be inferred   |
+|                    | from the total attribute size                                  |
+|                    | (see the _`Attribute Layout` section.                          |
++--------------------+----------------------------------------------------------------+
+| ``tiledesc``       | Two ``unsigned`` ``int``'s: ``xSize``, ``ySize``, followed by  |
+|                    | ``mode``, of type ``unsigned char``, where                     |
+|                    |                                                                |
+|                    |   mode = levelMode + roundingMode×16                           |
+|                    |                                                                |
+|                    | Possible values for ``levelMode``:                             |
+|                    | * ``ONE_LEVEL`` = 0                                            |
+|                    | * ``MIPMAP_LEVELS`` = 1                                        |
+|                    | * ``RIPMAP_LEVELS`` = 2                                        |
+|                    |                                                                |
+|                    | Possible values for ``roundingMode``:                          |
+|                    | * ``ROUND_DOWN`` = 0                                           |
+|                    | * ``ROUND_UP`` = 1                                             |
+|                    |                                                                |
++--------------------+----------------------------------------------------------------+
+| ``timecode``       | Two ``unsigned int``'s: ``timeAndFlags``, ``userData``.        |
++--------------------+----------------------------------------------------------------+
+| ``v2i``            | Two ``int``'s                                                  |
++--------------------+----------------------------------------------------------------+
+| ``v2f``            | Two ``float``'s                                                |
++--------------------+----------------------------------------------------------------+
+| ``v3i``            | Three ``int``'s.                                               |
++--------------------+----------------------------------------------------------------+
+| ``v3f``            | Three ``float``'s.                                             |
++--------------------+----------------------------------------------------------------+
 
 
 Sample File
@@ -992,8 +973,8 @@ Sample File
 
 The following is an annotated byte-by-byte listing of a complete OpenEXR
 file. The file contains a scan-line based image with four by three
-pixels. The image has two channels: G, of type *HALF*, and Z, of type
-*FLOAT*. The pixel data are not compressed. The entire file is 415 bytes
+pixels. The image has two channels: G, of type ``HALF``, and Z, of type
+``FLOAT``. The pixel data are not compressed. The entire file is 415 bytes
 long.
 
 The first line of text in each of the gray boxes below lists up to 16

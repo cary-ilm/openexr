@@ -4,15 +4,13 @@
 OpenEXR Documentation
 =====================
 
-Hello, OpenEXR docs
-
 .. toctree::
    :maxdepth: 1
 
    TechnicalIntroduction
    ReadingAndWritingImageFiles
    OpenEXRFileLayout
-
+   
 :ref:`genindex`
 
 
