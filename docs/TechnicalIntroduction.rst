@@ -363,7 +363,7 @@ highest-resolution level, with ``w`` by ``h`` pixels. Level
 
 by
 
-.. math:: \text{rf} \left( h / 2^{l_y} \rigtht)
+.. math:: \text{rf} \left( h / 2^{l_y} \right)
 
 pixels, where rf(x) is a rounding function, either floor(x) or ceil(x),
 depending on the file's *level size rounding mode* (``ROUND_DOWN`` or
