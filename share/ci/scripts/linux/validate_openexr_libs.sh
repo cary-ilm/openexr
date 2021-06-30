@@ -84,7 +84,7 @@ for lib in $libs; do
             exit -1
         fi
 
-        echo "lib$base.so -> $libbase -> $libcurrent -> $libversion"
+        echo "lib$base$_d.so -> $libbase -> $libcurrent -> $libversion"
 
     elif [[ ! -f $LIB_DIR/lib$lib.a ]]; then
         echo "No static lib: $LIB_DIR/lib$lib.a"
