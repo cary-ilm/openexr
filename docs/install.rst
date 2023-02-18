@@ -5,7 +5,7 @@
 .. _Install:
 
 Install
-========
+#######
 
 .. toctree::
    :caption: Install
@@ -34,7 +34,7 @@ affiliated with the OpenEXR project or the ASWF. Please direct
 questions there.
 
 Build from Source
------------------
+=================
 
 OpenEXR builds on Linux, macOS, Microsoft Windows via CMake, and is
 cross-compilable on other systems.
@@ -48,7 +48,7 @@ release.
 
 
 Prerequisites
-~~~~~~~~~~~~~
+-------------
 
 Make sure these are installed on your system before building OpenEXR:
 
@@ -63,7 +63,7 @@ Note that as of OpenEXR 3, the Gnu autoconf bootstrap/configure build
 system is no longer supported.
 
 Linux/macOS
-~~~~~~~~~~~
+-----------
 
 To build via CMake, you need to first identify three directories:
 
@@ -95,7 +95,7 @@ no arguments, as above, ``make install`` installs the header files in
 executable programs in ``/usr/local/bin``.
 
 Windows
-~~~~~~~
+-------
 
 Under Windows, if you are using a command line-based setup, such as
 cygwin, you can of course follow the above. For Visual Studio, cmake
@@ -111,7 +111,7 @@ can specify a local install directory to cmake via the
     $ cmake .. -DCMAKE_INSTALL_PREFIX=$openexr_install_directory
 
 Library Names
--------------
+=============
 
 By default the installed libraries follow a pattern for how they are
 named. This is done to enable multiple versions of the library to be
@@ -141,7 +141,7 @@ corresponds to the so version, or in ``libtool`` terminology the
 documentation for more details.
 
 Imath Dependency
-----------------
+================
 
 OpenEXR depends on `Imath
 <https://github.com/AcademySoftwareFoundation/Imath>`_. If a suitable
@@ -178,14 +178,14 @@ is installed.
 See below for other customization options.
 
 Porting Applications from OpenEXR v2 to v3
-------------------------------------------
+==========================================
 
 See the :doc:`PortingGuide` for details about differences from previous
 releases and how to address them. Also refer to the porting guide for
 details about changes to Imath.
 
 Building the Documentation
---------------------------
+==========================
 
 The OpenEXR technical documentation at `https://openexr.readthedocs.io
 <https://openexr.readthedocs.io>`_ is generated via `Sphinx
@@ -212,8 +212,7 @@ downloading of documentation in pdf format, for those who prefer it
 that way.
 
 CMake Build-time Configuration Options
---------------------------------------
-
+======================================
 
 The default CMake configuration options are stored in
 ``cmake/OpenEXRSetup.cmake``. To see a complete set of option
@@ -230,7 +229,7 @@ You can customize these options three ways:
 3. Specify them as command-line arguments when you invoke cmake.
 
 Library Naming Options
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 * ``OPENEXR_LIB_SUFFIX``
 
@@ -239,7 +238,7 @@ Library Naming Options
   see the section on library names
 
 Imath Dependency
-~~~~~~~~~~~~~~~~
+----------------
 
 * ``CMAKE_PREFIX_PATH``
 
@@ -256,7 +255,7 @@ Imath Dependency
   install directory.
   
 Namespace Options
-~~~~~~~~~~~~~~~~~
+-----------------
 
 * ``OPENEXR_IMF_NAMESPACE``
 
@@ -298,7 +297,7 @@ Namespace Options
   Whether the namespace has been customized (so external users know)
 
 Component Options
-~~~~~~~~~~~~~~~~~
+-----------------
 
 * ``BUILD_TESTING``
 
@@ -320,7 +319,7 @@ Component Options
   Build and install the example code. Default is ``ON``.
 
 Additional CMake Options
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 See the CMake documentation for more information (https://cmake.org/cmake/help/v3.12/).
 
