@@ -11,7 +11,7 @@ License
    :caption: License
 
 OpenEXR is licensed under the BSD-3-Clause license. Contributions to the 
-library should abide by that license unless otherwised approved by the OCIO 
+library should abide by that license unless otherwised approved by the OpenEXR
 TSC and ASWF Governing Board.
 
 See `LICENSE.md 
