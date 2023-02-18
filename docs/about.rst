@@ -110,13 +110,12 @@ Industrial Light & Magic by Florian Kainz, Wojciech Jarosz, and Rod
 Bogart. The PIZ compression scheme is based on an algorithm by
 Christian Rouet. Josh Pines helped extend the PIZ algorithm for 16-bit
 and found optimizations for the float-to-half conversions. Drew Hess
-packaged and adapted ILM's internal source code for public release and
-maintains the OpenEXR software distribution. The PXR24 compression
-method is based on an algorithm written by Loren Carpenter at Pixar
-Animation Studios.
+packaged and adapted ILM's internal source code for public release.
+The PXR24 compression method is based on an algorithm written by Loren
+Carpenter at Pixar Animation Studios.
 
 For a complete list of contributors see the `CONTRIBUTORS.md
-<https://github.com/AcademySoftwareFoundation/openexr/blob/main/CONTRIBUTING.md>`_
+<https://github.com/AcademySoftwareFoundation/openexr/blob/main/CONTRIBUTORS.md>`_
 file.
 
 

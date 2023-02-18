@@ -138,12 +138,6 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#html_theme = 'agogo'
-#html_theme = 'default' # good
-#html_theme = 'nature' # too green
-#html_theme = 'sphinxdoc'
-
-html_theme = 'bizstyle' # OK
 
 html_theme = "press"
 html_theme_options = {
