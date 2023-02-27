@@ -425,9 +425,9 @@ testWriteBaseHeader (const std::string& tempdir)
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
     EXRCORE_TEST_RVAL (
         exr_add_part (outf, "beauty", EXR_STORAGE_SCANLINE, &partidx));
-    exr_attr_box2i_t dataw = {-2, -3, 514, 515};
-    exr_attr_box2i_t dispw = {0, 0, 512, 512};
-    exr_attr_v2f_t   swc   = {0.5f, 0.5f};
+    exr_attr_box2i_t dataw = {{.arr={-2, -3}}, {.arr={514, 515}}};
+    exr_attr_box2i_t dispw = {{.arr={0, 0}}, {.arr={512, 512}}};
+    exr_attr_v2f_t   swc   = {.arr={0.5f, 0.5f}};
     EXRCORE_TEST_RVAL (exr_initialize_required_attr (
         outf,
         partidx,
@@ -474,7 +474,7 @@ testWriteBaseHeader (const std::string& tempdir)
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
     EXRCORE_TEST_RVAL (
         exr_add_part (outf, "beauty", EXR_STORAGE_TILED, &partidx));
-    dataw = {0, 0, 512, 512};
+    dataw = {{.arr={0, 0}}, {.arr={512, 512}}};
     EXRCORE_TEST_RVAL (exr_initialize_required_attr (
         outf,
         partidx,
@@ -908,7 +908,7 @@ testWriteAttrs (const std::string& tempdir)
     }
 
     {
-        exr_attr_box2i_t tb2i = {1, 2, 3, 4};
+        exr_attr_box2i_t tb2i = {{.arr={1, 2}}, {.arr={3, 4}}};
         TEST_CORNER_CASE_NAME (box2i, tb2i, int);
         EXRCORE_TEST (tb2i.min.x == 1);
         EXRCORE_TEST (tb2i.min.y == 2);
@@ -917,7 +917,7 @@ testWriteAttrs (const std::string& tempdir)
     }
 
     {
-        exr_attr_box2f_t tb2f = {1.f, 2.f, 3.f, 4.f};
+        exr_attr_box2f_t tb2f = {{.arr={1.f, 2.f}}, {.arr={3.f, 4.f}}};
         TEST_CORNER_CASE_NAME (box2f, tb2f, int);
         EXRCORE_TEST (tb2f.min.x == 1.f);
         EXRCORE_TEST (tb2f.min.y == 2.f);
@@ -926,7 +926,7 @@ testWriteAttrs (const std::string& tempdir)
     }
 
     {
-        exr_attr_v2i_t tv2i = {1, 2};
+        exr_attr_v2i_t tv2i = {.arr={1, 2}};
         TEST_CORNER_CASE_NAME (v2i, tv2i, int);
         EXRCORE_TEST (tv2i.x == 1);
         EXRCORE_TEST (tv2i.y == 2);
@@ -1055,21 +1055,21 @@ testWriteAttrs (const std::string& tempdir)
     }
 
     {
-        exr_attr_v2f_t tv2f = {1.f, 2.f};
+        exr_attr_v2f_t tv2f = {.arr={1.f, 2.f}};
         TEST_CORNER_CASE_NAME (v2f, tv2f, int);
         EXRCORE_TEST (tv2f.x == 1.f);
         EXRCORE_TEST (tv2f.y == 2.f);
     }
 
     {
-        exr_attr_v2d_t tv2d = {1.0, 2.0};
+        exr_attr_v2d_t tv2d = {.arr={1.0, 2.0}};
         TEST_CORNER_CASE_NAME (v2d, tv2d, int);
         EXRCORE_TEST (tv2d.x == 1.0);
         EXRCORE_TEST (tv2d.y == 2.0);
     }
 
     {
-        exr_attr_v3i_t tv3i = {1, 2, 3};
+        exr_attr_v3i_t tv3i = {.arr={1, 2, 3}};
         TEST_CORNER_CASE_NAME (v3i, tv3i, int);
         EXRCORE_TEST (tv3i.x == 1);
         EXRCORE_TEST (tv3i.y == 2);
@@ -1077,7 +1077,7 @@ testWriteAttrs (const std::string& tempdir)
     }
 
     {
-        exr_attr_v3f_t tv3f = {1.f, 2.f, 3.f};
+        exr_attr_v3f_t tv3f = {.arr={1.f, 2.f, 3.f}};
         TEST_CORNER_CASE_NAME (v3f, tv3f, int);
         EXRCORE_TEST (tv3f.x == 1.f);
         EXRCORE_TEST (tv3f.y == 2.f);
@@ -1085,7 +1085,7 @@ testWriteAttrs (const std::string& tempdir)
     }
 
     {
-        exr_attr_v3d_t tv3d = {1.0, 2.0, 3.0};
+        exr_attr_v3d_t tv3d = {.arr={1.0, 2.0, 3.0}};
         TEST_CORNER_CASE_NAME (v3d, tv3d, int);
         EXRCORE_TEST (tv3d.x == 1.0);
         EXRCORE_TEST (tv3d.y == 2.0);
