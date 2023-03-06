@@ -4,7 +4,8 @@ import sys, os
 from subprocess import PIPE, run
 
 print(f"testing exrcheck in python: {sys.argv}")
-
+print(f"cwd: {os.getcwd()}")
+      
 bin_dir = sys.argv[1]
 src_dir = sys.argv[2]
 exr_file = sys.argv[3]
