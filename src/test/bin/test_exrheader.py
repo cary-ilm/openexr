@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) Contributors to the OpenEXR Project.
+
 import sys, os
 from subprocess import PIPE, run
 
-print(f"testing exrheader in python: {sys.argv}")
+print(f"testing exrheader: {sys.argv}")
 
 exrheader = f"{sys.argv[1]}/exrheader"
-src_dir = f"{sys.argv[2]}"
 
 # no args = usage message
 result = run ([exrheader], stdout=PIPE, stderr=PIPE, universal_newlines=True)
@@ -27,7 +29,7 @@ def find_line(keyword, lines):
     return None
 
 # attributes
-image = f"{src_dir}/GrayRampsHorizontal.exr"
+image = "GrayRampsHorizontal.exr"
 result = run ([exrheader, image], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 0)

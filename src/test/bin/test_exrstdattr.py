@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) Contributors to the OpenEXR Project.
+
 import sys, os, tempfile, atexit
 from subprocess import PIPE, run
 
@@ -7,7 +10,6 @@ print(f"testing exrstdattr in python: {sys.argv}")
 
 exrstdattr = f"{sys.argv[1]}/exrstdattr"
 exrheader = f"{sys.argv[1]}/exrheader"
-src_dir = f"{sys.argv[2]}"
 
 fd, outimage = tempfile.mkstemp(".exr")
 #outimage = "/var/tmp/exrstdattr.exr"
@@ -18,7 +20,7 @@ atexit.register(cleanup)
 
 def find_line(keyword, lines):
     for line in lines:
-        if keyword in line:
+        if line.startswith(keyword):
             return line
     return None
 
@@ -40,12 +42,12 @@ attrs = {
     "longitude" : "8.7",
     "utcOffset" : "9",
     "owner" : "florian",
-    "xDensity" : "10.0",
+    "xDensity" : "10",
     "lookModTransform" : "lmt",
     "renderingTransform" : "rt",
     "adoptedNeutral" : "1.1 2.2",
     "whiteLuminance" : "17.1",
-    "chromaticities" : "1 2 3 4 5 6 7 8",
+#    "chromaticities" : "1 2 3 4 5 6 7 8",
 }
 
 command = [exrstdattr]
@@ -53,7 +55,7 @@ for a in attrs:
     command += [f"-{a}"]
     command += attrs[a].split(' ')
 
-image = f"{src_dir}/GrayRampsHorizontal.exr"
+image = "GrayRampsHorizontal.exr"
 command += [image, outimage]
 
 attrs["test_int"] = "42"

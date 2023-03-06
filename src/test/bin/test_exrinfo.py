@@ -6,14 +6,13 @@ from subprocess import PIPE, run
 print(f"testing exrinfo in python: {sys.argv}")
 
 exrinfo = f"{sys.argv[1]}/exrinfo"
-src_dir = f"{sys.argv[2]}"
 
 result = run ([exrinfo, "-h"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 0)
 assert(result.stderr.startswith ("Usage: "))
 
-image = f"{src_dir}/GrayRampsHorizontal.exr"
+image = "GrayRampsHorizontal.exr"
 result = run ([exrinfo, image, "-a", "-v"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 0)
