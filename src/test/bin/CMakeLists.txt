@@ -3,8 +3,12 @@
 
 if(BUILD_TESTING)
 
-  find_package(Python COMPONENTS Interpreter)
-  
+  find_package(Python3 COMPONENTS Interpreter)
+  if (NOT Python3_FOUND)
+    message(STATUS "Python3 not found: skipping bin tests")
+    return()
+  endif()
+    
   message(STATUS "adding bin tests")
 
   set(images_url "https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main")
