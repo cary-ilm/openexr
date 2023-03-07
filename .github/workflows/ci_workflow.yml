@@ -296,11 +296,16 @@ jobs:
         working-directory: _examples
       - name: Test
         run: |
+          echo "cwd: `pwd`"
           ctest -T Test ${{ matrix.exclude-tests }} \
                 -C ${{ matrix.build-type }} \
                 --timeout 7200 \
                 --output-on-failure \
                 -VV
+          echo "test logs:"
+          cat ../../Testing/Temporary/LastTest.log
+          echo "test log via find:"
+          find ../../ -name LastTest.log -exec cat {} ";"
         working-directory: _build
 
   # ---------------------------------------------------------------------------
