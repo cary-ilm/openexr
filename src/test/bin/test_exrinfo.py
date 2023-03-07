@@ -39,3 +39,4 @@ assert ('800 x 800' in output[3])
 assert ('1 channels' in output[4])
 
 print("success")
+

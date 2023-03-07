@@ -34,28 +34,28 @@ if(BUILD_TESTING)
       file(DOWNLOAD ${images_url}/${image} ${CMAKE_CURRENT_BINARY_DIR}/${image})
   endforeach()
 
-  add_test(NAME OpenEXR.python.exrinfo
-           COMMAND ${Python_EXECUTABLE}
+  add_test(NAME OpenEXR.bin.exrinfo
+           COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_exrinfo.py ${CMAKE_BINARY_DIR}/bin ${CMAKE_CURRENT_BINARY_DIR})
 
-  add_test(NAME OpenEXR.python.exrheader
-           COMMAND ${Python_EXECUTABLE}
+  add_test(NAME OpenEXR.bin.exrheader
+           COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_exrheader.py ${CMAKE_BINARY_DIR}/bin ${CMAKE_CURRENT_BINARY_DIR})
 
-  add_test(NAME OpenEXR.python.exrstdattr
-           COMMAND ${Python_EXECUTABLE}
+  add_test(NAME OpenEXR.bin.exrstdattr
+           COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_exrstdattr.py ${CMAKE_BINARY_DIR}/bin ${CMAKE_CURRENT_BINARY_DIR})
 
-  add_test(NAME OpenEXR.python.exrmakepreview
-           COMMAND ${Python_EXECUTABLE}
+  add_test(NAME OpenEXR.bin.exrmakepreview
+           COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_exrmakepreview.py ${CMAKE_BINARY_DIR}/bin ${CMAKE_CURRENT_BINARY_DIR})
 
-  add_test(NAME OpenEXR.python.exr2aces
-           COMMAND ${Python_EXECUTABLE}
+  add_test(NAME OpenEXR.bin.exr2aces
+           COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_exr2aces.py ${CMAKE_BINARY_DIR}/bin ${CMAKE_CURRENT_BINARY_DIR})
 
-  add_test(NAME OpenEXR.python.exrcheck
-           COMMAND ${Python_EXECUTABLE}
+  add_test(NAME OpenEXR.bin.exrcheck
+           COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_exrcheck.py
            ${CMAKE_BINARY_DIR}/bin ${CMAKE_CURRENT_BINARY_DIR}
            ${images})
