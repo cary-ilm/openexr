@@ -31,6 +31,7 @@ def find_line(keyword, lines):
     return None
 
 fd, outimage = tempfile.mkstemp(".exr")
+os.close(fd)
 
 def cleanup():
     print(f"deleting {outimage}")

@@ -20,6 +20,7 @@ assert("Usage:" in result.stderr)
 image = f"{image_dir}/Beachball/multipart.0001.exr"
 
 fd, outimage = tempfile.mkstemp(".exr")
+os.close(fd)
 
 def cleanup():
     print(f"deleting {outimage}")
