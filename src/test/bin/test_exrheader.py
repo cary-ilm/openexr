@@ -9,6 +9,7 @@ from subprocess import PIPE, run
 print(f"testing exrheader: {sys.argv}")
 
 exrheader = f"{sys.argv[1]}/exrheader"
+image_dir = f"{sys.argv[2]}"
 
 # no args = usage message
 result = run ([exrheader], stdout=PIPE, stderr=PIPE, universal_newlines=True)
@@ -24,18 +25,17 @@ assert(result.stderr.startswith ("usage: "))
 
 def find_line(keyword, lines):
     for line in lines:
-        if keyword in line:
+        if line.startswith(keyword):
             return line
     return None
 
 # attributes
-image = "GrayRampsHorizontal.exr"
+image = f"{image_dir}/TestImages/GrayRampsHorizontal.exr"
 result = run ([exrheader, image], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 0)
-output = result.stdout.split('\n')
-print(f"result.stdout={result.stdout}")
 
+output = result.stdout.split('\n')
 assert ("2, flags 0x0" in find_line("file format version:", output))
 assert ("pxr24" in find_line ("compression", output))
 assert ("(0 0) - (799 799)" in find_line ("dataWindow", output))

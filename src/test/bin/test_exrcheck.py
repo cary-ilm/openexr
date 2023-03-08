@@ -9,12 +9,16 @@ from subprocess import PIPE, run
 print(f"testing exrcheck: {sys.argv}")
       
 bin_dir = sys.argv[1]
+image_dir = sys.argv[2]
+
 exrcheck = f"{bin_dir}/exrcheck"
 
 for exr_file in sys.argv[3:]:
-    result = run ([exrcheck, exr_file], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-    print(f"exrcheck {' '.join(result.args[1:])}")
+
+    exr_path = f"{image_dir}/{exr_file}"
+
+    result = run ([exrcheck, exr_path], stdout=PIPE, stderr=PIPE, universal_newlines=True)
     assert(result.returncode == 0)
-    print(result.stdout)
 
 print("success.")
+
