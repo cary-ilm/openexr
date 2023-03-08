@@ -16,13 +16,13 @@ image_dir = sys.argv[3]
 result = run ([exr2aces], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 1)
-assert(result.stderr.startswith ("usage: "))
+assert(result.stderr.startswith ("Usage: "))
 
 # -h = usage message
 result = run ([exr2aces, "-h"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 1)
-assert(result.stderr.startswith ("usage: "))
+assert(result.stderr.startswith ("Usage: "))
 
 def find_line(keyword, lines):
     for line in lines:

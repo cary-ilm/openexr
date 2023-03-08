@@ -16,6 +16,8 @@ if(BUILD_TESTING)
       TestImages/GrayRampsHorizontal.exr
       LuminanceChroma/Garden.exr
       MultiResolution/ColorCodedLevels.exr
+      MultiResolution/StageEnvCube.exr
+      MultiResolution/StageEnvLatLong.exr
       LuminanceChroma/Flowers.exr
       MultiView/Adjuster.exr
       Chromaticities/Rec709_YC.exr
@@ -29,7 +31,7 @@ if(BUILD_TESTING)
       Beachball/multipart.0001.exr
   )
 
-  foreach(image in LIST ${images})
+  foreach(image ${images})
       message(STATUS "Downloading ${images_url}/${image}")
       file(DOWNLOAD ${images_url}/${image} ${CMAKE_CURRENT_BINARY_DIR}/${image})
   endforeach()
@@ -42,22 +44,24 @@ if(BUILD_TESTING)
            COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_exrheader.py $<TARGET_FILE:exrheader> ${CMAKE_CURRENT_BINARY_DIR})
 
-  add_test(NAME OpenEXR.bin.exrstdattr
-           COMMAND ${Python3_EXECUTABLE}
-           ${CMAKE_CURRENT_SOURCE_DIR}/test_exrstdattr.py $<TARGET_FILE:exrstdattr> $<TARGET_FILE:exrinfo> ${CMAKE_CURRENT_BINARY_DIR})
+  set(tests
+      exr2aces
+      exrenvmap
+      exrmakepreview
+      exrmaketiled
+      exrmultiview
+      exrmultipart
+      exrstdattr
+  )
 
-  add_test(NAME OpenEXR.bin.exrmakepreview
+  foreach(test ${tests})
+  
+    add_test(NAME OpenEXR.bin.${test}
            COMMAND ${Python3_EXECUTABLE}
-           ${CMAKE_CURRENT_SOURCE_DIR}/test_exrmakepreview.py $<TARGET_FILE:exrmakepreview> $<TARGET_FILE:exrinfo> ${CMAKE_CURRENT_BINARY_DIR})
-
-  add_test(NAME OpenEXR.bin.exr2aces
-           COMMAND ${Python3_EXECUTABLE}
-           ${CMAKE_CURRENT_SOURCE_DIR}/test_exr2aces.py $<TARGET_FILE:exr2aces> $<TARGET_FILE:exrinfo> ${CMAKE_CURRENT_BINARY_DIR})
-
-  add_test(NAME OpenEXR.bin.exrmultipart
-           COMMAND ${Python3_EXECUTABLE}
-           ${CMAKE_CURRENT_SOURCE_DIR}/test_exrmultipart.py $<TARGET_FILE:exrmultipart> $<TARGET_FILE:exrinfo> ${CMAKE_CURRENT_BINARY_DIR})
-
+           ${CMAKE_CURRENT_SOURCE_DIR}/test_${test}.py $<TARGET_FILE:${test}> $<TARGET_FILE:exrinfo> ${CMAKE_CURRENT_BINARY_DIR})
+  endforeach()
+  
+  # run exrcheck on all images
   add_test(NAME OpenEXR.bin.exrcheck
            COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_exrcheck.py

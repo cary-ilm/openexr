@@ -676,23 +676,22 @@ separate (vector<const char*> in, const char* out, bool override)
 void
 usageMessage (const char argv[])
 {
-    cerr << argv << " handles the combining and splitting of multipart data\n";
-    cerr
-        << "\n"
-        << "Usage: "
+    cerr << "Usage: "
            "exrmultipart -combine -i input.exr[:partnum][::partname] "
            "[input2.exr[:partnum]][::partname] [...] -o outfile.exr [options]\n";
     cerr << "   or: exrmultipart -separate -i infile.exr -o outfileBaseName "
             "[options]\n";
     cerr << "   or: exrmultipart -convert -i infile.exr -o outfile.exr "
             "[options]\n";
-    cerr << "\n"
-         << "Options:\n";
+    cerr << "\n";
+    cerr << argv << " handles the combining and splitting of multipart data\n";
+    cerr << "\n";
+    cerr << "Options:\n";
     cerr << "-override [0/1]      0-do not override conflicting shared "
             "attributes [default]\n"
             "                     1-override conflicting shared attributes\n";
 
-    cerr << "-view name           (after specifying -i) "
+    cout << "-view name           (after specifying -i) "
             "assign following inputs to view 'name'\n";
     exit (1);
 }

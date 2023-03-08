@@ -20,13 +20,13 @@ assert(os.path.isdir(image_dir))
 result = run ([exrmakepreview], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 1)
-assert(result.stderr.startswith ("usage: "))
+assert(result.stderr.startswith ("Usage: "))
 
 # -h = usage message
 result = run ([exrmakepreview, "-h"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 1)
-assert(result.stderr.startswith ("usage: "))
+assert(result.stderr.startswith ("Usage: "))
 
 def find_line(keyword, lines):
     for line in lines:

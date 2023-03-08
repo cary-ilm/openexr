@@ -27,13 +27,13 @@ atexit.register(cleanup)
 result = run ([exrstdattr], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 1)
-assert(result.stderr.startswith ("usage: "))
+assert(result.stderr.startswith ("Usage: "))
 
 # -h = usage message
 result = run ([exrstdattr, "-h"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 1)
-assert(result.stderr.startswith ("usage: "))
+assert(result.stderr.startswith ("Usage: "))
 
 command = [exrstdattr]
 command += ["-part", "0"]
@@ -75,9 +75,6 @@ assert(os.path.isfile(outimage))
 
 result = run ([exrinfo, "-v", outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
-print(f"result.stdout: {result.stdout}")
-assert(len(result.stdout) > 0)
-assert(len(result.stdout.split('\n')) > 0)
 assert(result.returncode == 0)
 assert('adoptedNeutral: v2f [ 1.1, 2.2 ]' in result.stdout)
 assert('altitude: float 6.5' in result.stdout)
