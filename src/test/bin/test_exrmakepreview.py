@@ -8,9 +8,9 @@ from subprocess import PIPE, run
 
 print(f"testing exrmakepreview: {sys.argv}")
 
-exrmakepreview = f"{sys.argv[1]}/exrmakepreview"
-exrheader = f"{sys.argv[1]}/exrheader"
-image_dir = f"{sys.argv[2]}"
+exrmakepreview = sys.argv[1]
+exrinfo = sys.argv[2]
+image_dir = sys.argv[3]
 
 # no args = usage message
 result = run ([exrmakepreview], stdout=PIPE, stderr=PIPE, universal_newlines=True)
@@ -41,11 +41,11 @@ result = run ([exrmakepreview, "-w", "50", "-e", "1", "-v", image, outimage], st
 print(" ".join(result.args))
 assert(result.returncode == 0)
 
-result = run ([exrheader, outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+result = run ([exrinfo, "-v", outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 0)
 output = result.stdout.split('\n')
-assert("50 by 50 pixels" in find_line("preview", output))
+assert("preview 50 x 50" in find_line("  preview", output))
 
 print("success")
 

@@ -8,9 +8,9 @@ from subprocess import PIPE, run
 
 print(f"testing exr2aces: {sys.argv}")
 
-exr2aces = f"{sys.argv[1]}/exr2aces"
-exrheader = f"{sys.argv[1]}/exrheader"
-image_dir = f"{sys.argv[2]}"
+exr2aces = sys.argv[1]
+exrinfo = sys.argv[2]
+image_dir = sys.argv[3]
 
 # no args = usage message
 result = run ([exr2aces], stdout=PIPE, stderr=PIPE, universal_newlines=True)
@@ -41,16 +41,12 @@ result = run ([exr2aces, "-v", image, outimage], stdout=PIPE, stderr=PIPE, unive
 print(" ".join(result.args))
 assert(result.returncode == 0)
 
-result = run ([exrheader, outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+result = run ([exrinfo, "-v", outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 0)
 
 # confirm the output has the proper chromaticities
-assert("chromaticities" in result.stdout)
-assert("red   (0.7347 0.2653)" in result.stdout)
-assert("green (0 1)" in result.stdout)
-assert("blue  (0.0001 -0.077)" in result.stdout)
-assert("white (0.32168 0.33767)" in result.stdout)
+assert("chromaticities: chromaticities r[0.7347, 0.2653] g[0, 1] b[0.0001, -0.077] w[0.32168, 0.33767]" in result.stdout)
 
 print("success")
 

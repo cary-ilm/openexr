@@ -8,10 +8,8 @@ from subprocess import PIPE, run
 
 print(f"testing exrcheck: {sys.argv}")
       
-bin_dir = sys.argv[1]
+exrcheck = sys.argv[1]
 image_dir = sys.argv[2]
-
-exrcheck = f"{bin_dir}/exrcheck"
 
 for exr_file in sys.argv[3:]:
 

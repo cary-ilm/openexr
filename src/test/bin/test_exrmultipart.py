@@ -8,9 +8,9 @@ from subprocess import PIPE, run
 
 print(f"testing exrmultipart: {sys.argv}")
 
-exrmultipart = f"{sys.argv[1]}/exrmultipart"
-exrinfo = f"{sys.argv[1]}/exrinfo"
-image_dir = f"{sys.argv[2]}"
+exrmultipart = sys.argv[1]
+exrinfo = sys.argv[2]
+image_dir = sys.argv[3]
 
 result = run ([exrmultipart], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))

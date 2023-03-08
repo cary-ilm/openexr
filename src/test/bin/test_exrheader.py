@@ -8,8 +8,8 @@ from subprocess import PIPE, run
 
 print(f"testing exrheader: {sys.argv}")
 
-exrheader = f"{sys.argv[1]}/exrheader"
-image_dir = f"{sys.argv[2]}"
+exrheader = sys.argv[1]
+image_dir = sys.argv[2]
 
 # no args = usage message
 result = run ([exrheader], stdout=PIPE, stderr=PIPE, universal_newlines=True)

@@ -8,8 +8,8 @@ from subprocess import PIPE, run
 
 print(f"testing exrinfo: {sys.argv}")
 
-exrinfo = f"{sys.argv[1]}/exrinfo"
-image_dir = f"{sys.argv[2]}"
+exrinfo = sys.argv[1]
+image_dir = sys.argv[2]
 
 result = run ([exrinfo, "-h"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
