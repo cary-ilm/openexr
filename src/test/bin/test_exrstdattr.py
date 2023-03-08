@@ -66,11 +66,14 @@ command += [image, outimage]
 result = run (command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode == 0)
+assert(os.path.isfile(outimage))
 
 result = run ([exrinfo, "-v", outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 print(f"result.stdout: {result.stdout}")
-
+assert(len(result.stdout) > 0)
+assert(len(result.stdout.split('\n')) > 0)
+assert(result.returncode == 0)
 assert('adoptedNeutral: v2f [ 1.1, 2.2 ]' in result.stdout)
 assert('altitude: float 6.5' in result.stdout)
 assert('aperture: float 3.2' in result.stdout)
