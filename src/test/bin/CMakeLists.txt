@@ -54,6 +54,10 @@ if(BUILD_TESTING)
            COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_exr2aces.py ${CMAKE_BINARY_DIR}/bin ${CMAKE_CURRENT_BINARY_DIR})
 
+  add_test(NAME OpenEXR.bin.exrmultipart
+           COMMAND ${Python3_EXECUTABLE}
+           ${CMAKE_CURRENT_SOURCE_DIR}/test_exrmultipart.py ${CMAKE_BINARY_DIR}/bin ${CMAKE_CURRENT_BINARY_DIR})
+
   add_test(NAME OpenEXR.bin.exrcheck
            COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_exrcheck.py
