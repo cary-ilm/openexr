@@ -12,7 +12,12 @@ exrstdattr = sys.argv[1]
 exrinfo = sys.argv[2]
 image_dir = sys.argv[3]
 
+assert(os.path.isfile(exrstdattr))
+assert(os.path.isfile(exrinfo))
+assert(os.path.isdir(image_dir))
+
 fd, outimage = tempfile.mkstemp(".exr")
+os.close(fd)
 
 def cleanup():
     print(f"deleting {outimage}")

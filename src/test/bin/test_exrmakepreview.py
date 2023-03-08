@@ -12,6 +12,10 @@ exrmakepreview = sys.argv[1]
 exrinfo = sys.argv[2]
 image_dir = sys.argv[3]
 
+assert(os.path.isfile(exrmakepreview))
+assert(os.path.isfile(exrinfo))
+assert(os.path.isdir(image_dir))
+
 # no args = usage message
 result = run ([exrmakepreview], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
@@ -31,6 +35,7 @@ def find_line(keyword, lines):
     return None
 
 fd, outimage = tempfile.mkstemp(".exr")
+os.close(fd)
 
 def cleanup():
     print(f"deleting {outimage}")
