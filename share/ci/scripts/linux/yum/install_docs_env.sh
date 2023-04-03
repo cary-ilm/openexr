@@ -10,7 +10,10 @@ bash $HERE/install_doxygen.sh latest
 pip3 install -r $HERE/../../../../../docs/requirements.txt
 
 yum -y install wget
-yum -y install ImageMagick
+
+wget https://imagemagick.org/archive/linux/CentOS/x86_64/ImageMagick-7.1.1-6.x86_64.rpm
+
+rpm -Uvh ImageMagick-7.1.1-6.x86_64.rpm
 
 which convert
 convert --version
