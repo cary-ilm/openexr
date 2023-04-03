@@ -21,9 +21,9 @@ set(SPHINX_INDEX_FILE ${SPHINX_BUILD}/index.html)
 
 set(SPHINX_OPTS "-W" CACHE STRING "Sphinx build options")
 
-set(OPENEXR_TEST_IMAGE_REPO "https://raw.githubusercontent.com/cary-ilm/openexr-images" 
+set(OPENEXR_TEST_IMAGE_REPO "https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images" 
     CACHE STRING "Repo for test images")
-set(OPENEXR_TEST_IMAGE_TAG "docs" 
+set(OPENEXR_TEST_IMAGE_TAG "main" 
     CACHE STRING "Tag for test image repo")
 
 set(TEST_IMAGE_INDEX_FILE ${PROJECT_SOURCE_DIR}/docs/_test_images/index.rst)
@@ -40,8 +40,8 @@ add_custom_command(OUTPUT ${DOXYGEN_INDEX_FILE}
                    VERBATIM)
 
 add_custom_command(OUTPUT ${TEST_IMAGE_INDEX_FILE}
-                   COMMAND ${Python3_EXECUTABLE} ${TEST_IMAGE_PY_FILE}
-                   ${OPENEXR_TEST_IMAGE_REPO} ${OPENEXR_TEST_IMAGE_TAG} 
+                   COMMAND ${CMAKE_COMMAND} -E env "PATH=${CMAKE_CURRENT_BINARY_DIR}/bin:$ENV{PATH}"
+                   {Python3_EXECUTABLE} ${TEST_IMAGE_PY_FILE} ${OPENEXR_TEST_IMAGE_REPO} ${OPENEXR_TEST_IMAGE_TAG} 
                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                    DEPENDS
                    ${TEST_IMAGE_PY_FILE} ${TEST_IMAGE_INPUT_FILE}
