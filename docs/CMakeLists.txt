@@ -39,11 +39,11 @@ add_custom_command(OUTPUT ${DOXYGEN_INDEX_FILE}
                    COMMENT "Running doxygen"
                    VERBATIM)
 
+message (STATUS "CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}")
+
 add_custom_command(OUTPUT ${TEST_IMAGE_INDEX_FILE}
-                   COMMAND ${CMAKE_COMMAND} -E env "PATH=${CMAKE_CURRENT_BINARY_DIR}/bin:$ENV{PATH}"
+                   COMMAND ${CMAKE_COMMAND} -E env "PATH=${CMAKE_CURRENT_BINARY_DIR}/../bin:$ENV{PATH}"
                    ${Python3_EXECUTABLE} ${TEST_IMAGE_PY_FILE} ${OPENEXR_TEST_IMAGE_REPO} ${OPENEXR_TEST_IMAGE_TAG} 
-                   COMMAND ${CMAKE_COMMAND} -E env "PATH=${CMAKE_CURRENT_BINARY_DIR}/bin:$ENV{PATH}"
-                   {Python3_EXECUTABLE} ${TEST_IMAGE_PY_FILE} ${OPENEXR_TEST_IMAGE_REPO} ${OPENEXR_TEST_IMAGE_TAG} 
                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                    DEPENDS
                    ${TEST_IMAGE_PY_FILE} ${TEST_IMAGE_INPUT_FILE}
