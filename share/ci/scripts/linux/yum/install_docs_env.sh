@@ -10,9 +10,7 @@ bash $HERE/install_doxygen.sh latest
 pip3 install -r $HERE/../../../../../docs/requirements.txt
 
 yum -y install wget
-yum -y install OpenImageIO
+yum -y install imagemagick
 
-rpm -ql OpenImageIO
-
-echo "PATH=$PATH"
-
+which convert
+convert --version

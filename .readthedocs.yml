@@ -11,8 +11,8 @@ build:
     python: "3.9"
   apt_packages:
     - wget        # for test images
-#    - imagemagick # for convert, for test images
-    - openimageio-tools
+    - imagemagick # for convert, for test images
+#    - openimageio-tools
     - openexr     # for exrheader, for test images
   jobs:
     pre_build:
