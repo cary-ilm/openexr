@@ -9,4 +9,10 @@ HERE=$(dirname $0)
 bash $HERE/install_doxygen.sh latest
 pip3 install -r $HERE/../../../../../docs/requirements.txt
 
-yum -y -q install openimageio-tools wget
+yum -y install wget
+yum -y install openimageio-tools
+
+rpm -ql openimageio-tools
+
+echo "PATH=$PATH"
+
