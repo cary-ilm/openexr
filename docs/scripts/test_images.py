@@ -127,8 +127,8 @@ def write_exr_page(rst_lpath, exr_url, exr_filename, exr_lpath, jpg_lpath, readm
         
         # Download the exr via curl
         
-        print(f'curl {exr_url}')
-        result = run (['curl', '-f', exr_url, '-o', local_exr], 
+        print(f'wget {exr_url}')
+        result = run (['wget', exr_url, '-O', local_exr], 
                       stdout=PIPE, stderr=PIPE, universal_newlines=True)
         if result.returncode != 0 or not os.path.isfile(local_exr):
             raise Exception(f'failed to read {exr_url}: no such file {local_exr}')
@@ -227,7 +227,7 @@ def write_readme(index_file, repo, tag, lpath):
         # Download via curl
         
         readme_url = f'{repo}/{tag}/{lpath}' 
-        result = run (['curl', '-f', readme_url, '-o', local_readme], 
+        result = run (['wget', readme_url, '-O', local_readme], 
                       stdout=PIPE, stderr=PIPE, universal_newlines=True)
         if result.returncode != 0:
             raise FileNotFoundError(result.stderr)
