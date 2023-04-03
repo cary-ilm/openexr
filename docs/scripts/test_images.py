@@ -141,7 +141,7 @@ def write_exr_page(rst_lpath, exr_url, exr_filename, exr_lpath, jpg_lpath, readm
                           stdout=PIPE, stderr=PIPE, universal_newlines=True)
         
             if result.returncode != 0 or not os.path.isfile(jpg_lpath):
-                raise Exception(f'error: failed to convert {exr_url} to {jpg_lpath}')
+                raise Exception(f'error: failed to convert {exr_url} to {jpg_lpath}: returncode={result.returncode}, stderr={result.stderr}')
         
         # Read the header
         
