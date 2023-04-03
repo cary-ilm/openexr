@@ -10,7 +10,7 @@ bash $HERE/install_doxygen.sh latest
 pip3 install -r $HERE/../../../../../docs/requirements.txt
 
 yum -y install wget
-yum -y install imagemagick
+yum -y install ImageMagick
 
 which convert
 convert --version
