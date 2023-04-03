@@ -391,6 +391,11 @@ def write_table_close(index_file):
     
 print(f'generating rst for test images ...')
 
+print(f'PATH={os.environ["PATH"]}')
+result = run (['which', 'exrheader'],
+              stdout=PIPE, stderr=PIPE, universal_newlines=True)
+print(f'exrheader={result.stdout}')
+
 repo = sys.argv[1] if len(sys.argv) > 1 else 'https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images'
 tag = sys.argv[2] if len(sys.argv) > 2 else 'main'
 
