@@ -11,9 +11,8 @@ pip3 install -r $HERE/../../../../../docs/requirements.txt
 
 yum -y install wget
 
-wget https://imagemagick.org/archive/linux/CentOS/x86_64/ImageMagick-7.1.1-6.x86_64.rpm
-
-rpm -Uvh ImageMagick-7.1.1-6.x86_64.rpm
+wget https://imagemagick.org/archive/binaries/magick -O convert
+chmod +x convert
 
 which convert
 convert --version
