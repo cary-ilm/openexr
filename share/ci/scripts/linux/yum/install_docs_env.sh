@@ -10,9 +10,9 @@ bash $HERE/install_doxygen.sh latest
 pip3 install -r $HERE/../../../../../docs/requirements.txt
 
 yum -y install wget
-yum -y install openimageio-tools
+yum -y install OpenImageIO
 
-rpm -ql openimageio-tools
+rpm -ql OpenImageIO
 
 echo "PATH=$PATH"
 
