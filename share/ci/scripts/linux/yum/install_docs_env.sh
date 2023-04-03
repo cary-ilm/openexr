@@ -11,8 +11,8 @@ pip3 install -r $HERE/../../../../../docs/requirements.txt
 
 yum -y install wget
 
-wget https://imagemagick.org/archive/binaries/magick -O convert
-chmod +x convert
+wget https://imagemagick.org/archive/binaries/magick -O /usr/local/bin/convert
+chmod +x /usr/local/bin/convert
+/usr/local/bin/convert --version
 
 which convert
-convert --version
