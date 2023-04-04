@@ -16,6 +16,7 @@ chmod u+x magick
 
 yum --enablerepo=epel -y install fuse-sshfs # install from EPEL
 user="$(whoami)"
+sudo groupadd fuse
 usermod -a -G fuse "$user"
 
 ./magick --version
