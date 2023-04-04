@@ -11,8 +11,14 @@ pip3 install -r $HERE/../../../../../docs/requirements.txt
 
 yum -y install wget
 
-wget https://imagemagick.org/archive/binaries/magick -O /usr/local/bin/convert
-chmod +x /usr/local/bin/convert
-/usr/local/bin/convert --version
+wget https://imagemagick.org/archive/linux/CentOS/x86_64/ImageMagick-6.9.12-84.x86_64.rpm
+rpm -Uvh ImageMagick-6.9.12-84.x86_64.rpm
+
+wget https://imagemagick.org/archive/linux/CentOS/x86_64/ImageMagick-libs-7.1.1-6.x86_64.rpm
+rpm -Uvh ImageMagick-libs-7.1.1-6.x86_64.rpm
 
 which convert
+
+find .
+
+./convert --version
