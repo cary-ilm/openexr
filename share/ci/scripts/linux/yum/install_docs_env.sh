@@ -4,6 +4,8 @@
 
 set -ex
 
+cat /etc/os-release
+
 HERE=$(dirname $0)
 
 bash $HERE/install_doxygen.sh latest
@@ -11,16 +13,20 @@ pip3 install -r $HERE/../../../../../docs/requirements.txt
 
 yum -y install wget
 
-wget https://imagemagick.org/archive/binaries/magick
-chmod u+x magick
+sudo apt install ImageMagick
 
-yum --enablerepo=epel -y install fuse-sshfs # install from EPEL
-user="$(whoami)"
-sudo groupadd fuse
-usermod -a -G fuse "$user"
-sudo modprobe fuse
+which convert
+convert --version
 
-./magick --version
+#wget https://imagemagick.org/archive/binaries/magick
+#chmod u+x magick
+
+#yum --enablerepo=epel -y install fuse-sshfs # install from EPEL
+#user="$(whoami)"
+#sudo groupadd fuse
+#usermod -a -G fuse "$user"
+#sudo modprobe fuse
+
 
 
 
