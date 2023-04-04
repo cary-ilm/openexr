@@ -13,10 +13,9 @@ yum -y install wget
 
 yum -y install OpenImageIO-utils
 
-which oiiotool
 which iconvert
 
-oiiotool --version
+iconvert --help
 
 #wget https://imagemagick.org/archive/binaries/magick
 #chmod u+x magick
