@@ -15,7 +15,7 @@ yum -y install OpenImageIO-utils
 
 #which iconvert
 
-#iconvert --help
+env LD_DEBUG=libs iconvert --help
 
 #wget https://imagemagick.org/archive/binaries/magick
 #chmod u+x magick
