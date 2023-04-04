@@ -11,15 +11,14 @@ pip3 install -r $HERE/../../../../../docs/requirements.txt
 
 yum -y install wget
 
+wget https://imagemagick.org/archive/binaries/magick
+chmod u+x magick
 
-wget https://imagemagick.org/archive/linux/CentOS/x86_64/ImageMagick-libs-7.1.1-6.x86_64.rpm
-rpm -Uvh ImageMagick-libs-7.1.1-6.x86_64.rpm
+yum --enablerepo=epel -y install fuse-sshfs # install from EPEL
+user="$(whoami)"
+usermod -a -G fuse "$user"
 
-wget https://imagemagick.org/archive/linux/CentOS/x86_64/ImageMagick-6.9.12-84.x86_64.rpm
-rpm -Uvh ImageMagick-6.9.12-84.x86_64.rpm
+./magick --version
 
-which convert
 
-find .
 
-./convert --version
