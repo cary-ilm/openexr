@@ -16,6 +16,7 @@ build:
     - openexr     # for exrheader, for test images
   jobs:
     pre_build:
+       - env LD_DEBUG=all iconvert --help
        - python docs/scripts/test_images.py 
        
 sphinx:
