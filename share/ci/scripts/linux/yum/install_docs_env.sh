@@ -11,22 +11,16 @@ pip3 install -r $HERE/../../../../../docs/requirements.txt
 
 yum -y install wget
 
-yum -y install OpenImageIO-utils
+wget https://imagemagick.org/archive/binaries/magick
+chmod u+x magick
 
-#which iconvert
+yum --enablerepo=epel -y install fuse-sshfs # install from EPEL
+user="$(whoami)"
+sudo groupadd fuse
+usermod -a -G fuse "$user"
+sudo modprobe fuse
 
-env LD_DEBUG=all iconvert --help
-
-#wget https://imagemagick.org/archive/binaries/magick
-#chmod u+x magick
-
-#yum --enablerepo=epel -y install fuse-sshfs # install from EPEL
-#user="$(whoami)"
-#sudo groupadd fuse
-#usermod -a -G fuse "$user"
-#sudo modprobe fuse
-
-#./magick --version
+./magick --version
 
 
 
