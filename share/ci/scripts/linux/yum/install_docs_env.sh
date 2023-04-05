@@ -17,7 +17,7 @@ pip3 install -r $HERE/../../../../../docs/requirements.txt
 #yum -y install wget
 
 sudo apt install wget
-sudo apt install ImageMagick
+sudo apt install imagemagick
 
 which convert
 convert --version
