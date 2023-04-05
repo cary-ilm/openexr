@@ -52,7 +52,7 @@ jobs:
         run: |
           mkdir _build
       - name: Install doxygen & imagemagick
-        run: sudo apt-get install -y doxygen imagemagick 
+        run: sudo apt-get install -y doxygen imagemagick openexr
       - name: Install sphinx requirements
         run: pip3 install -r docs/requirements.txt
       - name: Configure
