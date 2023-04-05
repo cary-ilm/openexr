@@ -57,7 +57,9 @@ jobs:
       - name: Install sphinx requirements
         run: pip3 install -r docs/requirements.txt
       - name: Test convert
-        run: convert --help
+        run: find . -name "*.exr" -exec "convert {} foo.jpg" \;
+      - name: test_images.py
+        run: python3 docs/scripts/test_images.py
       - name: Configure
         run: |
           cmake .. \
