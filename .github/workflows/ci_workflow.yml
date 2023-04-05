@@ -104,7 +104,7 @@ jobs:
             label: 
             threads-enabled: 'ON'
             vfx-cy: 2022
-            build-docs: 'ON'
+            build-docs: 'OFF'
             exclude-tests:
 
     env:

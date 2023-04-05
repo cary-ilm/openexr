@@ -8,11 +8,15 @@ cat /etc/os-release
 
 HERE=$(dirname $0)
 
-bash $HERE/install_doxygen.sh latest
+#bash $HERE/install_doxygen.sh latest
+
+sudo apt install doxygen
+
 pip3 install -r $HERE/../../../../../docs/requirements.txt
 
-yum -y install wget
+#yum -y install wget
 
+sudo apt install wget
 sudo apt install ImageMagick
 
 which convert
