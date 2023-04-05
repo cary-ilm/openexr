@@ -56,13 +56,15 @@ jobs:
         run: sudo apt-get install -y doxygen imagemagick
       - name: Install sphinx requirements
         run: pip3 install -r docs/requirements.txt
+      - name: Test convert
+        run: convert --help
       - name: Configure
         run: |
           cmake .. \
                 -DCMAKE_INSTALL_PREFIX=../_install \
                 -DBUILD_DOCS='ON' \
                 -DBUILD_TESTING='OFF' \
-                -DOPENEXR_BUILD_TOOLS='OFF' \
+                -DOPENEXR_BUILD_TOOLS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DOPENEXR_ENABLE_THREADING='OFF'
         working-directory: _build
