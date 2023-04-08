@@ -13,6 +13,8 @@
 #include <ImfAcesFile.h>
 #include <ImfArray.h>
 #include <ImfRgbaFile.h>
+#include <ImfMisc.h>
+#include <OpenEXRConfig.h>
 #include <exception>
 #include <iostream>
 #include <stdlib.h>
@@ -28,44 +30,47 @@ namespace
 {
 
 void
-usageMessage (const char argv0[], bool verbose = false)
+usageMessage (ostream& stream, bool verbose = false)
 {
-    cerr << "Usage: " << argv0 << " [options] infile outfile" << endl;
+    stream << "Usage: exr2aces [options] infile outfile" << endl;
 
     if (verbose)
     {
-        cerr << "\n"
-                "Reads an OpenEXR file from infile and saves the contents\n"
-                "in ACES image file outfile.\n"
-                "\n"
-                "The ACES image file format is a subset of the OpenEXR file\n"
-                "format.  ACES image files are restricted as follows:\n"
-                "\n"
-                "* Images are stored as scanlines; tiles are not allowed.\n"
-                "\n"
-                "* Images contain three color channels, either\n"
-                "      R, G, B (red, green, blue) or\n"
-                "      Y, RY, BY (luminance, sub-sampled chroma)\n"
-                "\n"
-                "* Images may optionally contain an alpha channel.\n"
-                "\n"
-                "* Only three compression types are allowed:\n"
-                "      NO_COMPRESSION (file is not compressed)\n"
-                "      PIZ_COMPRESSION (lossless)\n"
-                "      B44A_COMPRESSION (lossy)\n"
-                "* The \"chromaticities\" header attribute must specify\n"
-                "  the ACES RGB primaries and white point.\n"
-                "\n"
-                "Options:\n"
-                "\n"
-                "-v        verbose mode\n"
-                "\n"
-                "-h        prints this message\n";
+        stream << "\n"
+            "Reads an OpenEXR file from infile and saves the contents\n"
+            "in ACES image file outfile.\n"
+            "\n"
+            "The ACES image file format is a subset of the OpenEXR file\n"
+            "format.  ACES image files are restricted as follows:\n"
+            "\n"
+            "* Images are stored as scanlines; tiles are not allowed.\n"
+            "\n"
+            "* Images contain three color channels, either\n"
+            "      R, G, B (red, green, blue) or\n"
+            "      Y, RY, BY (luminance, sub-sampled chroma)\n"
+            "\n"
+            "* Images may optionally contain an alpha channel.\n"
+            "\n"
+            "* Only three compression types are allowed:\n"
+            "      NO_COMPRESSION (file is not compressed)\n"
+            "      PIZ_COMPRESSION (lossless)\n"
+            "      B44A_COMPRESSION (lossy)\n"
+            "* The \"chromaticities\" header attribute must specify\n"
+            "  the ACES RGB primaries and white point.\n"
+            "\n"
+            "Options:\n"
+            "\n"
+            "-v, --verbose     verbose mode\n"
+            "\n"
+            "-h, --help        print this message\n"
+            "\n"
+            "--version         print version information\n"
+            "\n"
+            "Report bugs at https://github.com/AcademySoftwareFoundation/openexr/issues or email security@openexr.com"
+            "";
 
-        cerr << endl;
+        stream << endl;
     }
-
-    exit (1);
 }
 
 void
@@ -128,7 +133,11 @@ main (int argc, char** argv)
     // Parse the command line.
     //
 
-    if (argc < 2) usageMessage (argv[0], true);
+    if (argc < 2)
+    {
+        usageMessage (cerr, false);
+        exit(-1);
+    }
 
     int i = 1;
 
@@ -143,13 +152,26 @@ main (int argc, char** argv)
             verbose = true;
             i += 1;
         }
-        else if (!strcmp (argv[i], "-h"))
+        else if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
         {
             //
             // Print help message
             //
 
-            usageMessage (argv[0], true);
+            usageMessage (cout, true);
+            exit(0);
+        }
+        else if (!strcmp (argv[i], "--version"))
+        {
+            const char* libraryVersion = getLibraryVersion();
+            
+            cout << "exr2aces (OpenEXR) " << OPENEXR_VERSION_STRING;
+            if (strcmp(libraryVersion, OPENEXR_VERSION_STRING))
+                cout << "(OpenEXR version " << libraryVersion << ")";
+            cout << " https://openexr.com" << endl;
+            cout << "Copyright (c) Contributors to the OpenEXR Project" << endl;
+            cout << "License BSD-3-Clause" << endl;
+            exit(0);
         }
         else
         {
@@ -166,7 +188,11 @@ main (int argc, char** argv)
         }
     }
 
-    if (inFile == 0 || outFile == 0) usageMessage (argv[0]);
+    if (inFile == 0 || outFile == 0)
+    {
+        usageMessage (cerr, false);
+        exit(-1);
+    }
 
     //
     // Load inFile, and save a tiled version in outFile.
