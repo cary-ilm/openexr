@@ -43,11 +43,13 @@ if(BUILD_TESTING)
 
   add_test(NAME OpenEXR.bin.exrinfo
            COMMAND ${Python3_EXECUTABLE}
-           ${CMAKE_CURRENT_SOURCE_DIR}/test_exrinfo.py $<TARGET_FILE:exrinfo> ${CMAKE_CURRENT_BINARY_DIR})
+           ${CMAKE_CURRENT_SOURCE_DIR}/test_exrinfo.py
+           $<TARGET_FILE:exrinfo> ${CMAKE_CURRENT_BINARY_DIR} ${OPENEXR_VERSION})
 
   add_test(NAME OpenEXR.bin.exrheader
            COMMAND ${Python3_EXECUTABLE}
-           ${CMAKE_CURRENT_SOURCE_DIR}/test_exrheader.py $<TARGET_FILE:exrheader> ${CMAKE_CURRENT_BINARY_DIR})
+           ${CMAKE_CURRENT_SOURCE_DIR}/test_exrheader.py
+           $<TARGET_FILE:exrheader> ${CMAKE_CURRENT_BINARY_DIR} ${OPENEXR_VERSION})
 
   set(tests
       exr2aces
@@ -63,7 +65,9 @@ if(BUILD_TESTING)
   
     add_test(NAME OpenEXR.bin.${test}
            COMMAND ${Python3_EXECUTABLE}
-           ${CMAKE_CURRENT_SOURCE_DIR}/test_${test}.py $<TARGET_FILE:${test}> $<TARGET_FILE:exrinfo> ${CMAKE_CURRENT_BINARY_DIR})
+           ${CMAKE_CURRENT_SOURCE_DIR}/test_${test}.py
+           $<TARGET_FILE:${test}> $<TARGET_FILE:exrinfo>
+           ${CMAKE_CURRENT_BINARY_DIR} )
   endforeach()
   
   # run exrcheck on all images
