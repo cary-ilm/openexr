@@ -13,7 +13,7 @@ exrinfo = sys.argv[2]
 image_dir = sys.argv[3]
 version = sys.argv[4]
 
-# no args = usage message
+# no args = usage message, error
 result = run ([exr2aces], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(" ".join(result.args))
 assert(result.returncode != 0)
@@ -36,7 +36,11 @@ print(" ".join(result.args))
 assert(result.returncode == 0)
 assert(result.stdout.startswith ("exr2aces"))
 assert(version in result.stdout)
-print(f"yes to version! {result.stdout}")
+
+# invalid arguments
+result = run ([exr2aces, "foo.exr", "bar.exr"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+print(" ".join(result.args))
+assert(result.returncode != 0)
 
 def find_line(keyword, lines):
     for line in lines:

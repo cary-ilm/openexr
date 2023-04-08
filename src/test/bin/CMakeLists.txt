@@ -61,13 +61,14 @@ if(BUILD_TESTING)
       exrstdattr
   )
 
-  foreach(test ${tests})
+  message(STATUS "OPENEXR_VERSION: ${OPENEXR_VERSION}")
   
+  foreach(test ${tests})
     add_test(NAME OpenEXR.bin.${test}
            COMMAND ${Python3_EXECUTABLE}
            ${CMAKE_CURRENT_SOURCE_DIR}/test_${test}.py
            $<TARGET_FILE:${test}> $<TARGET_FILE:exrinfo>
-           ${CMAKE_CURRENT_BINARY_DIR} )
+           ${CMAKE_CURRENT_BINARY_DIR} ${OPENEXR_VERSION})
   endforeach()
   
   # run exrcheck on all images
