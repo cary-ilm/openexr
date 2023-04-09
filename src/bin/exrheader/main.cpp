@@ -468,7 +468,6 @@ usageMessage (ostream& stream, const char* program_name, bool verbose = false)
             "\n"
             "Options:\n"
             "  -h, --help        print this message\n"
-            "\n"
             "      --version     print version information\n"
             "\n"
             "Report bugs at https://github.com/AcademySoftwareFoundation/openexr/issues or email security@openexr.com\n"
