@@ -121,10 +121,15 @@ usageMessage (ostream& stream, const char* program_name, bool verbose = false)
             "  -z x          sets the data compression method to x\n"
             "                (none/rle/zip/piz/pxr24/b44/b44a/dwaa/dwab,\n"
             "                default is zip)\n"
+            "\n"
             "  -v            verbose mode\n"
+            "\n"
             "  -h, --help    print this message\n"
+            "\n"
             "      --version print version information\n"
-            "\n";
+            "\n"
+            "Report bugs at https://github.com/AcademySoftwareFoundation/openexr/issues or email security@openexr.com\n"
+            "";
     }
 }
 
@@ -396,6 +401,18 @@ main (int argc, char** argv)
                 //
 
                 usageMessage (cout, "exrenvmap", true);
+                return 0;
+            }
+            else if (!strcmp (argv[i], "--version"))
+            {
+                const char* libraryVersion = getLibraryVersion();
+            
+                cout << "exrenvmap (OpenEXR) " << OPENEXR_VERSION_STRING;
+                if (strcmp(libraryVersion, OPENEXR_VERSION_STRING))
+                    cout << "(OpenEXR version " << libraryVersion << ")";
+                cout << " https://openexr.com" << endl;
+                cout << "Copyright (c) Contributors to the OpenEXR Project" << endl;
+                cout << "License BSD-3-Clause" << endl;
                 return 0;
             }
             else

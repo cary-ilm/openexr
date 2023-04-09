@@ -23,6 +23,7 @@ if(BUILD_TESTING)
       LuminanceChroma/Garden.exr
       MultiResolution/ColorCodedLevels.exr
       MultiResolution/WavyLinesLatLong.exr
+      MultiResolution/WavyLinesCube.exr
       LuminanceChroma/Flowers.exr
       MultiView/Adjuster.exr
       Chromaticities/Rec709_YC.exr
