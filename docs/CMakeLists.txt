@@ -53,7 +53,7 @@ add_custom_command(OUTPUT ${TEST_IMAGE_INDEX_FILE}
 
 add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
                    COMMAND 
-                     ${SPHINX_EXECUTABLE} -b html ${SPHINX_OPTS}
+                     ${SPHINX_EXECUTABLE} -b man ${SPHINX_OPTS}
                      # Tell Breathe where to find the Doxygen output
                      -Dbreathe_projects.OpenEXR=${DOXYGEN_OUTPUT_DIR}/xml
                    ${SPHINX_SOURCE} ${SPHINX_BUILD}

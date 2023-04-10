@@ -128,7 +128,7 @@ usageMessage (ostream& stream, const char* program_name, bool verbose = false)
             "\n"
             "      --version print version information\n"
             "\n"
-            "Report bugs at https://github.com/AcademySoftwareFoundation/openexr/issues or email security@openexr.com\n"
+            "Report bugs via https://github.com/AcademySoftwareFoundation/openexr/issues or email security@openexr.com\n"
             "";
     }
 }
@@ -283,7 +283,7 @@ main (int argc, char** argv)
                 //
 
                 if (i > argc - 2)
-                    usageMessage (cerr, argv[0], false);
+                    throw invalid_argument("Missing width for -w argument");
 
                 mapWidth = strtol (argv[i + 1], 0, 0);
 
