@@ -24,7 +24,7 @@ using namespace std;
 void
 usageMessage (ostream& stream, const char* program_name, bool verbose = false)
 {
-    cerr << "Usage: " << program_name << " [options] imagefile [imagefile ...]\n";
+    stream << "Usage: " << program_name << " [options] imagefile [imagefile ...]\n";
 
     if (verbose)
         stream << "\n"

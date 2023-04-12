@@ -5,8 +5,8 @@
 
 //-----------------------------------------------------------------------------
 //
-//	exrstdattr -- a program that can set the values of most
-//	standard attributes in an OpenEXR image file's header.
+//      exrstdattr -- a program that can set the values of most
+//      standard attributes in an OpenEXR image file's header.
 //
 //-----------------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ usageMessage (ostream& stream, const char* program_name, bool verbose = false)
             "\n"
             "  -chromaticities f f f f f f f f\n"
             "        CIE xy chromaticities for the red, green\n"
-            "	 and blue primaries, and for the white point\n"
+            "        and blue primaries, and for the white point\n"
             "        (8 floats)\n"
             "\n"
             "  -whiteLuminance f\n"

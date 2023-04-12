@@ -149,7 +149,7 @@ main (int argc, const char* argv[])
         if (!strcmp (argv[a], "-h") || !strcmp (argv[a], "-?") ||
             !strcmp (argv[a], "--help"))
         {
-            usage (stdout, argv[0], 1);
+            usage (stdout, "exrinfo", 1);
             return 0;
         }
         else if (!strcmp (argv[a], "--version"))

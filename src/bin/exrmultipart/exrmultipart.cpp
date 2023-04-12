@@ -611,14 +611,6 @@ usageMessage (ostream& stream, const char* program_name, bool verbose = false)
 int
 main (int argc, char* argv[])
 {
-#if XXX
-    if (argc < 6)
-    {
-        usageMessage (cerr, argv[0], false);
-        return -1;
-    }
-#endif
-    
     try {
         
         vector<const char*> inFiles;
@@ -634,7 +626,7 @@ main (int argc, char* argv[])
         {
             if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))     
             {
-                usageMessage (cout, argv[0], true);
+                usageMessage (cout, "exrmultipart", true);
                 return 0;
             }
 
