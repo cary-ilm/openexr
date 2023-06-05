@@ -3,6 +3,7 @@
 
 # OpenEXR Release Notes
 
+* [Version 3.1.8](#version-318-june-2-2023) June 2, 2023
 * [Version 3.1.7](#version-317-march-28-2023) March 28, 2023
 * [Version 3.1.6](#version-316-march-9-2023) March 9, 2023
 * [Version 3.1.5](#version-315-april-11-2022) April 11, 2022
@@ -60,6 +61,43 @@
 * [Version 1.0.2](#version-102)
 * [Version 1.0.1](#version-101)
 * [Version 1.0](#version-10)
+
+## Version 3.1.8 (June 2, 2023)
+
+Patch release that addresses miscellaneous build issues, for macOS in
+particular, but also includes:
+ 
+* Support for DWA compression in OpenEXRCore
+* Fix for threadpool deadlocks during shutdown on Windows  
+
+This release also addresses:
+
+* OSS-fuzz [59070](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=59070) Stack-buffer-overflow in DwaCompressor_readChannelRules
+
+### Merged Pull Requests
+
+* [1429](https::/github.com/AcademySoftwareFoundation/openexr/pull/1429)
+fix out of bounds check with a full channel name vs. byte count
+* [1414](https::/github.com/AcademySoftwareFoundation/openexr/pull/1414)
+Add #include <cmath> for isnan
+* [1409](https::/github.com/AcademySoftwareFoundation/openexr/pull/1409)
+Use posix compat code for old macOS without libdispatch
+* [1408](https::/github.com/AcademySoftwareFoundation/openexr/pull/1408)
+internal_xdr.h: fix endian logic for Apple
+* [1406](https::/github.com/AcademySoftwareFoundation/openexr/pull/1406)
+internal_structs.h: __STDC_FORMAT_MACROS should be defined prior to inttypes.h
+* [1402](https::/github.com/AcademySoftwareFoundation/openexr/pull/1402)
+Add dwa support to core
+* [1389](https::/github.com/AcademySoftwareFoundation/openexr/pull/1389)
+fix typo
+* [1382](https::/github.com/AcademySoftwareFoundation/openexr/pull/1382)
+Update macOS installation instructions
+* [1378](https::/github.com/AcademySoftwareFoundation/openexr/pull/1378)
+Fix typo in README.md
+* [1377](https::/github.com/AcademySoftwareFoundation/openexr/pull/1377)
+Only install exrinfo when OPENEXR_INSTALL_TOOLS is on
+* [1291](https::/github.com/AcademySoftwareFoundation/openexr/pull/1291)
+Change setNumThreads to wait for thread start
 
 ## Version 3.1.7 (March 28, 2023)
 
@@ -320,6 +358,10 @@ Reduce memory consumption with very large deepscanline images
 Update INSTALL.md
 * [1205](https://github.com/AcademySoftwareFoundation/openexr/pull/1205)
 DeepScanlineInputFile now uses chunk size test from DeepTiledInputFile
+* [1203](https://github.com/AcademySoftwareFoundation/openexr/pull/1203)
+Remove deprecated CI scripts
+* [1202](https://github.com/AcademySoftwareFoundation/openexr/pull/1202)
+Missed a backslash in example code correction
 * [1200](https://github.com/AcademySoftwareFoundation/openexr/pull/1200)
 Corrected Deep Docs & Example Code
 * [1199](https://github.com/AcademySoftwareFoundation/openexr/pull/1199)
@@ -483,10 +525,15 @@ Specific OSS-fuzz issues:
 ## Version 3.1.2 (October 4, 2021)
 
 Patch release with various bug fixes, build improvements, and
-documentation updates.
+documentation updates. In particular:
+
+* Fix a test failure on arm7
+* Proper handling of pthread with glibc 2.34+
+* Miscellaneous fixes for handling of invalid input by the new
+  OpenEXRCore library
 
 With this version, the OpenEXR technical documentation formerly
-distributed exclusively as pdf's is now published online at
+distributed exclusivly as pdf's is now published online at
 https://openexr.readthedocs.io, with the document source now
 maintained as .rst files in the repo's docs subfolder.
 
@@ -527,6 +574,8 @@ Specific OSS-fuzz issues:
   Add additional text to ensure correct detection for threads 
 * [1147](https://github.com/AcademySoftwareFoundation/openexr/pull/1147)
   Simplify the definition for bswap_32 for NetBSD 
+* [1146](https://github.com/AcademySoftwareFoundation/openexr/pull/1146)
+  Fix typo in comment in ImfChromaticities.h
 * [1142](https://github.com/AcademySoftwareFoundation/openexr/pull/1142)
   Cleanup cmake thread detection 
 * [1141](https://github.com/AcademySoftwareFoundation/openexr/pull/1141)
@@ -2832,7 +2881,7 @@ Signed-off-by: Kimball Thurston <kdt3rd@gmail.com>
 
 *  [CHANGES.md](https://github.com/AcademySoftwareFoundation/openexr/commit/471d7bd1c558c54ecc3cbbb2a65932f1e448a370) ([Cary Phillips](@cary@ilm.com), 2018-08-07) 
 
-*  [OpenEXR_Viewers/README.md formatting](https://github.com/AcademySoftwareFoundation/openexr/commit/806db743cf0bcb7710d08f56ee6f2ece10e31367) ([Cary Phillips](@cary@ilm.com), 2018-08-07)
+*  [OpenEXR_Viewers/README.md formatting](https://github.com/AcademySoftwareFoundation/openexr/commit/806db743cf0bcb7710d08f56ee6f2ece10e31367) ([Cary Phillips](@cary@ilm.com), 2018-08-07) 
 
 *  [more README fixes.](https://github.com/AcademySoftwareFoundation/openexr/commit/82bc701e605e092ae5f31d142450d921c293ded1) ([Cary Phillips](@cary@ilm.com), 2018-08-07) 
 
@@ -3377,11 +3426,11 @@ This release addresses the following security vulnerabilities:
 
 ### Detailed Changes:
 
-* Added support for targeting builds on 64bit Windows and minimising
+* Added support for targetting builds on 64bit Windows and minimising
   number of compiler warnings on Windows. Thanks to Ger Hobbelt for
   his contributions to CreateDLL.  (Ji Hun Yu)
           
-* Added new attribute types (Florian Kainz):
+* Added new atttribute types (Florian Kainz):
   * **M33dAttribute** 3x3 double-precision matrix
   * **M44dAttribute** 4x4 double-precision matrix
   * **V2d** 2D double-precision vector
