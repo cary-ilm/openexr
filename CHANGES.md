@@ -73,7 +73,9 @@ particular:
 Also:
 
 * OSS-fuzz [59382](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=59382)
-  Heap-buffer-overflow in internal_huf_decompress
+  Heap-buffer-overflow in ``internal_huf_decompress``
+* OSS-fuzz [59267](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=59267)
+  Heap-buffer-overflow in ``libdeflate_zlib_decompress_ex``
 
 ### Merged Pull Requests
 
