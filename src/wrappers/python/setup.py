@@ -31,7 +31,7 @@ version = f"{version_major}.{version_minor}.{version_patch}"
 libs=[]
 libs_static=[
     f'OpenEXR-{version_major}_{version_minor}',
-    f'OpenEXRCore-{version_major}_{version_minor}'
+    f'OpenEXRCore-{version_major}_{version_minor}',
     f'IlmThread-{version_major}_{version_minor}',
     f'Iex-{version_major}_{version_minor}',
     f'Imath-{version_major}_{version_minor}',
