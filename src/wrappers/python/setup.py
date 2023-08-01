@@ -29,11 +29,13 @@ version_major, version_minor, version_patch = version
 version = f"{version_major}.{version_minor}.{version_patch}"
 
 libs=[]
-libs_static=[f'OpenEXR-{version_major}_{version_minor}',
-             f'IlmThread-{version_major}_{version_minor}',
-             f'Iex-{version_major}_{version_minor}',
-             f'Imath-3_1',
-             f'OpenEXRCore-{version_major}_{version_minor}']
+libs_static=[
+    f'OpenEXR-{version_major}_{version_minor}',
+    f'OpenEXRCore-{version_major}_{version_minor}'
+    f'IlmThread-{version_major}_{version_minor}',
+    f'Iex-{version_major}_{version_minor}',
+    f'Imath-{version_major}_{version_minor}',
+]
 definitions = [('PYOPENEXR_VERSION_MAJOR', f'{version_major}'),
                ('PYOPENEXR_VERSION_MINOR', f'{version_minor}'),
                ('PYOPENEXR_VERSION_PATCH', f'{version_patch}'),]
