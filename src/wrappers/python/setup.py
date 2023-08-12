@@ -4,7 +4,7 @@ import platform
 import re
 
 
-DESC = """Python bindings for ILM's OpenEXR image file format.
+DESC = """Python bindings for the OpenEXR image file format.
 
 This is a script to autobuild the wheels using github actions. Please, do not
 use it manually
@@ -12,7 +12,7 @@ use it manually
 If you detect any problem, please feel free to report the issue on the GitHub
 page:
 
-https://github.com/sanguinariojoe/pip-openexr/issues
+https://github.com/AcademySoftwareFoundation/openexr/issues
 """
 
 
@@ -60,10 +60,10 @@ else:
 
 
 setup(name='OpenEXR',
-    author = 'James Bowman',
-    author_email = 'jamesb@excamera.com',
-    url = 'https://github.com/sanguinariojoe/pip-openexr',
-    description = "Python bindings for ILM's OpenEXR image file format",
+    author = 'Contributors to the OpenEXR Project',
+    author_email = 'info@openexr.com',
+    url = 'https://github.com/AcademySoftwareFoundation/openexr',
+    description = "Python bindings for the OpenEXR image file format",
     long_description = DESC,
     version=version,
     ext_modules=[ 
