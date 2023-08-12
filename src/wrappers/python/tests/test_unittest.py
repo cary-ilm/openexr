@@ -19,7 +19,7 @@ print(f"Running unit tests, cwd is {os.getcwd()}")
 for e in os.environ:
     print(f"{e}: {os.environ[e]}")
     
-test_dir=os.path.abspath(__file__)
+test_dir=os.path.dirname(os.path.abspath(__file__))
 
 FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
 UINT = Imath.PixelType(Imath.PixelType.UINT)
