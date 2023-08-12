@@ -165,7 +165,7 @@ def test_types():
 testList.append(("test_types", test_types))
 
 def test_invalid_pt():
-    f = OpenEXR.InputFile("GoldenGate.exr")
+    oexr = OpenEXR.InputFile(f"{test_dir}/GoldenGate.exr")
     FLOAT = Imath.PixelType.FLOAT
     try:
         f.channel('R',FLOAT)
