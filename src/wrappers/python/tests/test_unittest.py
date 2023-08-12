@@ -131,10 +131,28 @@ testList.append(("test_one", test_one))
 
 def test_channel_channels():
     """ Check that the channel method and channels method return the same data """
-    oexr = OpenEXR.InputFile(f"{test_dir}/GoldenGate.exr")
+#    oexr = OpenEXR.InputFile(f"{test_dir}/GoldenGate.exr")
+    oexr = OpenEXR.InputFile("write.exr")
     cl = sorted(oexr.header()['channels'].keys())
     a = [oexr.channel(c) for c in cl]
     b = oexr.channels(cl)
+    print(f"cl={cl}")
+    print(f"type(a)={type(a)}")
+    print(f"type(b)={type(b)}")
+    print(f"len(a)={len(a)}")
+    print(f"len(b)={len(b)}")
+    print(f"type(a[0])={type(a[0])}")
+    print(f"type(b[0])={type(b[0])}")
+    print(f"len(a[0])={len(a[0])}")
+    print(f"len(b[0])={len(b[0])}")
+    print(f"a:")
+    for x in a:
+        X = array('I', x)
+        print(f":::: {X}")
+    print(f"b:")
+    for x in b:
+        X = array('I', x)
+        print(f":::: {X}")
     assert a == b
 
     print("channels ok")
@@ -155,7 +173,7 @@ def test_types():
             xin = OpenEXR.InputFile("out.exr")
             # Implicit type
             assert array(code, xin.channel('L')).tolist() == original
-            # Explicit type
+            # Explicit typen
             assert array(code, xin.channel('L', t)).tolist() == original
             # Explicit type as kwarg
             assert array(code, xin.channel('L', pixel_type = t)).tolist() == original
