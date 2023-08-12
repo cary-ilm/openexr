@@ -20,6 +20,33 @@ HALF = Imath.PixelType(Imath.PixelType.HALF)
 
 testList = []
 
+def test_write_read():
+
+    h = OpenEXR.Header(2,2)
+    h['channels'] = {'R' : Imath.Channel(FLOAT),
+                     'G' : Imath.Channel(FLOAT),
+                     'B' : Imath.Channel(FLOAT),
+                     'A' : Imath.Channel(FLOAT)} 
+    o = OpenEXR.OutputFile("write.exr", h)
+    r = array('f', [n for n in range(0,4)]).tobytes()
+    g = array('f', [n for n in range(4,8)]).tobytes()
+    b = array('f', [n for n in range(8,12)]).tobytes()
+    a = array('f', [n for n in range(12,16)]).tobytes()
+    channels = {'R' : r, 'G' : g, 'B' : b, 'A' : a}
+    o.writePixels(channels)
+    o.close()
+
+    i = OpenEXR.InputFile("write.exr")
+    h = i.header()
+    assert r == i.channel('R')
+    assert g == i.channel('G')
+    assert b == i.channel('B')
+    assert a == i.channel('A')
+
+    print("write_read ok")
+    
+testList.append(("test_write_read", test_write_read))
+
 def test_level_modes():
 
     assert Imath.LevelMode("ONE_LEVEL").v == Imath.LevelMode(Imath.LevelMode.ONE_LEVEL).v
@@ -69,7 +96,8 @@ def test_fail():
 testList.append(("test_fail", test_fail))
 
 def test_one():
-    oexr = OpenEXR.InputFile("GoldenGate.exr")
+#    oexr = OpenEXR.InputFile("GoldenGate.exr")
+    oexr = OpenEXR.InputFile("write.exr")
 
     first_header = oexr.header()
 
@@ -97,7 +125,8 @@ testList.append(("test_one", test_one))
 
 def test_channel_channels():
     """ Check that the channel method and channels method return the same data """
-    oexr = OpenEXR.InputFile("GoldenGate.exr")
+#    oexr = OpenEXR.InputFile("GoldenGate.exr")
+    oexr = OpenEXR.InputFile("write.exr")
     cl = sorted(oexr.header()['channels'].keys())
     a = [oexr.channel(c) for c in cl]
     b = oexr.channels(cl)
@@ -192,32 +221,7 @@ def test_write_chunk():
     
 testList.append(("test_write_chunk", test_write_chunk))
 
-def test_write_read():
-
-    h = OpenEXR.Header(2,2)
-    h['channels'] = {'R' : Imath.Channel(FLOAT),
-                     'G' : Imath.Channel(FLOAT),
-                     'B' : Imath.Channel(FLOAT),
-                     'A' : Imath.Channel(FLOAT)} 
-    o = OpenEXR.OutputFile("write.exr", h)
-    r = array('f', [n for n in range(0,4)]).tobytes()
-    g = array('f', [n for n in range(4,8)]).tobytes()
-    b = array('f', [n for n in range(8,12)]).tobytes()
-    a = array('f', [n for n in range(12,16)]).tobytes()
-    channels = {'R' : r, 'G' : g, 'B' : b, 'A' : a}
-    o.writePixels(channels)
-    o.close()
-
-    i = OpenEXR.InputFile("write.exr")
-    h = i.header()
-    assert r == i.channel('R')
-    assert g == i.channel('G')
-    assert b == i.channel('B')
-    assert a == i.channel('A')
-
-    print("write_read ok")
-    
-testList.append(("test_write_read", test_write_read))
+printf("Running unit tests, cwd is {os.getcwd()}")
 
 for test in testList:
     funcName = test[0]
