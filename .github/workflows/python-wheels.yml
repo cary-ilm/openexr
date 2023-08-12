@@ -59,7 +59,7 @@ jobs:
               &&
         cmake --build ./ --config Release --clean-first &&
         cmake --install ./ --config Release &&
-        cd ..
+        cd ${{github.workspace}}/src/wrappers/python/tests
       CIBW_TEST_REQUIRES: pytest
       CIBW_TEST_COMMAND: pytest {project}/src/wrappers/python/tests/
 
