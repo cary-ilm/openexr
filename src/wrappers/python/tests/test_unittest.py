@@ -132,13 +132,14 @@ testList.append(("test_one", test_one))
 def test_channel_channels():
     """ Check that the channel method and channels method return the same data """
 #    oexr = OpenEXR.InputFile(f"{test_dir}/GoldenGate.exr")
+    bexr = OpenEXR.InputFile("write.exr")
+    bcl = sorted(bexr.header()['channels'].keys())
+    b = bexr.channels(bcl)
+    
     aexr = OpenEXR.InputFile("write.exr")
     acl = sorted(aexr.header()['channels'].keys())
     a = [aexr.channel(c) for c in acl]
 
-    bexr = OpenEXR.InputFile("write.exr")
-    bcl = sorted(bexr.header()['channels'].keys())
-    b = bexr.channels(bcl)
     print(f"a: {a}")
     print(f"acl={acl}")
     print(f"b: {b}")
