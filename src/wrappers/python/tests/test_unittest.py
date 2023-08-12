@@ -58,7 +58,7 @@ def test_fail():
 
     try:
         hdr = OpenEXR.Header(640, 480)
-        OpenEXR.OutputFile("/forbidden", hdr)
+        OpenEXR.OutputFile("/for/bidden", hdr)
     except:
         pass
     else:
