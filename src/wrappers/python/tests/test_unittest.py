@@ -7,6 +7,7 @@
 
 from __future__ import print_function
 import sys
+import os
 import random
 from array import array
 from io import BytesIO as StringIO
@@ -221,7 +222,7 @@ def test_write_chunk():
     
 testList.append(("test_write_chunk", test_write_chunk))
 
-printf("Running unit tests, cwd is {os.getcwd()}")
+print(f"Running unit tests, cwd is {os.getcwd()}")
 
 for test in testList:
     funcName = test[0]
