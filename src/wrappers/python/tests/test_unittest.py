@@ -15,6 +15,12 @@ from io import BytesIO as StringIO
 import Imath
 import OpenEXR
 
+print(f"Running unit tests, cwd is {os.getcwd()}")
+for e in os.environ:
+    print(f"{e}: {os.environ[e]}")
+    
+test_dir=os.path.abspath(__file__)
+
 FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
 UINT = Imath.PixelType(Imath.PixelType.UINT)
 HALF = Imath.PixelType(Imath.PixelType.HALF)
@@ -97,7 +103,7 @@ def test_fail():
 testList.append(("test_fail", test_fail))
 
 def test_one():
-    oexr = OpenEXR.InputFile("GoldenGate.exr")
+    oexr = OpenEXR.InputFile(f"{test_dir}/GoldenGate.exr")
 
     first_header = oexr.header()
 
@@ -125,7 +131,7 @@ testList.append(("test_one", test_one))
 
 def test_channel_channels():
     """ Check that the channel method and channels method return the same data """
-    oexr = OpenEXR.InputFile("GoldenGate.exr")
+    oexr = OpenEXR.InputFile(f"{test_dir}/GoldenGate.exr")
     cl = sorted(oexr.header()['channels'].keys())
     a = [oexr.channel(c) for c in cl]
     b = oexr.channels(cl)
@@ -220,10 +226,6 @@ def test_write_chunk():
     
 testList.append(("test_write_chunk", test_write_chunk))
 
-print(f"Running unit tests, cwd is {os.getcwd()}")
-for e in os.environ:
-    print(f"{e}: {os.environ[e]}")
-    
 for test in testList:
     funcName = test[0]
     print ("")
