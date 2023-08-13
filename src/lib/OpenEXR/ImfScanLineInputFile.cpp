@@ -429,7 +429,22 @@ readPixelData (
     if (streamData->is->isMemoryMapped ())
         buffer = streamData->is->readMemoryMapped (dataSize);
     else
+    {
         streamData->is->read (buffer, dataSize);
+        std::cout << "readPixelData: dataSize=" << dataSize;
+        for (int i=0; i<dataSize; i++)
+        {
+            int n = buffer[i];
+            std::cout << " " << n;
+        }
+        std::cout << std::endl;
+        for (int i=0; i<dataSize; i++)
+        {
+            int n = buffer[i];
+            std::cout << "data[" << i << "] " << n << std::endl;
+        }
+        std::cout << std::endl;
+    }
 
     //
     // Keep track of which scan line is the next one in
@@ -1632,6 +1647,10 @@ ScanLineInputFile::isOptimizationEnabled () const
 void
 ScanLineInputFile::readPixels (int scanLine1, int scanLine2)
 {
+    std::cout << "readPixels("
+              << scanLine1 << ", "
+              << scanLine2 << ")" << std::endl;
+    
     try
     {
 #if ILMTHREAD_THREADING_ENABLED
@@ -1672,6 +1691,8 @@ ScanLineInputFile::readPixels (int scanLine1, int scanLine2)
             dl    = -1;
         }
 
+        std::cout << "start=" << start << " stop=" << stop << std::endl;
+        
         //
         // Create a task group for all line buffer tasks.  When the
         // task group goes out of scope, the destructor waits until

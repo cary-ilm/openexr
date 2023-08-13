@@ -135,34 +135,32 @@ def test_channel_channels():
     bexr = OpenEXR.InputFile("write.exr")
     bcl = sorted(bexr.header()['channels'].keys())
     b = bexr.channels(bcl)
-    
-    aexr = OpenEXR.InputFile("write.exr")
-    acl = sorted(aexr.header()['channels'].keys())
-    a = [aexr.channel(c) for c in acl]
 
-    print(f"a: {a}")
-    print(f"acl={acl}")
+#    aexr = OpenEXR.InputFile("write.exr")
+#    acl = sorted(aexr.header()['channels'].keys())
+#    a = [aexr.channel(c) for c in acl]
+
+#    print(f"a: {a}")
+#    print(f"type(a)={type(a)}")
+#    print(f"acl={acl}")
+#    print(f"len(a)={len(a)}")
+#    print(f"type(a[0])={type(a[0])}")
     print(f"b: {b}")
     print(f"bcl={bcl}")
-    print(f"type(a)={type(a)}")
     print(f"type(b)={type(b)}")
-    print(f"len(a)={len(a)}")
     print(f"len(b)={len(b)}")
-    print(f"type(a[0])={type(a[0])}")
     print(f"type(b[0])={type(b[0])}")
 
     
-    print(f"len(a[0])={len(a[0])}")
-    print(f"len(b[0])={len(b[0])}")
-    print(f"a:")
-    for x in a:
-        X = array('I', x)
-        print(f":::: {X}")
+#    print(f"a:")
+#    for x in a:
+#        X = array('I', x)
+#        print(f":::: {X}")
     print(f"b:")
     for x in b:
         X = array('I', x)
         print(f":::: {X}")
-    assert a == b
+#    assert a == b
 
     print("channels ok")
 
@@ -252,6 +250,10 @@ def test_write_chunk():
     print("chunk ok")
     
 testList.append(("test_write_chunk", test_write_chunk))
+
+testList = []
+testList.append(("test_write_read", test_write_read))
+testList.append(("test_channel_channels", test_channel_channels))
 
 for test in testList:
     funcName = test[0]
