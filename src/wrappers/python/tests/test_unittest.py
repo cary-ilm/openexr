@@ -151,6 +151,7 @@ def test_channel_channels():
     print(f"len(b)={len(b)}")
     print(f"type(b[0])={type(b[0])}")
 
+    assert False
     
 #    print(f"a:")
 #    for x in a:
