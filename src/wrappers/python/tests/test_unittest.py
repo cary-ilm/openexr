@@ -137,30 +137,31 @@ def test_channel_channels():
     acl = sorted(aexr.header()['channels'].keys())
     a = [aexr.channel(c) for c in acl]
 
-    print(f"reading b...")
-    bexr = OpenEXR.InputFile("write.exr")
-    bcl = sorted(bexr.header()['channels'].keys())
-    b = bexr.channels(bcl)
+    # print(f"reading b...")
+    # bexr = OpenEXR.InputFile("write.exr")
+    # bcl = sorted(bexr.header()['channels'].keys())
+    # b = bexr.channels(bcl)
+    b = aexr.channels(acl)
 
-    print(f"a: {a}")
-    print(f"type(a)={type(a)}")
-    print(f"acl={acl}")
-    print(f"len(a)={len(a)}")
-    print(f"type(a[0])={type(a[0])}")
-    print(f"b: {b}")
-    print(f"bcl={bcl}")
-    print(f"type(b)={type(b)}")
-    print(f"len(b)={len(b)}")
-    print(f"type(b[0])={type(b[0])}")
+    # print(f"a: {a}")
+    # print(f"type(a)={type(a)}")
+    # print(f"acl={acl}")
+    # print(f"len(a)={len(a)}")
+    # print(f"type(a[0])={type(a[0])}")
+    # print(f"b: {b}")
+    # print(f"bcl={bcl}")
+    # print(f"type(b)={type(b)}")
+    # print(f"len(b)={len(b)}")
+    # print(f"type(b[0])={type(b[0])}")
 
-    print(f"a:")
-    for x in a:
-        X = array('I', x)
-        print(f":::: {X}")
-    print(f"b:")
-    for x in b:
-        X = array('I', x)
-        print(f":::: {X}")
+    # print(f"a:")
+    # for x in a:
+    #     X = array('I', x)
+    #     print(f":::: {X}")
+    # print(f"b:")
+    # for x in b:
+    #     X = array('I', x)
+    #     print(f":::: {X}")
     assert a == b
 
     print("channels ok")
