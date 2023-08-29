@@ -15,8 +15,10 @@ page:
 https://github.com/AcademySoftwareFoundation/openexr/issues
 """
 
-ImathConfig = os.system("find / -name ImathConfig.h")
-print(f'ImathConfig: {ImathConfig}')
+import pathlib
+ImathConfig = pathlib.Path("/").rglob("ImathConfig.h")
+for f in ImathConfig:
+    print(f'ImathConfig: {f}')
 
 version = []
 with open('src/lib/OpenEXRCore/openexr_version.h', 'r') as f:
