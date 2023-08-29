@@ -37,9 +37,9 @@ set(IEX_NAMESPACE "Iex" CACHE STRING "Public namespace alias for Iex")
 
 # Whether to generate and install a pkg-config file OpenEXR.pc
 if (WIN32)
-option(OPENEXR_INSTALL_PKG_CONFIG "Install OpenEXR.pc file" OFF)
+set(OPENEXR_INSTALL_PKG_CONFIG OFF CACHE STRING "Install OpenEXR.pc file")
 else()
-option(OPENEXR_INSTALL_PKG_CONFIG "Install OpenEXR.pc file" ON)
+set(OPENEXR_INSTALL_PKG_CONFIG ON CACHE STRING "Install OpenEXR.pc file")
 endif()
 
 # Whether to enable threading. This can be disabled, although thread pool and tasks
@@ -253,6 +253,11 @@ if(NOT TARGET Imath::Imath AND NOT Imath_FOUND)
   FetchContent_GetProperties(Imath)
   if(NOT Imath_POPULATED)
     FetchContent_Populate(Imath)
+
+    # Propagate OpenEXR's setting for pkg-config generation to Imath:
+    # If OpenEXR is generating it, the internal Imath should, too.
+    set(IMATH_INSTALL_PKG_CONFIG ${OPENEXR_INSTALL_PKG_CONFIG}) 
+
     # hrm, cmake makes Imath lowercase for the properties (to imath)
     add_subdirectory(${imath_SOURCE_DIR} ${imath_BINARY_DIR})
   endif()
