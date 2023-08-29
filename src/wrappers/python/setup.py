@@ -15,18 +15,12 @@ page:
 https://github.com/AcademySoftwareFoundation/openexr/issues
 """
 
-from subprocess import PIPE, run
-
-# Get the version and library suffix for both OpenEXR and Imath from pkg-config
+# Get the version and library suffix for both OpenEXR and Imath from
+# the .pc pkg-config file. 
 
 def pkg_config(var, pkg):
-    r = run (["env", "PKG_CONFIG_PATH=./openexr.install/lib/pkgconfig",
-              "pkg-config", f"--variable={var}", pkg],
-             stdout=PIPE, stderr=PIPE, universal_newlines=True)
-    if r.returncode != 0:
-        print(f"error in setup.py: pkg-config failed: {r.stderr}")
-        exit(-1)
-    return r.stdout.strip()
+    with open(f'./openexr.install/lib/pkgconfig/{pkg}.pc', 'r') as f:
+        return re.search(f'{var}=([^ \n]+)', f.read()).group(1)
 
 imath_libsuffix = pkg_config("libsuffix", "Imath")
 openexr_libsuffix = pkg_config("libsuffix", "OpenEXR")
