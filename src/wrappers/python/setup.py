@@ -26,7 +26,7 @@ def pkg_config(var, pkg):
     if r.returncode != 0:
         print(f"error in setup.py: pkg-config failed: {r.stderr}")
         exit(-1)
-    return r.stdout
+    return r.stdout.strip()
 
 imath_libsuffix = pkg_config("libsuffix", "Imath")
 openexr_libsuffix = pkg_config("libsuffix", "OpenEXR")
