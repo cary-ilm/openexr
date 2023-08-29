@@ -15,10 +15,10 @@ page:
 https://github.com/AcademySoftwareFoundation/openexr/issues
 """
 
-import pathlib
-ImathConfig = pathlib.Path("/").rglob("ImathConfig.h")
-for f in ImathConfig:
-    print(f'ImathConfig: {f}')
+from subprocess import PIPE, run
+result = run ("env", "PKGCONFIG_PATH=./openexr.install/lib/pkgconfig", "pkg-config", "--variable=libsuffix")
+assert(result.returncode == 0)
+imath_libsuffix = result.stdout
 
 version = []
 with open('src/lib/OpenEXRCore/openexr_version.h', 'r') as f:
@@ -33,7 +33,7 @@ libs=[]
 libs_static=[f'OpenEXR-{version_major}_{version_minor}',
              f'IlmThread-{version_major}_{version_minor}',
              f'Iex-{version_major}_{version_minor}',
-             f'Imath-{version_major}_{version_minor}',
+             f'Imath{imath_libsuffix}',
              f'OpenEXRCore-{version_major}_{version_minor}'
              ]
 definitions = [('PYOPENEXR_VERSION_MAJOR', f'{version_major}'),
