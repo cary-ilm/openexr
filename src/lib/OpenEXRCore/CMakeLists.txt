@@ -104,10 +104,14 @@ openexr_define_library(OpenEXRCore
     Imath::Imath
   )
 
-if (DEFINED EXR_DEFLATE_LIB)
-  if (BUILD_SHARED_LIBS)
-    target_link_libraries(OpenEXRCore PRIVATE ${EXR_DEFLATE_LIB})
+if(TARGET PkgConfig::deflate)
+  # we are not embedding libdeflate
+  if(BUILD_SHARED_LIBS)
+    target_link_libraries(OpenEXRCore PRIVATE PkgConfig::deflate)
   else()
-    target_link_libraries(OpenEXRCore PUBLIC ${EXR_DEFLATE_LIB})
+    # imported target is not defined by running pgk-config --static
+    # ${deflate_STATIC_LINK_LIBRARIES} seems not to be defined, need both steps
+    target_link_directories(OpenEXRCore PRIVATE ${deflate_STATIC_LIBRARY_DIRS})
+    target_link_libraries(OpenEXRCore PRIVATE ${deflate_STATIC_LIBRARIES})
   endif()
 endif()
