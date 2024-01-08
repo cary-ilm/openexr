@@ -234,6 +234,7 @@ jobs:
           mkdir _install
           mkdir _build
           mkdir _examples
+          mkdir _wrappers
       - name: Install help2man
         run: yum install -y help2man
       - name: Configure
@@ -248,7 +249,8 @@ jobs:
                 -DOPENEXR_INSTALL_TOOLS='ON' \
                 -DOPENEXR_INSTALL_DOCS='ON' \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
-                -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }}
+                -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }} \
+                -DOPENEXR_BUILD_PYTHON=ON
         working-directory: _build
       - name: Build
         run: |
@@ -274,6 +276,22 @@ jobs:
           # Confirm the examples program runs
           ./bin/OpenEXRExamples
         working-directory: _examples
+      - name: Wrappers
+        run: |
+          # Make sure we can build the python wrappers when configured as a
+          # standalone application linking against the just-installed
+          # OpenEXR library.
+          cmake ../src/wrappers/python \
+                -DCMAKE_PREFIX_PATH=../../_install \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
+                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
+                -DOPENEXR_BUILD_PYTHON=ON
+          cmake --build . \
+                --config ${{ matrix.build-type }}
+        working-directory: _wrappers
+        # Confirm the python tests run
+        env PYTHONPATH=. pytest ../src/wrappers/python/tests
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
@@ -370,6 +388,7 @@ jobs:
           mkdir _install
           mkdir _build
           mkdir _examples
+          mkdir _wrappers
       - name: Configure
         run: |
           cmake .. \
@@ -381,7 +400,9 @@ jobs:
                 -DBUILD_SHARED_LIBS=${{ matrix.build-shared }} \
                 -DOPENEXR_INSTALL_TOOLS='ON' \
                 -DOPENEXR_INSTALL_DOCS='OFF' \
-                -DOPENEXR_RUN_FUZZ_TESTS='OFF'
+                -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
+                -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }} \
+                -DOPENEXR_BUILD_PYTHON=ON
         working-directory: _build
       - name: Build
         run: |
@@ -404,6 +425,22 @@ jobs:
           # Confirm the examples program runs
           ./bin/OpenEXRExamples
         working-directory: _examples
+      - name: Wrappers
+        run: |
+          # Make sure we can build the python wrappers when configured as a
+          # standalone application linking against the just-installed
+          # OpenEXR library.
+          cmake ../src/wrappers/python \
+                -DCMAKE_PREFIX_PATH=../../_install \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
+                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
+                -DOPENEXR_BUILD_PYTHON=ON
+          cmake --build . \
+                --config ${{ matrix.build-type }}
+        working-directory: _wrappers
+        # Confirm the python tests run
+        env PYTHONPATH=. pytest ../src/wrappers/python/tests
       - name: Test
         run: |
           ctest -T Test ${{matrix.exclude-tests }} \

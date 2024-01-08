@@ -21,3 +21,14 @@ set_target_properties (PyOpenEXR PROPERTIES SUFFIX ".so")
 
 target_link_libraries (PyOpenEXR "${PYTHON_LIBRARIES}" OpenEXR::OpenEXR)
 
+configure_file(Imath.py ${CMAKE_CURRENT_BINARY_DIR}/Imath.py COPYONLY)
+
+if(BUILD_TESTING)
+
+  add_test(OpenEXR.PyOpenEXR pytest ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+  set_tests_properties(OpenEXR.PyOpenEXR PROPERTIES
+    ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}"
+  )
+
+endif()
