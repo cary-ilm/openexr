@@ -290,6 +290,7 @@ jobs:
           cmake --build . \
                 --config ${{ matrix.build-type }}
           # Confirm the python tests run
+          pip install pytest
           env PYTHONPATH=. pytest ../src/wrappers/python/tests
         working-directory: _wrappers
       - name: Test
@@ -439,6 +440,7 @@ jobs:
           cmake --build . \
                 --config ${{ matrix.build-type }}
           # Confirm the python tests run
+          pip install pytest
           env PYTHONPATH=. pytest ../src/wrappers/python/tests
         working-directory: _wrappers
       - name: Test
