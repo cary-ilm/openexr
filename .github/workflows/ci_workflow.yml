@@ -267,7 +267,6 @@ jobs:
           # Make sure we can build the examples when configured as a
           # standalone application linking against the just-installed
           # OpenEXR library.
-          find ../_install
           cmake ../src/examples \
                 -DCMAKE_PREFIX_PATH=../../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
@@ -283,10 +282,8 @@ jobs:
           # Make sure we can build the python wrappers when configured as a
           # standalone application linking against the just-installed
           # OpenEXR library.
-          find ../_install
-          cat ../src/wrappers/python/CMakeLists.txt
           cmake ../src/wrappers/python \
-                -DCMAKE_PREFIX_PATH=../../_install \
+                -DCMAKE_PREFIX_PATH=../../../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} 
