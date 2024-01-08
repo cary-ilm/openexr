@@ -289,9 +289,9 @@ jobs:
                 -DOPENEXR_BUILD_PYTHON=ON
           cmake --build . \
                 --config ${{ matrix.build-type }}
+          # Confirm the python tests run
+          env PYTHONPATH=. pytest ../src/wrappers/python/tests
         working-directory: _wrappers
-        # Confirm the python tests run
-        env PYTHONPATH=. pytest ../src/wrappers/python/tests
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
@@ -438,9 +438,9 @@ jobs:
                 -DOPENEXR_BUILD_PYTHON=ON
           cmake --build . \
                 --config ${{ matrix.build-type }}
+          # Confirm the python tests run
+          env PYTHONPATH=. pytest ../src/wrappers/python/tests
         working-directory: _wrappers
-        # Confirm the python tests run
-        env PYTHONPATH=. pytest ../src/wrappers/python/tests
       - name: Test
         run: |
           ctest -T Test ${{matrix.exclude-tests }} \
