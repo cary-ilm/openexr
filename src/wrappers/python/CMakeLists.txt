@@ -18,6 +18,7 @@ include_directories ("${PYTHON_INCLUDE_DIRS}")
 set_target_properties (PyOpenEXR PROPERTIES PREFIX "")
 set_target_properties (PyOpenEXR PROPERTIES OUTPUT_NAME "OpenEXR")
 set_target_properties (PyOpenEXR PROPERTIES SUFFIX ".so")
+set_target_properties (PyOpenEXR PROPERTIES DEBUG_POSTFIX "")
 
 target_link_libraries (PyOpenEXR "${PYTHON_LIBRARIES}" OpenEXR::OpenEXR)
 
