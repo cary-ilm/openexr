@@ -430,7 +430,7 @@ jobs:
           # standalone application linking against the just-installed
           # OpenEXR library.
           cmake ../src/wrappers/python \
-                -DCMAKE_PREFIX_PATH=../../_install \
+                -DCMAKE_PREFIX_PATH=../../../_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
