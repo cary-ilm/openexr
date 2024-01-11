@@ -35,7 +35,7 @@ permissions:
 
 jobs:
   build_openexr_libraries:
-    name Build OpenEXR Libraries
+    name: Build OpenEXR Libraries
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
