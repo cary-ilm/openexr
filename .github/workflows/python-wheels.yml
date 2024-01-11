@@ -69,8 +69,9 @@ jobs:
       - uses: actions/cache@v3
         id: restore-build
         with:
-          path: _install/*
-          path: src/wrappers/python/*
+          path: |
+            _install/*
+            src/wrappers/python/*
           key: ${{ runner.os }}-install-${{ github.sha }}
 
   build_wheels:
@@ -103,8 +104,9 @@ jobs:
       - uses: actions/cache@v2
         id: restore-build
         with:
-          path: _install/*
-          path: src/wrappers/python
+          path: |
+            _install/*
+            src/wrappers/python
           key: ${{ runner.os }}-install-${{ github.sha }}
 
       - uses: actions/setup-python@v4
