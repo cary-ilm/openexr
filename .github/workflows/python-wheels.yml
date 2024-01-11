@@ -2,7 +2,7 @@
 # Copyright (c) Contributors to the OpenEXR Project.
 #
 
-name: Python wheels
+name: Python Wheels
 
 on:
   push:
