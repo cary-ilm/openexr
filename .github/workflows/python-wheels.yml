@@ -51,14 +51,15 @@ jobs:
           mkdir _install
       - name: Configure
         run: |
-          cmake .. \
-                -DCMAKE_INSTALL_PREFIX=../_install \
-                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON' \
-                -DBUILD_TESTING='OFF' \
-                -DOPENEXR_BUILD_TOOLS='OFF' \
-                -DOPENEXR_INSTALL_TOOLS='OFF' \
-                -DOPENEXR_INSTALL_DOCS='OFF' \
-                -DOPENEXR_INSTALL_EXAMPLES='OFF'
+          touch ../_install/openexr.txt
+###          cmake .. \
+###                -DCMAKE_INSTALL_PREFIX=../_install \
+###                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON' \
+###                -DBUILD_TESTING='OFF' \
+###                -DOPENEXR_BUILD_TOOLS='OFF' \
+###                -DOPENEXR_INSTALL_TOOLS='OFF' \
+###                -DOPENEXR_INSTALL_DOCS='OFF' \
+###                -DOPENEXR_INSTALL_EXAMPLES='OFF'
         working-directory: _build
       - name: Build & Install
         run: |
@@ -66,12 +67,10 @@ jobs:
                 --target install
         working-directory: _build
 
-      - uses: actions/cache/save@v3
+      - uses: actions/cache@v2
         with:
-          path: _build
-          key: ${{ runner.os }}-install-${{ hashFiles('_install/**') }}
-          restore-keys: |
-            ${{ runner.os }}-install
+          path: _install/**
+          key: ${{ runner.os }}-install-${{ github.sha }}
 
   build_wheels:
     name: Build Python wheels
@@ -100,6 +99,11 @@ jobs:
       CMAKE_PREFIX_PATH: ${{github.workspace}}/_install
 
     steps:
+      - uses: actions/cache@v2
+        with:
+          path: _install/**
+          key: ${{ runner.os }}-install-${{ github.sha }}
+
       - uses: actions/setup-python@v4
         with:
             python-version: '3.x'
