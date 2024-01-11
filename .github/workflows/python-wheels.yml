@@ -101,7 +101,6 @@ jobs:
       - name: Build wheels
         run: |
           python -m cibuildwheel --output-dir wheelhouse
-        working-directory: {project}/src/wrappers/python
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
