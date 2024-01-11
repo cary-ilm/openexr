@@ -34,8 +34,41 @@ permissions:
   contents: read
 
 jobs:
+  build_openexr_libraries:
+    name Build OpenEXR Libraries
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macOS-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Create build directories
+        run: |
+          mkdir _build
+          mkdir _install
+      - name: Configure
+        run: |
+          cmake .. \
+                -DCMAKE_INSTALL_PREFIX=../_install \
+                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON' \
+                -DBUILD_TESTING='OFF' \
+                -DOPENEXR_BUILD_TOOLS='OFF' \
+                -DOPENEXR_INSTALL_TOOLS='OFF' \
+                -DOPENEXR_INSTALL_DOCS='OFF' \
+                -DOPENEXR_INSTALL_EXAMPLES='OFF'
+        working-directory: _build
+      - name: Build & Install
+        run: |
+          cmake --build . \
+                --target install \
+                --config ${{ matrix.build-type }}
+        working-directory: _build
+
   build_wheels:
     name: Build Python wheels
+    needs: build_openexr_libraries
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -43,25 +76,21 @@ jobs:
     env:
       # On macOS we build both x86 and arm to support Intel and Apple Silicon.
       CIBW_ARCHS_MACOS: x86_64 arm64 
+
       # Skip 32-bit wheels builds on Windows.
       # Also skip the PyPy builds, since they fail the unittests
       CIBW_SKIP: "*-win32 *_i686 pp*"
+
       # The CI platform is Intel based so we are doing cross compilation
       # for arm64. It is not currently possible to test arm64 when cross
       # compiling. 
       CIBW_TEST_SKIP: "*_arm64"
-      CIBW_BEFORE_BUILD: >
-        echo "Installing OpenEXR..." &&
-        cd openexr.build &&
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../openexr.install -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DCMAKE_PREFIX_PATH=../openexr.install -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_TESTING=OFF -DOPENEXR_INSTALL_EXAMPLES=OFF -DOPENEXR_BUILD_TOOLS=OFF -DBUILD_SHARED_LIBS=OFF -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON -DOPENEXR_FORCE_INTERNAL_IMATH=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON ../ &&
-        cmake --build ./ --config Release --clean-first &&
-        cmake --install ./ --config Release &&
-        cd ..
       CIBW_TEST_REQUIRES: pytest
       CIBW_TEST_COMMAND: pytest {project}/src/wrappers/python/tests/
 
+      CMAKE_PREFIX_PATH: ${{github.workspace}}/_install
+
     steps:
-      - uses: actions/checkout@v3
 
       # Used to host cibuildwheel
       - uses: actions/setup-python@v4
@@ -71,20 +100,10 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.16.2
 
-      - name: Create setup.py
-        run: |
-            mv ${{github.workspace}}/src/wrappers/python/setup.py ${{github.workspace}}/setup.py
-            mv ${{github.workspace}}/src/wrappers/python/Imath.py ${{github.workspace}}/Imath.py
-            mv ${{github.workspace}}/src/wrappers/python/OpenEXR.cpp ${{github.workspace}}/OpenEXR.cpp
-
-      - name: Create folders
-        run: |
-            mkdir -p ${{github.workspace}}/openexr.build
-            mkdir -p ${{github.workspace}}/openexr.install
-
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
-
+        working_directory: {project}/src/wrappers/python
+        
       - uses: actions/upload-artifact@v3
         with:
           name: "Python wheels"

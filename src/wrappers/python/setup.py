@@ -1,10 +1,19 @@
-from setuptools import setup, Extension
 import os
-import platform
 import re
+import subprocess
+import sys
+from pathlib import Path
 
+from setuptools import Extension, setup
+from setuptools.command.build_ext import build_ext
 
-DESC = """Python bindings for the OpenEXR image file format.
+if "CMAKE_PREFIX_PATH" not in os.environ:
+    print("CMAKE_PREFIX_PATH not defined.")
+    exit(-1)
+
+CMAKE_PREFIX_PATH = os.environ["CMAKE_PREFIX_PATH"]    
+
+long_description = """Python bindings for the OpenEXR image file format.
 
 This is a script to autobuild the wheels using github actions. Please, do not
 use it manually
@@ -15,69 +24,139 @@ page:
 https://github.com/AcademySoftwareFoundation/openexr/issues
 """
 
-# Get the version and library suffix for both OpenEXR and Imath from
-# the .pc pkg-config file. 
+# Convert distutils Windows platform specifiers to CMake -A arguments
+PLAT_TO_CMAKE = {
+    "win32": "Win32",
+    "win-amd64": "x64",
+    "win-arm32": "ARM",
+    "win-arm64": "ARM64",
+}
+
+
+# A CMakeExtension needs a sourcedir instead of a file list.
+# The name must be the _single_ output extension from the CMake build.
+# If you need multiple extensions, see scikit-build.
+class CMakeExtension(Extension):
+    def __init__(self, name: str, sourcedir: str = "") -> None:
+        super().__init__(name, sources=[])
+        self.sourcedir = os.fspath(Path(sourcedir).resolve())
+
+
+class CMakeBuild(build_ext):
+    def build_extension(self, ext: CMakeExtension) -> None:
+        # Must be in this form due to bug in .resolve() only fixed in Python 3.10+
+        ext_fullpath = Path.cwd() / self.get_ext_fullpath(ext.name)
+        extdir = ext_fullpath.parent.resolve()
+
+        # Using this requires trailing slash for auto-detection & inclusion of
+        # auxiliary "native" libs
+
+        debug = int(os.environ.get("DEBUG", 0)) if self.debug is None else self.debug
+        cfg = "Debug" if debug else "Release"
+
+        # # CMake lets you override the generator - we need to check this.
+        # # Can be set with Conda-Build, for example.
+        # cmake_generator = os.environ.get("CMAKE_GENERATOR", "")
+
+        # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
+        # EXAMPLE_VERSION_INFO shows you how to pass a value into the C++ code
+        # from Python.
+        cmake_args = [
+            f"-DCMAKE_PREFIX_PATH={CMAKE_PREFIX_PATH}",
+            f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}{os.sep}",
+            f"-DPYTHON_EXECUTABLE={sys.executable}",
+            f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
+            f"-DCMAKE_VERBOSE_MAKEFILE=ON",
+        ]
+        build_args = []
+        # # Adding CMake arguments set as environment variable
+        # # (needed e.g. to build for ARM OSx on conda-forge)
+        # if "CMAKE_ARGS" in os.environ:
+        #     cmake_args += [item for item in os.environ["CMAKE_ARGS"].split(" ") if item]
+
+        # if self.compiler.compiler_type != "msvc":
+        #     # Using Ninja-build since it a) is available as a wheel and b)
+        #     # multithreads automatically. MSVC would require all variables be
+        #     # exported for Ninja to pick it up, which is a little tricky to do.
+        #     # Users can override the generator with CMAKE_GENERATOR in CMake
+        #     # 3.15+.
+        #     if not cmake_generator or cmake_generator == "Ninja":
+        #         try:
+        #             import ninja
+
+        #             ninja_executable_path = Path(ninja.BIN_DIR) / "ninja"
+        #             cmake_args += [
+        #                 "-GNinja",
+        #                 f"-DCMAKE_MAKE_PROGRAM:FILEPATH={ninja_executable_path}",
+        #             ]
+        #         except ImportError:
+        #             pass
+
+        # else:
+        #     # Single config generators are handled "normally"
+        #     single_config = any(x in cmake_generator for x in {"NMake", "Ninja"})
+
+        #     # CMake allows an arch-in-generator style for backward compatibility
+        #     contains_arch = any(x in cmake_generator for x in {"ARM", "Win64"})
+
+        #     # Specify the arch if using MSVC generator, but only if it doesn't
+        #     # contain a backward-compatibility arch spec already in the
+        #     # generator name.
+        #     if not single_config and not contains_arch:
+        #         cmake_args += ["-A", PLAT_TO_CMAKE[self.plat_name]]
+
+        #     # Multi-config generators have a different way to specify configs
+        #     if not single_config:
+        #         cmake_args += [
+        #             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{cfg.upper()}={extdir}"
+        #         ]
+        #         build_args += ["--config", cfg]
+
+        # if sys.platform.startswith("darwin"):
+        #     # Cross-compile support for macOS - respect ARCHFLAGS if set
+        #     archs = re.findall(r"-arch (\S+)", os.environ.get("ARCHFLAGS", ""))
+        #     if archs:
+        #         cmake_args += ["-DCMAKE_OSX_ARCHITECTURES={}".format(";".join(archs))]
+
+        # Set CMAKE_BUILD_PARALLEL_LEVEL to control the parallel build level
+        # across all generators.
+        if "CMAKE_BUILD_PARALLEL_LEVEL" not in os.environ:
+            # self.parallel is a Python 3 only way to set parallel jobs by hand
+            # using -j in the build_ext call, not supported by pip or PyPA-build.
+            if hasattr(self, "parallel") and self.parallel:
+                # CMake 3.12+ only.
+                build_args += [f"-j{self.parallel}"]
+
+        build_temp = Path(self.build_temp) / ext.name
+        if not build_temp.exists():
+            build_temp.mkdir(parents=True)
+
+        subprocess.run(
+            ["cmake", ext.sourcedir, *cmake_args], cwd=build_temp, check=True
+        )
+        subprocess.run(
+            ["cmake", "--build", ".", *build_args], cwd=build_temp, check=True
+        )
 
 def pkg_config(var, pkg):
-    with open(f'./openexr.install/lib/pkgconfig/{pkg}.pc', 'r') as f:
+    with open(f'{CMAKE_PREFIX_PATH}/lib/pkgconfig/{pkg}.pc', 'r') as f:
         return re.search(f'{var}([^ \n]+)', f.read()).group(1)
 
-imath_libsuffix = pkg_config("libsuffix=", "Imath")
-openexr_libsuffix = pkg_config("libsuffix=", "OpenEXR")
 openexr_version = pkg_config("Version: ", "OpenEXR")
-openexr_version_major, openexr_version_minor, openexr_version_patch = openexr_version.split('.')
 
-libs=[]
-libs_static=[f'OpenEXR{openexr_libsuffix}',
-             f'IlmThread{openexr_libsuffix}',
-             f'Iex{openexr_libsuffix}',
-             f'Imath{imath_libsuffix}',
-             f'OpenEXRCore{openexr_libsuffix}',
-             ]
-definitions = [('PYOPENEXR_VERSION_MAJOR', f'{openexr_version_major}'),
-               ('PYOPENEXR_VERSION_MINOR', f'{openexr_version_minor}'),
-               ('PYOPENEXR_VERSION_PATCH', f'{openexr_version_patch}'),]
-if platform.system() == "Windows":
-    definitions = [('PYOPENEXR_VERSION', f'\\"{openexr_version}\\"')]
-extra_compile_args = []
-if platform.system() == 'Darwin':
-    extra_compile_args += ['-std=c++11',
-                           '-Wc++11-extensions',
-                           '-Wc++11-long-long']
-
-libs_dir = "./openexr.install/lib/"
-if not os.path.isdir(libs_dir):
-    libs_dir = "./openexr.install/lib64/"
-if platform.system() == "Windows":
-    extra_link_args = [libs_dir + lib + ".lib"
-                       for lib in libs_static]
-    extra_link_args = extra_link_args + [
-        "ws2_32.lib", "dbghelp.lib", "psapi.lib", "kernel32.lib", "user32.lib",
-        "gdi32.lib", "winspool.lib", "shell32.lib", "ole32.lib",
-        "oleaut32.lib", "uuid.lib", "comdlg32.lib", "advapi32.lib"]
-else:
-    extra_link_args = [libs_dir + "lib" + lib + ".a"
-                       for lib in libs_static]
-
-
-setup(name='OpenEXR',
+# The information here can also be placed in setup.cfg - better separation of
+# logic and declaration, and simpler if you include description/version in a file.
+setup(
+    name="OpenEXR",
     author = 'Contributors to the OpenEXR Project',
     author_email = 'info@openexr.com',
     url = 'https://github.com/AcademySoftwareFoundation/openexr',
     description = "Python bindings for the OpenEXR image file format",
-    long_description = DESC,
+    long_description = long_description,
     version=openexr_version,
-    ext_modules=[ 
-        Extension('OpenEXR',
-                  ['OpenEXR.cpp'],
-                  language='c++',
-                  define_macros=definitions,
-                  include_dirs=['./openexr.install/include/OpenEXR',
-                                './openexr.install/include/Imath',],
-                  libraries=libs,
-                  extra_compile_args=extra_compile_args,
-                  extra_link_args=extra_link_args,
-                  )
-    ],
-    py_modules=['Imath'],
+    ext_modules=[CMakeExtension("OpenEXR")],
+    cmdclass={"build_ext": CMakeBuild},
+    zip_safe=False,
+    extras_require={"test": ["pytest>=6.0"]},
+    python_requires=">=3.7",
 )
