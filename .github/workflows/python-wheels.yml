@@ -66,6 +66,13 @@ jobs:
                 --target install
         working-directory: _build
 
+      - uses: actions/cache/save@v3
+        with:
+          path: _build
+          key: ${{ runner.os }}-install-${{ hashFiles('_install/**') }}
+          restore-keys: |
+            ${{ runner.os }}-install
+
   build_wheels:
     name: Build Python wheels
     needs: build_openexr_libraries
@@ -102,8 +109,8 @@ jobs:
 
       - name: Build wheels
         run: |
-          echo directory: ${{ github.workspace }}/src/wrappers/python
-          ls -l ${{ github.workspace }}/src/wrappers/python
+          echo github.workspace: ${{ github.workspace }}
+          ls -l ${{ github.workspace }}
           python -m cibuildwheel --output-dir wheelhouse
 ###        working-directory: ${{ github.workspace }}/src/wrappers/python
 
