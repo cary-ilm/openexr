@@ -51,26 +51,26 @@ jobs:
           mkdir _install
       - name: Configure
         run: |
-          touch ../_install/openexr.txt
-###          cmake .. \
-###                -DCMAKE_INSTALL_PREFIX=../_install \
-###                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON' \
-###                -DBUILD_TESTING='OFF' \
-###                -DOPENEXR_BUILD_TOOLS='OFF' \
-###                -DOPENEXR_INSTALL_TOOLS='OFF' \
-###                -DOPENEXR_INSTALL_DOCS='OFF' \
-###                -DOPENEXR_INSTALL_EXAMPLES='OFF'
+          cmake .. \
+                -DCMAKE_INSTALL_PREFIX=../_install \
+                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON' \
+                -DBUILD_TESTING='OFF' \
+                -DOPENEXR_BUILD_TOOLS='OFF' \
+                -DOPENEXR_INSTALL_TOOLS='OFF' \
+                -DOPENEXR_INSTALL_DOCS='OFF' \
+                -DOPENEXR_INSTALL_EXAMPLES='OFF'
         working-directory: _build
-###      - name: Build & Install
-###        run: |
-###          cmake --build . \
-###                --target install
-###        working-directory: _build
+      - name: Build & Install
+        run: |
+          cmake --build . \
+                --target install
+        working-directory: _build
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: restore-build
         with:
           path: _install/*
+          path: src/wrappers/python/*
           key: ${{ runner.os }}-install-${{ github.sha }}
 
   build_wheels:
@@ -104,6 +104,7 @@ jobs:
         id: restore-build
         with:
           path: _install/*
+          path: src/wrappers/python
           key: ${{ runner.os }}-install-${{ github.sha }}
 
       - uses: actions/setup-python@v4
@@ -118,7 +119,7 @@ jobs:
           echo github.workspace: ${{ github.workspace }}
           find .
           python -m cibuildwheel --output-dir wheelhouse
-###        working-directory: ${{ github.workspace }}/src/wrappers/python
+        working-directory: ${{ github.workspace }}/src/wrappers/python
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
