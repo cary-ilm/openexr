@@ -72,7 +72,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-latest, macOS-latest]
+###        os: [ubuntu-22.04, windows-latest, macOS-latest]
+        os: [ubuntu-22.04]
+
     env:
       # On macOS we build both x86 and arm to support Intel and Apple Silicon.
       CIBW_ARCHS_MACOS: x86_64 arm64 
@@ -100,8 +102,10 @@ jobs:
 
       - name: Build wheels
         run: |
+          echo directory: {project}/src/wrappers/python
+          ls {project}/src/wrappers/python
           python -m cibuildwheel --output-dir wheelhouse
-        working-directory: $${ github.workspace }}/src/wrappers/python
+        working-directory: {project}/src/wrappers/python
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
