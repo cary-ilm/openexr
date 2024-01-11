@@ -7,6 +7,9 @@ from pathlib import Path
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
+for e in os.environ:
+    printf("os.environ[{e}] {os.environ[e]}")
+    
 if "CMAKE_PREFIX_PATH" not in os.environ:
     print("CMAKE_PREFIX_PATH not defined.")
     exit(-1)
