@@ -69,8 +69,11 @@ jobs:
       - uses: actions/cache@v3
         id: restore-build
         with:
-          path: ./*
+          path: |
+            _install/*
+            src/wrappers/python/*
           key: ${{ runner.os }}-install-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-install-
 
   build_wheels:
     name: Build Python wheels
@@ -99,11 +102,14 @@ jobs:
       CMAKE_PREFIX_PATH: ${{github.workspace}}/_install
 
     steps:
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: restore-build
         with:
-          path: ./*
+          path: |
+            _install/*
+            src/wrappers/python/*
           key: ${{ runner.os }}-install-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-install-
 
       - uses: actions/setup-python@v4
         with:
@@ -114,11 +120,9 @@ jobs:
 
       - name: Build wheels
         run: |
-          echo github.workspace: ${{ github.workspace }}
-          pwd
           find .
           cd src/wrappers/python
-          python -m cibuildwheel --output-dir wheelhouse
+          env CMAKE_PREFIX_PATH=${{github.workspace}}/_install python -m cibuildwheel --output-dir wheelhouse
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
