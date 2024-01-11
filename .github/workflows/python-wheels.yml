@@ -62,8 +62,7 @@ jobs:
       - name: Build & Install
         run: |
           cmake --build . \
-                --target install \
-                --config ${{ matrix.build-type }}
+                --target install
         working-directory: _build
 
   build_wheels:
