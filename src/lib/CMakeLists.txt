@@ -6,4 +6,4 @@ add_subdirectory( IlmThread )
 
 add_subdirectory( OpenEXRCore )
 add_subdirectory( OpenEXR )
-add_subdirectory( OpenEXRUtil )
+#add_subdirectory( OpenEXRUtil )

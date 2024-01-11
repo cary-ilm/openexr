@@ -85,7 +85,7 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/cmake/OpenEXRTargets.cmake" "# Dummy fil
 
 option(OPENEXR_INSTALL_EXAMPLES "Install OpenEXR examples" ON)
 if(OPENEXR_INSTALL_EXAMPLES)
-  add_subdirectory( src/examples )
+#  add_subdirectory( src/examples )
 endif()
 
 # If you want to use ctest to configure, build and
@@ -113,7 +113,7 @@ endif()
 include(CTest)
 
 if(BUILD_TESTING AND NOT OPENEXR_IS_SUBPROJECT)
-  add_subdirectory(src/test)
+#  add_subdirectory(src/test)
 endif()
 
 # Including this module will add a `clang-format` target to the build if
@@ -124,7 +124,7 @@ endif()
 
 option(OPENEXR_INSTALL_DOCS "Set ON to install tool manpages")
 if (OPENEXR_INSTALL_DOCS AND NOT OPENEXR_IS_SUBPROJECT)
-  add_subdirectory(docs)
+#  add_subdirectory(docs)
 endif()
 
 option(BUILD_WEBSITE "Set ON to build website source")
@@ -134,7 +134,7 @@ endif()
 
 if (NOT OPENEXR_IS_SUBPROJECT)
   # Even if not building the website, still make sure the website example code compiles.
-  add_subdirectory(website/src)
+#  add_subdirectory(website/src)
 endif()
 
 option(OPENEXR_BUILD_PYTHON "Set ON to build python bindings")
