@@ -70,7 +70,7 @@ jobs:
       - uses: actions/cache@v2
         id: restore-build
         with:
-          path: ./*
+          path: _install/*
           key: ${{ runner.os }}-install-${{ github.sha }}
 
   build_wheels:
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/cache@v2
         id: restore-build
         with:
-          path: ./*
+          path: _install/*
           key: ${{ runner.os }}-install-${{ github.sha }}
 
       - uses: actions/setup-python@v4
@@ -116,7 +116,7 @@ jobs:
       - name: Build wheels
         run: |
           echo github.workspace: ${{ github.workspace }}
-          ls -l ${{ github.workspace }}
+          find .
           python -m cibuildwheel --output-dir wheelhouse
 ###        working-directory: ${{ github.workspace }}/src/wrappers/python
 
