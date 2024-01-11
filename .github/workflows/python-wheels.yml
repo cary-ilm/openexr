@@ -68,8 +68,9 @@ jobs:
         working-directory: _build
 
       - uses: actions/cache@v2
+        id: restore-build
         with:
-          path: _install/**
+          path: ./*
           key: ${{ runner.os }}-install-${{ github.sha }}
 
   build_wheels:
@@ -100,8 +101,9 @@ jobs:
 
     steps:
       - uses: actions/cache@v2
+        id: restore-build
         with:
-          path: _install/**
+          path: ./*
           key: ${{ runner.os }}-install-${{ github.sha }}
 
       - uses: actions/setup-python@v4
