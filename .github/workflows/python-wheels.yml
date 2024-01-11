@@ -91,9 +91,6 @@ jobs:
       CMAKE_PREFIX_PATH: ${{github.workspace}}/_install
 
     steps:
-      - uses: actions/checkout@v3
-
-      # Used to host cibuildwheel
       - uses: actions/setup-python@v4
         with:
             python-version: '3.x'
