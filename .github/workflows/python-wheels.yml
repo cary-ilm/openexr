@@ -119,9 +119,10 @@ jobs:
       - name: Build wheels
         run: |
           echo github.workspace: ${{ github.workspace }}
+          pwd
           find .
           python -m cibuildwheel --output-dir wheelhouse
-        working-directory: ${{ github.workspace }}/src/wrappers/python
+        working-directory: src/wrappers/python
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
