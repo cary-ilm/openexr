@@ -61,11 +61,11 @@ jobs:
 ###                -DOPENEXR_INSTALL_DOCS='OFF' \
 ###                -DOPENEXR_INSTALL_EXAMPLES='OFF'
         working-directory: _build
-      - name: Build & Install
-        run: |
-          cmake --build . \
-                --target install
-        working-directory: _build
+###      - name: Build & Install
+###        run: |
+###          cmake --build . \
+###                --target install
+###        working-directory: _build
 
       - uses: actions/cache@v2
         id: restore-build
