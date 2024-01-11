@@ -98,16 +98,10 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.16.2
 
-      - name: Create setup.py
+      - name: Build wheels
         run: |
-            mv ${{github.workspace}}/src/wrappers/python/setup.py ${{github.workspace}}/setup.py
-            mv ${{github.workspace}}/src/wrappers/python/Imath.py ${{github.workspace}}/Imath.py
-            mv ${{github.workspace}}/src/wrappers/python/OpenEXR.cpp ${{github.workspace}}/OpenEXR.cpp
-
-      - name: Create folders
-        run: |
-            mkdir -p ${{github.workspace}}/openexr.build
-            mkdir -p ${{github.workspace}}/openexr.install
+          python -m cibuildwheel --output-dir wheelhouse
+        working-directory: {project}/src/wrappers/python
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
@@ -116,3 +110,4 @@ jobs:
         with:
           name: "Python wheels"
           path: ./wheelhouse/*.whl
+
