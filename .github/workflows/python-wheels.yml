@@ -99,7 +99,7 @@ jobs:
       CIBW_TEST_REQUIRES: pytest
       CIBW_TEST_COMMAND: pytest {project}/src/wrappers/python/tests/
 
-      CMAKE_PREFIX_PATH: ${{github.workspace}}/_install
+      XXX_CMAKE_PREFIX_PATH: ${{github.workspace}}/_install
 
     steps:
       - uses: actions/cache@v3
@@ -123,9 +123,6 @@ jobs:
           find .
           cd src/wrappers/python
           env CMAKE_PREFIX_PATH=${{github.workspace}}/_install python -m cibuildwheel --output-dir wheelhouse
-
-      - name: Build wheels
-        run: python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v3
         with:
