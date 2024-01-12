@@ -73,7 +73,7 @@ jobs:
             _install/*
             src/wrappers/python/*
           key: ${{ runner.os }}-install-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-install-
+          restore-keys: ${{ runner.os }}-install-${{ github.sha }}
 
   build_wheels:
     name: Build Python wheels
@@ -109,7 +109,7 @@ jobs:
             _install/*
             src/wrappers/python/*
           key: ${{ runner.os }}-install-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-install-
+          restore-keys: ${{ runner.os }}-install-${{ github.sha }}
 
       - uses: actions/setup-python@v4
         with:
