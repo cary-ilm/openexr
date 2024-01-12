@@ -7,13 +7,14 @@ from pathlib import Path
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
-if "CMAKE_PREFIX_PATH" not in os.environ:
-    print(f"CMAKE_PREFIX_PATH not defined: {os.environ}")
-
-    with open("cmake_prefix_path", "r") as f:
-        CMAKE_PREFIX_PATH = f.readlines()[0]
-
-CMAKE_PREFIX_PATH = os.environ["CMAKE_PREFIX_PATH"]    
+if "CMAKE_PREFIX_PATH" in os.environ:
+    CMAKE_PREFIX_PATH = os.environ["CMAKE_PREFIX_PATH"]    
+else:
+    try:
+        with open("cmake_prefix_path", "r") as f:
+            CMAKE_PREFIX_PATH = f.readlines()[0]
+    raise:
+        CMAKE_PREFIX_PATH = "../../../_install"
 
 long_description = """Python bindings for the OpenEXR image file format.
 
