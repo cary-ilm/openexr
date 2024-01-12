@@ -12,7 +12,7 @@ if "CMAKE_PREFIX_PATH" in os.environ:
 else:
     try:
         with open("cmake_prefix_path", "r") as f:
-            CMAKE_PREFIX_PATH = f.readlines()[0]
+            CMAKE_PREFIX_PATH = f.readlines()[0].strip()
     except:
         CMAKE_PREFIX_PATH = "../../../_install"
 
