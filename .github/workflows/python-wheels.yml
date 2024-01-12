@@ -122,6 +122,7 @@ jobs:
         run: |
           find .
           cd src/wrappers/python
+          cat setup.py
           env CMAKE_PREFIX_PATH=${{github.workspace}}/_install python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v3
