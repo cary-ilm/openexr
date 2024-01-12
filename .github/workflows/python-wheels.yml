@@ -121,10 +121,11 @@ jobs:
       - name: Build wheels
         run: |
           find ${{github.workspace}}
+          cat ${{github.workspace}}/_install/lib/pkgconfig/OpenEXR.pc
           cd src/wrappers/python
           cat setup.py
           echo ${{github.workspace}}/_install > cmake_prefix_path
-          env CMAKE_PREFIX_PATH=${{github.workspace}}/_install python -m cibuildwheel --output-dir wheelhouse
+          python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v3
         with:
