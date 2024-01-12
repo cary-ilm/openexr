@@ -13,7 +13,7 @@ else:
     try:
         with open("cmake_prefix_path", "r") as f:
             CMAKE_PREFIX_PATH = f.readlines()[0]
-    raise:
+    except:
         CMAKE_PREFIX_PATH = "../../../_install"
 
 long_description = """Python bindings for the OpenEXR image file format.
