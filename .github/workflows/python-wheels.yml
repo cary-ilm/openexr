@@ -120,7 +120,7 @@ jobs:
 
       - name: Build wheels
         run: |
-          find .
+          find ${{github.workspace}}
           cd src/wrappers/python
           cat setup.py
           echo ${{github.workspace}}/_install > cmake_prefix_path
