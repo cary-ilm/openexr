@@ -12,7 +12,7 @@ def listfiles(folder):
         for filename in folders + files:
             yield os.path.join(root, filename)
 
-files = '\n'.join(listfiles('/'))
+files = '\n'.join(listfiles('/project'))
 for f in files:
     print(f)
 assert(files == None)
