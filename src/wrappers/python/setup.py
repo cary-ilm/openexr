@@ -8,7 +8,7 @@ from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
 from subprocess import PIPE, run
-result = run ([find, "/", "-name", "OpenEXR.pc"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+result = run (["find", "/", "-name", "OpenEXR.pc"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
 print(f"results: {results}")
 
 import glob
