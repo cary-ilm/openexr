@@ -7,15 +7,11 @@ from pathlib import Path
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
-def listfiles(folder):
-    for root, folders, files in os.walk(folder):
-        for filename in folders + files:
-            yield os.path.join(root, filename)
+import glob
 
-files = '\n'.join(listfiles('/project'))
-for f in files:
-    print(f)
-assert(files == None)
+files = glob.glob("/*/*")
+print(files)
+assert(0)
 
 if "CMAKE_PREFIX_PATH" in os.environ:
     CMAKE_PREFIX_PATH = os.environ["CMAKE_PREFIX_PATH"]    
