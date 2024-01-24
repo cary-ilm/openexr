@@ -95,8 +95,6 @@ jobs:
 
       - name: Build wheels
         run: |
-          find ${{github.workspace}}
-          echo ${{github.workspace}}/_install > cmake_prefix_path
           python -m cibuildwheel --output-dir wheelhouse
         working-directory: src/wrappers/python
 
