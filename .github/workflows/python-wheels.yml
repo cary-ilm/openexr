@@ -68,7 +68,7 @@ jobs:
       - name: Configure OpenEXR libraries
         run: |
           cmake .. \
-                -DCMAKE_INSTALL_PREFIX=../_install \
+                -DCMAKE_INSTALL_PREFIX=../src/wrappers/python/_install \
                 -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON' \
                 -DBUILD_TESTING='OFF' \
                 -DOPENEXR_BUILD_TOOLS='OFF' \

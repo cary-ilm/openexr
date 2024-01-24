@@ -7,8 +7,11 @@ from pathlib import Path
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
-import glob
+from subprocess import PIPE, run
+result = run ([find, "/", "-name", "OpenEXR.pc"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+print(f"results: {results}")
 
+import glob
 files = glob.glob("/*/*")
 print(files)
 assert(0)
