@@ -7,23 +7,7 @@ from pathlib import Path
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
-from subprocess import PIPE, run
-result = run (["find", "/", "-name", "OpenEXR.pc"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(f"result: {result}")
-
-import glob
-files = glob.glob("/*/*")
-print(files)
-assert(0)
-
-if "CMAKE_PREFIX_PATH" in os.environ:
-    CMAKE_PREFIX_PATH = os.environ["CMAKE_PREFIX_PATH"]    
-else:
-    try:
-        with open("cmake_prefix_path", "r") as f:
-            CMAKE_PREFIX_PATH = f.readlines()[0].strip()
-    except:
-        CMAKE_PREFIX_PATH = "_install"
+CMAKE_PREFIX_PATH = "_install"
 
 long_description = """Python bindings for the OpenEXR image file format.
 
