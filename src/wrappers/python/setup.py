@@ -60,7 +60,7 @@ class CMakeBuild(build_ext):
         cmake_args = [
             f"-DCMAKE_PREFIX_PATH={CMAKE_PREFIX_PATH}",
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}{os.sep}",
-            f"-DPYTHON_EXECUTABLE={sys.executable}",
+            f"-DPython_EXECUTABLE={sys.executable}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
             f"-DCMAKE_VERBOSE_MAKEFILE=ON",
         ]
