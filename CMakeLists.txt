@@ -74,7 +74,7 @@ endif()
 
 # Include these two modules without enable/disable options
 add_subdirectory(src/lib)
-add_subdirectory(src/bin)
+#add_subdirectory(src/bin)
 
 # Tell CMake where to find the OpenEXRConfig.cmake file. Makes it possible to call 
 # find_package(OpenEXR) in downstream projects
