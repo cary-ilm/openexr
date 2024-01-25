@@ -41,6 +41,7 @@ jobs:
       matrix:
 ###        os: [ubuntu-22.04, windows-latest, macOS-latest]
         os: [ubuntu-22.04]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
     env:
       # On macOS we build both x86 and arm to support Intel and Apple Silicon.
       CIBW_ARCHS_MACOS: x86_64 arm64 
@@ -78,17 +79,17 @@ jobs:
         working-directory: _build
         shell: bash
 
-      - name: Build & install OpenEXR libraries
-        run: |
-          cmake --build . \
-                --target install
-        working-directory: _build
-        shell: bash
+      ### - name: Build & install OpenEXR libraries
+      ###   run: |
+      ###     cmake --build . \
+      ###           --target install
+      ###   working-directory: _build
+      ###   shell: bash
 
       - name: Set up python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v4.3.0
         with:
-            python-version: '3.x'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.16.2
