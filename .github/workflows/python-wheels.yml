@@ -41,7 +41,7 @@ jobs:
       matrix:
 ###        os: [ubuntu-22.04, windows-latest, macOS-latest]
         os: [ubuntu-22.04]
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+###        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
     env:
       # On macOS we build both x86 and arm to support Intel and Apple Silicon.
       CIBW_ARCHS_MACOS: x86_64 arm64 
