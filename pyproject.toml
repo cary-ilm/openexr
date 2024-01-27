@@ -1,0 +1,40 @@
+[build-system]
+requires = ["scikit-build-core>=0.3.3"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "OpenEXR"
+version = "0.1.2"
+description="Python bindings for OpenEXR"
+readme = "README.md"
+authors = [
+  { name = "My Name", email = "me@email.com" },
+]
+requires-python = ">=3.7"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.scikit-build]
+wheel.expand-macos-universal-tags = true
+wheel.packages = ["src/wrappers/python"]
+
+[tool.scikit-build.cmake.define]
+OPENEXR_BUILD_PYTHON=ON
+OPENEXR_INSTALL_EXAMPLES=OFF
+OPENEXR_BUILD_TOOLS=OFF
+OPENEXR_FORCE_INTERNAL_DEFLATE=ON
+OPENEXR_FORCE_INTERNAL_IMATH=ON
+BUILD_SHARED_LIBS=OFF
+CMAKE_POSITION_INDEPENDENT_CODE=ON
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.cibuildwheel]
+test-command = "pytest {project}/tests"
+test-extras = ["test"]
+test-skip = ["*universal2:arm64"]
+build-verbosity = 1
+
+
