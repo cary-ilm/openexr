@@ -13,19 +13,24 @@ python_add_library (PyOpenEXR MODULE OpenEXR.cpp WITH_SOABI)
 
 target_link_libraries (PyOpenEXR PRIVATE "${Python_LIBRARIES}" OpenEXR::OpenEXR)
 
-configure_file(Imath.py ${CMAKE_CURRENT_BINARY_DIR}/Imath.py COPYONLY)
-
 # The python module should be called "OpenEXR.so", not "PyOpenEXR.so",
 # but "OpenEXR" is taken as a library name by the main lib, so specify
 # the name explicitly here.
 
 set_target_properties (PyOpenEXR PROPERTIES OUTPUT_NAME "OpenEXR")
 
+configure_file(Imath.py ${CMAKE_CURRENT_BINARY_DIR}/Imath.py COPYONLY)
+message(STATUS "configure_file(Imath.py ${CMAKE_CURRENT_BINARY_DIR}/Imath.py")
+
 install(TARGETS PyOpenEXR DESTINATION python/OpenEXR)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Imath.py DESTINATION python/OpenEXR)
 
 if(BUILD_TESTING)
 
   add_test(OpenEXR.PyOpenEXR pytest ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+  message(STATUS "set_tests_properties(OpenEXR.PyOpenEXR PROPERTIES
+    ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})")
 
   set_tests_properties(OpenEXR.PyOpenEXR PROPERTIES
     ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}"
