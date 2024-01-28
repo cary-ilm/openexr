@@ -4,13 +4,19 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "OpenEXR"
-version = "0.1.2"
-description="Python bindings for OpenEXR"
+dynamic = ["version"]
+
+description="Python bindings for the OpenEXR image file format"
 readme = "README.md"
 authors = [
-  { name = "My Name", email = "me@email.com" },
+  { name="Contributors to the OpenEXR project", email="info@openexr.com" },
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.6"
+
+[project.urls]
+"Homepage" = "https://openexr.com"
+"Source" = "https://github.com/AcademySoftwareFoundation/OpenEXR"
+"Bug Tracker" = "https://github.com/AcademySoftwareFoundation/OpenEXR/issues"
 
 [project.optional-dependencies]
 test = ["pytest"]
@@ -20,6 +26,8 @@ wheel.expand-macos-universal-tags = true
 wheel.packages = ["src/wrappers/python"]
 
 [tool.scikit-build.cmake.define]
+cmake.verbose = true
+cmake.build_type = "Release"
 OPENEXR_BUILD_PYTHON = 'ON'
 OPENEXR_INSTALL_EXAMPLES = 'OFF'
 OPENEXR_BUILD_TOOLS = 'OFF'

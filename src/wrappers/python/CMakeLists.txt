@@ -4,19 +4,10 @@
 if(NOT "${CMAKE_PROJECT_NAME}" STREQUAL "OpenEXR")
   cmake_minimum_required(VERSION 3.12)
   project(PyOpenEXR)
+  find_package(OpenEXR)
 endif()
 
 find_package(Python REQUIRED COMPONENTS Development.Module)
-#if(NOT TARGET Python::Python)
-#  message(WARNING "Unable to find any python libraries")
-#  return()
-#else()
-#  message(STATUS "Found python libraries: ${Python_LIBRARIES}")
-#endif()
-
-if(NOT "${CMAKE_PROJECT_NAME}" STREQUAL "OpenEXR")
-  find_package(OpenEXR)
-endif()
 
 python_add_library (PyOpenEXR MODULE OpenEXR.cpp WITH_SOABI)
 
@@ -24,7 +15,13 @@ target_link_libraries (PyOpenEXR PRIVATE "${Python_LIBRARIES}" OpenEXR::OpenEXR)
 
 configure_file(Imath.py ${CMAKE_CURRENT_BINARY_DIR}/Imath.py COPYONLY)
 
+# The python module should be called "OpenEXR.so", not "PyOpenEXR.so",
+# but "OpenEXR" is taken as a library name by the main lib, so specify
+# the name explicitly here.
+
 set_target_properties (PyOpenEXR PROPERTIES OUTPUT_NAME "OpenEXR")
+
+install(TARGETS PyOpenEXR DESTINATION python/OpenEXR)
 
 if(BUILD_TESTING)
 
