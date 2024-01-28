@@ -11,8 +11,13 @@ import os
 import random
 from array import array
 
-import Imath
+from subprocess import PIPE, run
+cwd = os.getcwd()
+result = run (["find", cwd], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+print(f"cwd: {cwd} [{result.stdout}]")
+
 import OpenEXR
+import Imath
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 
