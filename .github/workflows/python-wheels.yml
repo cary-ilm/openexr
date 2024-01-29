@@ -32,11 +32,13 @@ permissions:
 
 jobs:
   build_wheels:
-    name: Build Wheels on ${{ matrix.os }} 
+#    name: Build Python 3.${{ python-minor }} on ${{ matrix.os }} 
+    name: Build Python Wheel on ${{ matrix.os }} 
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+#        python-minor: ['7', '8', '9', '10', '11', '12']
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,12 +51,12 @@ jobs:
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.16
         env:
+#          CIBW_BUILD: 'cp${{ matrix.python-minor }}-*'
           CIBW_ARCHS_MACOS: x86_64 arm64 
           # Skip 32-bit wheels builds on Windows.
           # Also skip the PyPy builds, since they fail the unittests
-          CIBW_SKIP: "*-win32 *_i686 pp*"
+          CIBW_SKIP: "*-win32 *_i686 pp* cp36-"
 
-#          CIBW_BUILD: 'cp${{ matrix.python-version }}-*'
 #          CIBW_ARCHS_MACOS: universal2
 #          CIBW_ARCHS_WINDOWS: auto ARM64
 
