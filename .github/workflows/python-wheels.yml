@@ -32,20 +32,19 @@ permissions:
 
 jobs:
   build_wheels:
-    name: Build Wheels on ${{ matrix.os }} for Python 3.${{ matrix.python-minor }}
+    name: Build Wheels on ${{ matrix.os }} 
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
-        python-minor: ['7', '8, '9', '10', '11', '12']
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Python 3.${{ matrix.python-minor }}
+      - name: Install Python 
         uses: actions/setup-python@v4
         with:
-          python-version: 3.${{ matrix.python-minor }}
+          python-version: '3.x'
 
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.16
@@ -55,7 +54,7 @@ jobs:
           # Also skip the PyPy builds, since they fail the unittests
           CIBW_SKIP: "*-win32 *_i686 pp*"
 
-#          CIBW_BUILD: 'cp3${{ matrix.python-minor }}-*'
+#          CIBW_BUILD: 'cp${{ matrix.python-version }}-*'
 #          CIBW_ARCHS_MACOS: universal2
 #          CIBW_ARCHS_WINDOWS: auto ARM64
 
