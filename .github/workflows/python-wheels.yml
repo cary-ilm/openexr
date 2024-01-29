@@ -55,10 +55,13 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Create build directories
+        run: |
+          mkdir _install
+          mkdir _build
+
       - name: Configure OpenEXR libraries
         run: |
-          mkdir _build |
-          mkdir _install |
           cmake .. \
                 -DCMAKE_INSTALL_PREFIX=../_install \
                 -DCMAKE_BUILD_TYPE=Release \
