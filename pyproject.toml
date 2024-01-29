@@ -39,6 +39,8 @@ OPENEXR_FORCE_INTERNAL_DEFLATE = 'ON'
 OPENEXR_FORCE_INTERNAL_IMATH = 'ON'
 BUILD_SHARED_LIBS = 'OFF'
 CMAKE_POSITION_INDEPENDENT_CODE = 'ON'
+CMAKE_CXX_COMPILER = 'g++'
+CMAKE_C_COMPILER = 'gcc'
 
 [tool.cibuildwheel]
 #test-command = "pytest {project}/src/wrappers/python/tests"
