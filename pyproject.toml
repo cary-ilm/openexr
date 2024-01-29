@@ -24,9 +24,11 @@ requires-python = ">=3.6"
 test = ["pytest"]
 
 [tool.scikit-build]
-source-dir = "src/wrappers/python"
 wheel.expand-macos-universal-tags = true
 wheel.packages = ["src/wrappers/python"]
+
+[tool.scikit-build.cmake]
+source-dir = "src/wrappers/python"
 
 [tool.scikit-build.cmake.define]
 CMAKE_PREFIX_PATH = "../../_install"
