@@ -53,9 +53,10 @@ jobs:
         env:
 #          CIBW_BUILD: 'cp${{ matrix.python-minor }}-*'
           CIBW_ARCHS_MACOS: x86_64 arm64 
+          # Skip Python 3.6, since scikit-build-core requires 3.7+
           # Skip 32-bit wheels builds on Windows.
           # Also skip the PyPy builds, since they fail the unittests
-          CIBW_SKIP: "*-win32 *_i686 pp* cp36-"
+          CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
 
 #          CIBW_ARCHS_MACOS: universal2
 #          CIBW_ARCHS_WINDOWS: auto ARM64
