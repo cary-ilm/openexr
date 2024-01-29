@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) Contributors to the OpenEXR Project.
-#
 
 name: Python Wheels
 
@@ -15,7 +14,6 @@ on:
       - '**'
       - '!**.md'
       - '!website/**'
-      - 'website/src/**'
       - '!bazel/**'
   pull_request:
     branches-ignore:
@@ -27,7 +25,6 @@ on:
       - '**'
       - '!**.md'
       - '!website/**'
-      - 'website/src/**'
       - '!bazel/**'
 
 permissions:
@@ -38,35 +35,34 @@ jobs:
     name: Build Wheels on ${{ matrix.os }} for Python 3.${{ matrix.python-minor }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-minor: ['11', '12']
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-minor: ['7', '8, '9', '10', '11', '12']
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: true
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Install Python 3.${{ matrix.python-minor }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.${{ matrix.python-minor }}
+      - name: Install Python 3.${{ matrix.python-minor }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.${{ matrix.python-minor }}
 
-    - uses: pypa/cibuildwheel@v2.16
-      env:
-        CIBW_BUILD: 'cp3${{ matrix.python-minor }}-*'
-        CIBW_SKIP: '*musllinux*'
-        CIBW_ARCHS_MACOS: universal2
-        CIBW_ARCHS_WINDOWS: auto ARM64
+      - name: Build wheel
+        uses: pypa/cibuildwheel@v2.16
+        env:
+#          CIBW_BUILD: 'cp3${{ matrix.python-minor }}-*'
+           CIBW_ARCHS_MACOS: universal2
+           CIBW_ARCHS_WINDOWS: auto ARM64
 
-    - name: Verify clean directory
-      run: git diff --exit-code
-      shell: bash
+      - name: Verify clean directory
+        run: git diff --exit-code
+        shell: bash
 
-    - uses: actions/upload-artifact@v3
-      with:
-        path: wheelhouse/*.whl
+      - name: Updload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          path: wheelhouse/*.whl
 
 
 

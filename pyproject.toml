@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) Contributors to the OpenEXR Project.
+
 [build-system]
 requires = ["scikit-build-core>=0.3.3"]
 build-backend = "scikit_build_core.build"
@@ -5,7 +8,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "OpenEXR"
 version = "0.1.2"
-description="Python bindings for OpenEXR"
+description="Python bindings for the OpenEXR image file format"
 readme = "README.md"
 authors = [
   { name="Contributors to the OpenEXR project", email="info@openexr.com" },
