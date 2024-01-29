@@ -31,7 +31,7 @@ wheel.packages = ["src/wrappers/python"]
 source-dir = "src/wrappers/python"
 
 [tool.scikit-build.cmake.define]
-CMAKE_PREFIX_PATH = "../../_install"
+CMAKE_PREFIX_PATH = "../../../_install"
 OPENEXR_BUILD_PYTHON = 'ON'
 OPENEXR_INSTALL_EXAMPLES = 'OFF'
 OPENEXR_BUILD_TOOLS = 'OFF'
