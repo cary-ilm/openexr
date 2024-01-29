@@ -24,10 +24,12 @@ requires-python = ">=3.6"
 test = ["pytest"]
 
 [tool.scikit-build]
+build-dir = "src/wrappers/python"
 wheel.expand-macos-universal-tags = true
 wheel.packages = ["src/wrappers/python"]
 
 [tool.scikit-build.cmake.define]
+CMAKE_PREFIX_PATH = "../../_install"
 OPENEXR_BUILD_PYTHON = 'ON'
 OPENEXR_INSTALL_EXAMPLES = 'OFF'
 OPENEXR_BUILD_TOOLS = 'OFF'

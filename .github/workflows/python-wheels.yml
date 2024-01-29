@@ -30,16 +30,22 @@ on:
 permissions:
   contents: read
 
+# manylinux: aarch6 x86_64 # skip: i686 ppc64le x390x
+# musllinux: aarch6 x86_64 # skip: i686 ppc64le x390x
+# macos: arm64 universal2 x86_64
+# win: amd64 arm64
+
+# arch: [aarch6 amd64 arm64 universal2 x86_64] 
+
 jobs:
-  build_wheels:
-#    name: Build Python 3.${{ python-minor }} on ${{ matrix.os }} 
+  build_wheels_linux:
     name: Build Python Wheel on ${{ matrix.os }} 
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
-#        os: [ubuntu-latest, windows-latest, macos-latest]
-#        python-minor: ['7', '8', '9', '10', '11', '12']
+        os: [ubuntu-latest]
+        arch: [x86_64] 
+#        arch: [aarch6 x86_64] 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,27 +55,31 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Configure OpenEXR libraries
+        run: |
+          mkdir _build |
+          mkdir _install |
+          cmake .. \
+                -DCMAKE_INSTALL_PREFIX=../_install \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DBUILD_SHARED_LIBS='OFF' \
+                -DOPENEXR_INSTALL_TOOLS='OFF' \
+                -DOPENEXR_INSTALL_DOCS='OFF'
+        working-directory: _build
+
+      - name: Build OpenEXR libraries
+        run: |
+          cmake --build . \
+                --target install \
+                --config Release
+        working-directory: _build
+
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.16
         env:
-#          CIBW_BUILD: 'cp${{ matrix.python-minor }}-*'
-          CIBW_ARCHS_MACOS: x86_64 arm64 
-          # Skip Python 3.6, since scikit-build-core requires 3.7+
-          # Skip 32-bit wheels builds on Windows.
-          # Also skip the PyPy builds, since they fail the unittests
-          CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
-
-#          CIBW_ARCHS_MACOS: universal2
-#          CIBW_ARCHS_WINDOWS: auto ARM64
-
-      - name: Verify clean directory
-        run: git diff --exit-code
-        shell: bash
+          CIBW_SKIP: cp36-* cp37-* cp38-* cp39-* cp310-* *-win32 *_i686 pp* 
 
       - name: Updload artifact
         uses: actions/upload-artifact@v3
         with:
           path: wheelhouse/*.whl
-
-
-
