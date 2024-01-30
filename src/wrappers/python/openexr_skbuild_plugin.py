@@ -21,7 +21,7 @@ def dynamic_metadata(
 ) -> Dict[str, Union[str, Dict[str, Optional[str]]]]:
     print("openexr_skbuild_plugin: Computing OpenEXR version from CMake...")
 
-    if fields != "version":
+    if fields != {"version"}:
         msg = f"Only the 'version' field is supported: fields={fields}"
         raise ValueError(msg)
 
@@ -79,8 +79,7 @@ def dynamic_metadata(
     version = entries[0].value
     print("mtx_skbuild_plugin: Computed version: {0}".format(version))
 
-    return version
-
+    return {"version": version}
 
 def get_requires_for_dynamic_metadata(
     _settings: Optional[Dict[str, object]] = None,
