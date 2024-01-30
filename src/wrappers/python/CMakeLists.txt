@@ -9,7 +9,7 @@ if(NOT "${CMAKE_PROJECT_NAME}" STREQUAL "OpenEXR")
   find_package(OpenEXR)
 endif()
 
-find_package(Python3 REQUIRED COMPONENTS Development.Module)
+find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
 python_add_library (PyOpenEXR MODULE OpenEXR.cpp)
 
