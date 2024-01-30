@@ -44,7 +44,7 @@ def dynamic_metadata(
                 [
                     "cmake",
                     "-S",
-                    current_dir + "../../",
+                    current_dir + "../../../..",
                     "-B",
                     tmpdir,
                     "-DOPENEXR_PRINT_VERSION=ON",
