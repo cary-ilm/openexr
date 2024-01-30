@@ -11,7 +11,7 @@ endif()
 
 find_package(Python3 REQUIRED COMPONENTS Development.Module)
 
-python_add_library (PyOpenEXR MODULE OpenEXR.cpp WITH_SOABI)
+python_add_library (PyOpenEXR MODULE OpenEXR.cpp)
 
 target_link_libraries (PyOpenEXR PRIVATE "${Python_LIBRARIES}" OpenEXR::OpenEXR)
 
