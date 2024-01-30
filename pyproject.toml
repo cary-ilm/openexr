@@ -7,7 +7,8 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "OpenEXR"
-version = "0.1.2"
+dynamic = ["version"]
+
 description="Python bindings for the OpenEXR image file format"
 readme = "README.md"
 authors = [
@@ -27,11 +28,14 @@ test = ["pytest"]
 wheel.expand-macos-universal-tags = true
 wheel.packages = ["src/wrappers/python"]
 
-[tool.scikit-build.cmake]
-source-dir = "src/wrappers/python"
+# Enable experimental features if any are available
+# In this case we need custom local plugin to get
+# the project version from cmake.
+experimental = true
+metadata.version.provider = "openexr_skbuild_plugin"
+metadata.version.provider-path = "./src/wrappers/python"
 
 [tool.scikit-build.cmake.define]
-CMAKE_PREFIX_PATH = "../../../_install"
 OPENEXR_BUILD_PYTHON = 'ON'
 OPENEXR_INSTALL_EXAMPLES = 'OFF'
 OPENEXR_BUILD_TOOLS = 'OFF'
@@ -39,8 +43,6 @@ OPENEXR_FORCE_INTERNAL_DEFLATE = 'ON'
 OPENEXR_FORCE_INTERNAL_IMATH = 'ON'
 BUILD_SHARED_LIBS = 'OFF'
 CMAKE_POSITION_INDEPENDENT_CODE = 'ON'
-CMAKE_CXX_COMPILER = 'g++'
-CMAKE_C_COMPILER = 'gcc'
 
 [tool.cibuildwheel]
 #test-command = "pytest {project}/src/wrappers/python/tests"
@@ -48,5 +50,9 @@ test-command = "ctest -R PyOpenEXR"
 test-extras = ["test"]
 test-skip = ["*universal2:arm64"]
 build-verbosity = 1
+
+manylinux-x86_64-image = "manylinux2014"
+manylinux-i686-image = "manylinux2014"
+manylinux-aarch64-image = "manylinux2014"
 
 

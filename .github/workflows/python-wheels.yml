@@ -30,22 +30,14 @@ on:
 permissions:
   contents: read
 
-# manylinux: aarch6 x86_64 # skip: i686 ppc64le x390x
-# musllinux: aarch6 x86_64 # skip: i686 ppc64le x390x
-# macos: arm64 universal2 x86_64
-# win: amd64 arm64
-
-# arch: [aarch6 amd64 arm64 universal2 x86_64] 
-
 jobs:
-  build_wheels_linux:
-    name: Build Python Wheel on ${{ matrix.os }} 
+  build_wheels:
+    name: Python Wheels - ${{ matrix.os }} 
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        arch: [x86_64] 
-#        arch: [aarch6 x86_64] 
+#        os: [ubuntu-latest, macos-latest]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,34 +47,13 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Create build directories
-        run: |
-          mkdir _install
-          mkdir _build
-
-      - name: Configure OpenEXR libraries
-        run: |
-          cmake .. \
-                -DCMAKE_INSTALL_PREFIX=../_install \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DBUILD_SHARED_LIBS='OFF' \
-                -DOPENEXR_INSTALL_TOOLS='OFF' \
-                -DOPENEXR_INSTALL_DOCS='OFF' \
-                -DCMAKE_CXX_COMPILER='g++' \
-                -DCMAKE_C_COMPILER='gcc'
-        working-directory: _build
-
-      - name: Build OpenEXR libraries
-        run: |
-          cmake --build . \
-                --target install \
-                --config Release
-        working-directory: _build
-
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.16
         env:
-          CIBW_SKIP: cp36-* cp37-* cp38-* cp39-* cp310-* *-win32 *_i686 pp* 
+          # Skip python 3.6 since scikit-build-core requires 3.7+
+          # Skip 32-bit wheels builds on Windows
+          # Also skip the PyPy builds, since they fail the unit tests
+          CIBW_SKIP: cp36-* cp37-* cp38-* cp39-* cp310-* cp311-* *-win32 *_i686 pp* 
 
       - name: Updload artifact
         uses: actions/upload-artifact@v3
