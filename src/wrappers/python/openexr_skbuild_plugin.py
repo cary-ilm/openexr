@@ -22,7 +22,7 @@ def dynamic_metadata(
     print("openexr_skbuild_plugin: Computing OpenEXR version from CMake...")
 
     if fields != {"version"}:
-        msg = "Only the 'version' field is supported"
+        msg = f"Only the 'version' field is supported: fields={fields}"
         raise ValueError(msg)
 
     if settings:
