@@ -21,9 +21,9 @@ def dynamic_metadata(
 ) -> Dict[str, Union[str, Dict[str, Optional[str]]]]:
     print("openexr_skbuild_plugin: Computing OpenEXR version from CMake...")
 
-    if fields != {"version"}:
-        msg = f"Only the 'version' field is supported: fields={fields}"
-        raise ValueError(msg)
+#    if fields != {"version"}:
+#        msg = f"Only the 'version' field is supported: fields={fields}"
+#        raise ValueError(msg)
 
     if settings:
         msg = "No inline configuration is supported"
