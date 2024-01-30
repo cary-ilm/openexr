@@ -79,7 +79,9 @@ def dynamic_metadata(
     version = entries[0].value
     print("mtx_skbuild_plugin: Computed version: {0}".format(version))
 
-    return {"version": version}
+    return version
+#    return {"version": version}
+
 
 
 def get_requires_for_dynamic_metadata(
