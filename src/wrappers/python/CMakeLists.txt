@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright Contributors to the OpenEXR Project.
 
+message(STATUS "Building OpenEXR python bindings")
+
 if(NOT "${CMAKE_PROJECT_NAME}" STREQUAL "OpenEXR")
   cmake_minimum_required(VERSION 3.12)
   project(PyOpenEXR)
@@ -24,7 +26,7 @@ configure_file(Imath.py ${CMAKE_CURRENT_BINARY_DIR}/Imath.py COPYONLY)
 install(TARGETS PyOpenEXR DESTINATION python/OpenEXR)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Imath.py DESTINATION python/OpenEXR)
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND OPENEXR_TEST_PYTHON)
 
   add_test(OpenEXR.PyOpenEXR pytest ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 

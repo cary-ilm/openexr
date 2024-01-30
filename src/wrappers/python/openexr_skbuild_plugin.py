@@ -47,7 +47,7 @@ def dynamic_metadata(
                     current_dir + "../../../..",
                     "-B",
                     tmpdir,
-                    "-DOPENEXR_PRINT_VERSION=ON",
+                    "-DOPENEXR_BUILD_LIBS=OFF",
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,

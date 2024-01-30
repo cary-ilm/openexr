@@ -29,10 +29,6 @@ set(OPENEXR_VERSION_PATCH ${CMAKE_MATCH_1})
 
 project(OpenEXR VERSION ${OPENEXR_VERSION_MAJOR}.${OPENEXR_VERSION_MINOR}.${OPENEXR_VERSION_PATCH} LANGUAGES C CXX)
 
-if (OPENEXR_PRINT_VERSION)
-  return()
-endif()
-
 set(OPENEXR_VERSION_RELEASE_TYPE "-dev" CACHE STRING "Extra version tag string for OpenEXR build, such as -dev, -beta1, etc.")
 
 set(OPENEXR_VERSION ${OpenEXR_VERSION})
@@ -49,12 +45,6 @@ set(OPENEXR_VERSION_API "${OpenEXR_VERSION_MAJOR}_${OpenEXR_VERSION_MINOR}")
 
 set(OPENEXR_LIB_SOVERSION 31)
 set(OPENEXR_LIB_VERSION "${OPENEXR_LIB_SOVERSION}.${OPENEXR_VERSION}") # e.g. "31.3.2.0"
-
-option(OPENEXR_INSTALL "Install OpenEXR libraries" ON)
-option(OPENEXR_INSTALL_TOOLS "Install OpenEXR tools" ON)
-if(OPENEXR_INSTALL_TOOLS AND NOT OPENEXR_INSTALL)
-  message(SEND_ERROR "OPENEXR_INSTALL_TOOLS requires OPENEXR_INSTALL")
-endif()
 
 include(cmake/LibraryDefine.cmake)
 include(cmake/OpenEXRSetup.cmake)
@@ -77,8 +67,13 @@ if(BUILD_TESTING AND NOT OPENEXR_IS_SUBPROJECT)
 endif()
 
 # Include these two modules without enable/disable options
-add_subdirectory(src/lib)
-#add_subdirectory(src/bin)
+if (OPENEXR_BUILD_LIBS)
+  add_subdirectory(src/lib)
+endif()
+
+if(OPENEXR_BUILD_TOOLS AND OPENEXR_BUILD_LIBS)
+  add_subdirectory(src/bin)
+endif()
 
 # Tell CMake where to find the OpenEXRConfig.cmake file. Makes it possible to call 
 # find_package(OpenEXR) in downstream projects
@@ -87,9 +82,8 @@ set(OpenEXR_DIR "${CMAKE_CURRENT_BINARY_DIR}/cmake" CACHE PATH "" FORCE)
 # Can be empty since we already defined the targets in add_subdirectory
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/cmake/OpenEXRTargets.cmake" "# Dummy file")
 
-option(OPENEXR_INSTALL_EXAMPLES "Install OpenEXR examples" ON)
-if(OPENEXR_INSTALL_EXAMPLES)
-#  add_subdirectory( src/examples )
+if(OPENEXR_BUILD_EXAMPLES AND OPENEXR_BUILD_LIBS)
+  add_subdirectory( src/examples )
 endif()
 
 # If you want to use ctest to configure, build and
@@ -116,8 +110,8 @@ endif()
 #set(CTEST_DROP_SITE_CDASH TRUE)
 include(CTest)
 
-if(BUILD_TESTING AND NOT OPENEXR_IS_SUBPROJECT)
-#  add_subdirectory(src/test)
+if(BUILD_TESTING AND OPENEXR_BUILD_LIBS AND NOT OPENEXR_IS_SUBPROJECT)
+  add_subdirectory(src/test)
 endif()
 
 # Including this module will add a `clang-format` target to the build if
@@ -128,7 +122,7 @@ endif()
 
 option(OPENEXR_INSTALL_DOCS "Set ON to install tool manpages")
 if (OPENEXR_INSTALL_DOCS AND NOT OPENEXR_IS_SUBPROJECT)
-#  add_subdirectory(docs)
+  add_subdirectory(docs)
 endif()
 
 option(BUILD_WEBSITE "Set ON to build website source")
@@ -136,12 +130,11 @@ if (BUILD_WEBSITE AND NOT OPENEXR_IS_SUBPROJECT)
   add_subdirectory(website)
 endif()
 
-if (NOT OPENEXR_IS_SUBPROJECT)
+if (OPENEXR_BUILD_LIBS AND NOT OPENEXR_IS_SUBPROJECT)
   # Even if not building the website, still make sure the website example code compiles.
-#  add_subdirectory(website/src)
+  add_subdirectory(website/src)
 endif()
 
-option(OPENEXR_BUILD_PYTHON "Set ON to build python bindings")
-if (OPENEXR_BUILD_PYTHON AND NOT OPENEXR_IS_SUBPROJECT)
+if (OPENEXR_BUILD_PYTHON AND OPENEXR_BUILD_LIBS AND NOT OPENEXR_IS_SUBPROJECT)
   add_subdirectory(src/wrappers/python)
 endif()
