@@ -49,7 +49,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: x86_64 
           CIBW_ARCHS_MACOS: x86_64 arm64 universal2
-          CIBW_ARCHS_WINDOWS: amd64 arm64
+#          CIBW_ARCHS_WINDOWS: amd64 arm64
           # Skip python 3.6 since scikit-build-core requires 3.7+
           # Skip 32-bit wheels builds on Windows
           # Also skip the PyPy builds, since they fail the unit tests
