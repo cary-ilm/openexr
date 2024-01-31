@@ -8,9 +8,9 @@ on:
     # Release triggers a build followed by a publish
     types: [published]
   push:
-    branches:
-      # Run whenever any change is pushed to a release branch
-      - RB-3.*
+#    branches:
+#      # Run whenever any change is pushed to a release branch
+#      - RB-3.*
     paths:
       # Run on all changes to the python binding source/configuration files, regardless of branch
       - 'src/wrappers/python/**'
