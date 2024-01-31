@@ -4,15 +4,12 @@
 name: Python Wheels
 
 on:
-  release:
-    # Release triggers a build followed by a publish
+  release: # Release triggers a build followed by a publish
     types: [published]
   push:
-    branches:
-      # Run whenever any change is pushed to a release branch
+    branches: # Run whenever any change is pushed to a release branch
       - RB-3.*
-    paths:
-      # Run on all changes to the python binding source/configuration files, regardless of branch
+    paths: # Run on all changes to the python binding source/configuration files, regardless of branch
       - 'src/wrappers/python/**'
       - 'pyproject.toml'
       - '.github/workflows/python-wheels.yml"
