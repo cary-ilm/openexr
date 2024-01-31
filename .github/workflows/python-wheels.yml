@@ -56,3 +56,4 @@ jobs:
         # Only publish the wheel to pypa on release
         if: github.event_name == 'release'
         run: echo python -m pip install OpenEXR --find-links wheelhouse --no-index
+
