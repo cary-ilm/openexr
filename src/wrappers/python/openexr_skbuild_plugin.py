@@ -77,7 +77,7 @@ def dynamic_metadata(
             raise ValueError("More than one entry for CMAKE_PROJECT_VERSION found...")
 
     version = entries[0].value
-    print("mtx_skbuild_plugin: Computed version: {0}".format(version))
+    print("openexr_skbuild_plugin: Computed version: {0}".format(version))
 
     return {"version": version}
 

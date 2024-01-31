@@ -23,8 +23,8 @@ on:
       - 'pyproject.toml'
       - '.github/workflows/python-wheels.yml'
 
-permissions:
-  contents: read
+#permissions:
+#  contents: read
 
 jobs:
   build_wheels:
@@ -32,8 +32,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-#       os: [ubuntu-latest, macos-latest]
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [windows-latest]
+#        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - name: Checkout
