@@ -16,6 +16,12 @@ on:
       - 'src/wrappers/python/**'
       - 'pyproject.toml'
       - '.github/workflows/python-wheels.yml'
+  pull_request:
+    paths:
+      # Run on all changes to the python binding source/configuration files, regardless of branch
+      - 'src/wrappers/python/**'
+      - 'pyproject.toml'
+      - '.github/workflows/python-wheels.yml'
 
 permissions:
   contents: read
@@ -41,19 +47,25 @@ jobs:
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.16
         env:
+          CIBW_ARCHES_LINUX: x86_64 aarch64
+          CIBW_ARCHES_MACOS: x86_64 arm64 universal2
+          CIBW_ARCHES_WINDOWS: amd64 arm64
           # Skip python 3.6 since scikit-build-core requires 3.7+
           # Skip 32-bit wheels builds on Windows
           # Also skip the PyPy builds, since they fail the unit tests
           CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
 #          CIBW_SKIP: cp36-* cp37-* cp38-* cp39-* cp310-* cp312-* *-win32 *_i686 pp* 
 
-      - name: Updload artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           path: wheelhouse/*.whl
 
       - name: Publish Wheel
         # Only publish the wheel to pypa on release
         if: github.event_name == 'release'
-        run: echo python -m pip install OpenEXR --find-links wheelhouse --no-index
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
