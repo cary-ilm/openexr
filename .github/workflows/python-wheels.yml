@@ -23,8 +23,8 @@ on:
       - 'pyproject.toml'
       - '.github/workflows/python-wheels.yml'
 
-#permissions:
-#  contents: read
+permissions:
+  contents: read
 
 jobs:
   build_wheels:
