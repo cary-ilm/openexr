@@ -26,9 +26,6 @@ on:
 permissions:
   contents: read
 
-runs:
-  using: 'node20'
-  
 jobs:
   build_wheels:
     name: Python Wheels - ${{ matrix.os }} 
@@ -60,6 +57,8 @@ jobs:
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
+        runs:
+          using: 'node20'
         with:
           path: wheelhouse/*.whl
 
