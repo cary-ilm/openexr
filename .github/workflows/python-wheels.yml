@@ -4,21 +4,25 @@
 name: Python Wheels
 
 on:
-  release:
-    # Release triggers a build followed by a publish
-    types: [published]
+
+  # Run on all changes to the python binding source/configuration
+  # files, except on the release branches, which have their own
+  # workflow. Note that changes to the core libraries will *not*
+  # trigger building the wheels, although the main ci workflow does
+  # build and test the bindings (for the latest python version and on
+  # a single arch)
+
   push:
-#    branches:
-#      # Run whenever any change is pushed to a release branch
-#      - RB-3.*
+    branches-ignore:
+      - RB-*
     paths:
-      # Run on all changes to the python binding source/configuration files, regardless of branch
       - 'src/wrappers/python/**'
       - 'pyproject.toml'
       - '.github/workflows/python-wheels.yml'
   pull_request:
+    branches-ignore:
+      - RB-*
     paths:
-      # Run on all changes to the python binding source/configuration files, regardless of branch
       - 'src/wrappers/python/**'
       - 'pyproject.toml'
       - '.github/workflows/python-wheels.yml'
@@ -32,8 +36,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
-#        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - name: Checkout
@@ -47,7 +50,7 @@ jobs:
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.16
         env:
-          CIBW_ARCHS_LINUX: x86_64 
+#          CIBW_ARCHS_LINUX: x86_64 
           CIBW_ARCHS_MACOS: x86_64 arm64 universal2
           # Skip python 3.6 since scikit-build-core requires 3.7+
           # Skip 32-bit wheels builds on Windows
@@ -59,12 +62,4 @@ jobs:
         uses: actions/upload-artifact@v4.0.0
         with:
           path: wheelhouse/*.whl
-
-      - name: Publish Wheel
-        # Only publish the wheel to pypa on release
-        if: github.event_name == 'release'
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
 
