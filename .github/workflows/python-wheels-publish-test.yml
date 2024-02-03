@@ -1,32 +1,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) Contributors to the OpenEXR Project.
 
-name: Python Wheels
+name: Publish Python Wheels to test.pypi
 
 on:
-
-  # Run on all changes (PR and push) to the python binding
-  # source/configuration files, except on the release branches, which
-  # have their own workflow, which also publish to pypi/test.pypi.
-  # Note that changes to the core libraries will *not*
-  # trigger building the wheels. However, the main ci workflow does
-  # build and test the bindings (for a single python version on a
-  # single arch)
-
+  # Publish python wheels to test.pypi when a release branch is tagged
+  # as an "-rc" release candidate, e.g. v3.2.4-rc, v3.2.4-rc2, etc.
   push:
-    branches-ignore:
-      - RB-*
-    paths:
-      - 'src/wrappers/python/**'
-      - 'pyproject.toml'
-      - '.github/workflows/python-wheels.yml'
-  pull_request:
-    branches-ignore:
-      - RB-*
-    paths:
-      - 'src/wrappers/python/**'
-      - 'pyproject.toml'
-      - '.github/workflows/python-wheels.yml'
+    branches:
+      - RB-3.*
+    tags:
+      - v3.*.*-rc*
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -37,10 +22,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
+#        os: [ubuntu-latest, macos-latest, windows-latest]
 
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/openexr
+
+    permissions:
+      id-token: write
+      
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -52,6 +44,8 @@ jobs:
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.16
         env:
+          CIBW_BUILD: cp312-*
+          CIBW_ARCHS_LINUX: x86_64 
           CIBW_ARCHS_MACOS: x86_64 arm64 universal2
           # Skip python 3.6 since scikit-build-core requires 3.7+
           # Skip 32-bit wheels builds on Windows
@@ -60,8 +54,13 @@ jobs:
           CIBW_TEST_SKIP: "*-macosx_universal2:arm64"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.0.0
         with:
-          name: wheel-${{ matrix.os }}
           path: wheelhouse/*.whl
+
+      - name: Publish distribution 📦 to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+  
 
