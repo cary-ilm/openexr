@@ -7,8 +7,8 @@ on:
   # Publish python wheels to test.pypi when a release branch is tagged
   # as an "-rc" release candidate, e.g. v3.2.4-rc, v3.2.4-rc2, etc.
   push:
-    branches:
-      - RB-3.*
+#    branches:
+#      - RB-3.*
     tags:
       - v3.*.*-rc*
   workflow_dispatch:
