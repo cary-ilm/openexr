@@ -57,7 +57,7 @@ jobs:
           # Skip 32-bit wheels builds on Windows
           # Also skip the PyPy builds, since they fail the unit tests
           CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
-          CIBW_TEST_SKIP: *-macosx_universal2:arm64 *-macosx_arm64
+          CIBW_TEST_SKIP: "*-macosx*arm64"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
