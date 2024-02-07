@@ -52,13 +52,14 @@ jobs:
           # Skip python 3.6 since scikit-build-core requires 3.7+
           # Skip 32-bit wheels builds on Windows
           # Also skip the PyPy builds, since they fail the unit tests
-          CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
+          # CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
+          CIBW_SKIP: cp36-* cp37-* cp38-* cp39-* cp310-* *-win32 *_i686 pp* 
           CIBW_TEST_SKIP: "*-macosx_universal2:arm64"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: wheels
+#          name: wheels
           path: ./wheelhouse/*.whl
   
   publish-to-testpypi:
@@ -76,10 +77,10 @@ jobs:
 
     steps:
     - name: Download all the dists
-      uses: actions/download-artifact@v3
-      with:
-        name: wheels
-        path: dist
+      uses: actions/download-artifact@v4.0.0
+#      with:
+#        name: wheels
+#        path: dist
     - name: Publish distribution 📦 to TestPyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
