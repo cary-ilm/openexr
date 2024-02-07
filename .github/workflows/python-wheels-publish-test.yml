@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Wheels - ${{ matrix.os }} 
+    name: Python Wheels - ${{ matrix.os }} 
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -62,13 +62,10 @@ jobs:
           path: ./wheelhouse/*.whl
   
   publish-to-testpypi:
-    name: Publish Wheels to TestPyPI - ${{ matrix.os }} 
+    name: Publish Python 🐍 distribution 📦 to TestPyPI
     needs:
     - build
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     environment:
       name: testpypi
@@ -78,10 +75,20 @@ jobs:
       id-token: write
 
     steps:
-    - name: Download all the dists
+    - name: Download Linux artifacts
       uses: actions/download-artifact@v4.0.0
       with:
-        name: wheels-${{ matrix.os }}
+        name: wheels-ubuntu-latest
+        path: dist
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v4.0.0
+      with:
+        name: wheels-macos-latest
+        path: dist
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v4.0.0
+      with:
+        name: wheels-windows-latest
         path: dist
     - name: Publish distribution 📦 to TestPyPI
       uses: pypa/gh-action-pypi-publish@release/v1
