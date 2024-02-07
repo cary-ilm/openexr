@@ -43,6 +43,8 @@ jobs:
 
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.16
+        with:
+          output-dir: wheelhouse
         env:
           CIBW_BUILD: cp312-*
           CIBW_ARCHS_LINUX: x86_64 
@@ -56,8 +58,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: python-package-distributions
-          path: dist/
+          name: wheels
+          path: ./wheelhouse/*.whl
   
   publish-to-testpypi:
     name: Publish Python 🐍 distribution 📦 to TestPyPI
@@ -76,8 +78,8 @@ jobs:
     - name: Download all the dists
       uses: actions/download-artifact@v3
       with:
-        name: python-package-distributions
-        path: dist/
+        name: wheels
+        path: dist
     - name: Publish distribution 📦 to TestPyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
