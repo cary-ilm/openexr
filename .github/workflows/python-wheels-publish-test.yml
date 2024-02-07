@@ -53,7 +53,7 @@ jobs:
           # Also skip the PyPy builds, since they fail the unit tests
           # CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
           CIBW_SKIP: cp36-* cp37-* cp38-* cp39-* cp310-* *-win32 *_i686 pp* 
-          CIBW_TEST_SKIP: *-macosx_universal2:arm64 *-macosx_arm64
+          CIBW_TEST_SKIP: *-macosx_universal2:arm64 
           OPENEXR_VERSION_RELEASE_TYPE: "-${{ github.refname }}"
 
       - name: Upload artifact
