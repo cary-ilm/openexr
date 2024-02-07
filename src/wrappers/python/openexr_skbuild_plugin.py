@@ -80,9 +80,7 @@ def dynamic_metadata(
 
     if "OPENEXR_VERSION_RELEASE_TYPE" in os.environ:
         rt = os.environ["OPENEXR_VERSION_RELEASE_TYPE"]
-        rt.replace('.','')
-        rt.replace('-','')
-        version += rt
+        version += rt.replace('.','').replace('-','')
         
     print("openexr_skbuild_plugin: Computed version: {0}".format(version))
 
