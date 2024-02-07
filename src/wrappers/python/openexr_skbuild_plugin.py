@@ -77,6 +77,11 @@ def dynamic_metadata(
             raise ValueError("More than one entry for CMAKE_PROJECT_VERSION found...")
 
     version = entries[0].value
+
+    if "OPENEXR_VERSION_RELEASE_TYPE" in os.environ:
+        rt = os.environ["OPENEXR_VERSION_RELEASE_TYPE"]
+        version += rt
+        
     print("openexr_skbuild_plugin: Computed version: {0}".format(version))
 
     return version
