@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 jobs:
-  build_wheels:
+  build:
     name: Python Wheels - ${{ matrix.os }} 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -56,11 +56,29 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4.0.0
         with:
-          path: wheelhouse/*.whl
-
-      - name: Publish distribution 📦 to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
+          name: python-package-distributions
+          path: dist/
   
+  publish-to-testpypi:
+    name: Publish Python 🐍 distribution 📦 to TestPyPI
+    needs:
+    - build
+    runs-on: ubuntu-latest
 
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/openexr
+
+    permissions:
+      id-token: write
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v3
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Publish distribution 📦 to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
