@@ -78,6 +78,9 @@ def dynamic_metadata(
 
     version = entries[0].value
 
+    for e in os.environ:
+        print(f"os.environ[{e}]={os.environ[e]}")
+        
     if "OPENEXR_VERSION_RELEASE_TYPE" in os.environ:
         rt = os.environ["OPENEXR_VERSION_RELEASE_TYPE"]
         # e.g. "v3.1.2-rc4"
