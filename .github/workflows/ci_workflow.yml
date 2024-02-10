@@ -238,7 +238,7 @@ jobs:
         run: yum install -y help2man
       - name: Configure
         run: |
-          cmake -B _build  -S .
+          cmake -B _build -S . \
                 -DCMAKE_INSTALL_PREFIX=_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
