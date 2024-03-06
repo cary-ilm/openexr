@@ -31,7 +31,7 @@ Patch release that addresses
 `CVE-2023-5841 <https://takeonme.org/cves/CVE-2023-5841.html>`_.
 
 February 11, 2024 - OpenEXR v3.1.12 Released
-===========================================
+============================================
 
 Patch release that addresses
 `CVE-2023-5841 <https://takeonme.org/cves/CVE-2023-5841.html>`_.
