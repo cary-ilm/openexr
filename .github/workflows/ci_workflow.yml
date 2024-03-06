@@ -25,7 +25,8 @@ on:
       - 'website/src/**'
       - '!bazel/**'
       - '!src/wrappers/**'
-      - '!.github/workflows/python-**.yml'
+      - '!.github/workflows/**'
+      - '.github/workflows/ci_workflow.yml'
   pull_request:
     branches-ignore:
       - RB-2.*
@@ -39,7 +40,8 @@ on:
       - 'website/src/**'
       - '!bazel/**'
       - '!src/wrappers/**'
-      - '!.github/workflows/python-**.yml'
+      - '!.github/workflows/**'
+      - '.github/workflows/ci_workflow.yml'
 
 permissions:
   contents: read
