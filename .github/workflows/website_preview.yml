@@ -4,6 +4,14 @@
 # GitHub Actions workflow file
 # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
 
+#
+# This action adds a link to the PR description pointing to the
+# readthedocs build of the website, for PRs that modify the website.
+#
+# Note that the link is also available in the PR checks, but it gets
+# buried among the output of the checks and isn't obvious.
+#
+
 name: Website preview
 on:
   pull_request_target:
