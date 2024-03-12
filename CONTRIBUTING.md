@@ -627,11 +627,12 @@ The preferred workflow is:
     - If any changes have gone into [SECURITY.md](SECURITY), cherry-pick
       the associated commit as well.
 
-    - Also include in this PR edits to [``docs/news.rst``](docs/news.rst)
-      that add an announcment of the release.
+    - Also include in this PR edits to
+      [``website/news.rst``](website/news.rst) that add an announcment of
+      the release.  Preview the updates to ``website/news.rst`` via
+      the preview link in the PR.
 
-11. After review/merge of the updates to ``docs/news.rst``, build the
-    website at https://readthedocs.org/projects/openexr.
+11. Merge the PR promptly, so the website updates. 
 
 12. If the release has resolved any OSS-Fuzz issues, update the
     associated pages at https://bugs.chromium.org/p/oss-fuzz with a
@@ -677,7 +678,7 @@ To create a new release from the ``main`` branch:
    
    - Submit this change as a separate PR.
 
-3. Add a mention of the release to [``docs/news.rst``](docs/news.rst)
+3. Add a mention of the release to [``website/news.rst``](website/news.rst)
 
    - Submit this change as a separate PR.
 
@@ -752,7 +753,8 @@ To create a new release from the ``main`` branch:
       main branch pointing to the next minor release, as described in
       Step #1.
 
-15. Build the website at https://readthedocs.org/projects/openexr.
+15. The website is built automatically when the PR is merged, but
+    confirm the news section looks right https://openexr.com.
 
 16. If the release has resolved any OSS-Fuzz issues, update the
     associated pages at https://bugs.chromium.org/p/oss-fuzz with a
