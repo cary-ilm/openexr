@@ -12,11 +12,6 @@ name: Website
 on:
 
   push:
-    branches:-ignore:
-      - RB-2.*
-      - RB-3.*
-    tags-ignore:
-      - v3.[0-9]+.[0-9]+-rc*
     paths:
       - 'website/**'
       - '.github/workflows/website_workflow.yml'
