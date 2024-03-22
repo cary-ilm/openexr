@@ -3,6 +3,914 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
+#include <pybind11/pybind11.h>
+
+#include <ImfHeader.h>
+#include <ImfMultiPartInputFile.h>
+#include <ImfPixelType.h>
+#include <ImfAttribute.h>
+#include <ImfBoxAttribute.h>
+#include <ImfChannelList.h>
+#include <ImfStandardAttributes.h>
+#include <ImfChannelListAttribute.h>
+#include <ImfChromaticitiesAttribute.h>
+#include <ImfCompressionAttribute.h>
+#include <ImfDoubleAttribute.h>
+#include <ImfEnvmapAttribute.h>
+#include <ImfFloatAttribute.h>
+#include <ImfIntAttribute.h>
+#include <ImfKeyCodeAttribute.h>
+#include <ImfLineOrderAttribute.h>
+#include <ImfMatrixAttribute.h>
+#include <ImfOutputFile.h>
+#include <ImfPreviewImageAttribute.h>
+#include <ImfStringAttribute.h>
+#include <ImfTileDescriptionAttribute.h>
+#include <ImfTiledOutputFile.h>
+#include <ImfTimeCodeAttribute.h>
+#include <ImfVecAttribute.h>
+
+#include "openexr.h"
+
+using namespace pybind11::literals;
+
+namespace {
+
+class InputFile 
+{
+  public:
+    InputFile(std::string filename);
+    
+    int numparts() const 
+    {
+        return _pyHeaders.size();
+    }
+    
+    pybind11::object py_header() 
+    {
+        return _pyHeaders[0];
+    }
+
+    pybind11::object py_header(int part) 
+    {
+        return _pyHeaders[part];
+    }
+
+    pybind11::object channel(std::string c)
+    {
+        return pybind11::none();
+    }
+    
+    pybind11::object channels()
+    {
+        return pybind11::none();
+    }
+    
+    pybind11::object close()
+    {
+        return pybind11::none();
+    }
+    
+    pybind11::object isComplete()
+    {
+        return pybind11::none();
+    }
+    
+    std::vector<pybind11::dict> _pyHeaders;
+};
+    
+static void
+core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
+{
+    const char* fn;
+    if (EXR_ERR_SUCCESS != exr_get_file_name (f, &fn)) fn = "<error>";
+    fprintf (
+        stderr,
+        "ERROR '%s' (%s): %s\n",
+        fn,
+        exr_get_error_code_as_string (code),
+        msg);
+}
+
+static exr_result_t
+realloc_deepdata (exr_decode_pipeline_t* decode)
+{
+    int32_t               w        = decode->chunk.width;
+    int32_t               h        = decode->chunk.height;
+    uint64_t              totsamps = 0, bytes = 0;
+    const int32_t*        sampbuffer = decode->sample_count_table;
+    std::vector<uint8_t>* ud =
+        static_cast<std::vector<uint8_t>*> (decode->decoding_user_data);
+
+    if (!ud)
+    {
+        for (int c = 0; c < decode->channel_count; c++)
+        {
+            exr_coding_channel_info_t& outc = decode->channels[c];
+            outc.decode_to_ptr              = NULL;
+            outc.user_pixel_stride          = outc.user_bytes_per_element;
+            outc.user_line_stride           = 0;
+        }
+        return EXR_ERR_SUCCESS;
+    }
+
+    if ((decode->decode_flags & EXR_DECODE_SAMPLE_COUNTS_AS_INDIVIDUAL))
+    {
+        for (int32_t y = 0; y < h; ++y)
+        {
+            for (int x = 0; x < w; ++x)
+                totsamps += sampbuffer[x];
+            sampbuffer += w;
+        }
+    }
+    else
+    {
+        for (int32_t y = 0; y < h; ++y)
+            totsamps += sampbuffer[y * w + w - 1];
+    }
+
+    for (int c = 0; c < decode->channel_count; c++)
+    {
+        exr_coding_channel_info_t& outc = decode->channels[c];
+        bytes += totsamps * outc.user_bytes_per_element;
+    }
+
+    if (bytes == 0)
+    {
+        for (int c = 0; c < decode->channel_count; c++)
+        {
+            exr_coding_channel_info_t& outc = decode->channels[c];
+            outc.decode_to_ptr              = NULL;
+            outc.user_pixel_stride          = outc.user_bytes_per_element;
+            outc.user_line_stride           = 0;
+        }
+        return EXR_ERR_SUCCESS;
+    }
+
+    if (ud->size () < bytes)
+    {
+        ud->resize (bytes);
+        if (ud->capacity () < bytes) return EXR_ERR_OUT_OF_MEMORY;
+    }
+
+    uint8_t* dptr = &((*ud)[0]);
+    for (int c = 0; c < decode->channel_count; c++)
+    {
+        exr_coding_channel_info_t& outc = decode->channels[c];
+        outc.decode_to_ptr              = dptr;
+        outc.user_pixel_stride          = outc.user_bytes_per_element;
+        outc.user_line_stride           = 0;
+
+        dptr += totsamps * (uint64_t) outc.user_bytes_per_element;
+    }
+    return EXR_ERR_SUCCESS;
+}
+
+bool
+readCoreScanlinePart (exr_context_t f, int part, bool reduceMemory = false, bool reduceTime = false) 
+{
+    exr_result_t     rv, frv;
+    exr_attr_box2i_t datawin;
+    rv = exr_get_data_window (f, part, &datawin);
+    if (rv != EXR_ERR_SUCCESS) return true;
+
+    uint64_t width =
+        (uint64_t) ((int64_t) datawin.max.x - (int64_t) datawin.min.x + 1);
+    uint64_t height =
+        (uint64_t) ((int64_t) datawin.max.y - (int64_t) datawin.min.y + 1);
+
+    std::vector<uint8_t>  imgdata;
+    bool                  doread  = false;
+    exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
+
+    int32_t lines_per_chunk;
+    rv = exr_get_scanlines_per_chunk (f, part, &lines_per_chunk);
+    if (rv != EXR_ERR_SUCCESS) return true;
+
+    frv = rv;
+
+    for (uint64_t chunk = 0; chunk < height; chunk += lines_per_chunk)
+    {
+        exr_chunk_info_t cinfo = {0};
+        int              y     = ((int) chunk) + datawin.min.y;
+
+        rv = exr_read_scanline_chunk_info (f, part, y, &cinfo);
+        if (rv != EXR_ERR_SUCCESS)
+        {
+            frv = rv;
+            if (reduceTime) break;
+            continue;
+        }
+
+        if (decoder.channels == NULL)
+        {
+            rv = exr_decoding_initialize (f, part, &cinfo, &decoder);
+            if (rv != EXR_ERR_SUCCESS) break;
+
+            uint64_t bytes = 0;
+            for (int c = 0; c < decoder.channel_count; c++)
+            {
+                exr_coding_channel_info_t& outc = decoder.channels[c];
+                // fake addr for default routines
+                outc.decode_to_ptr     = (uint8_t*) 0x1000;
+                outc.user_pixel_stride = outc.user_bytes_per_element;
+                outc.user_line_stride  = outc.user_pixel_stride * width;
+                bytes += width * (uint64_t) outc.user_bytes_per_element *
+                         (uint64_t) lines_per_chunk;
+            }
+
+            doread = true;
+
+            if (cinfo.type == EXR_STORAGE_DEEP_SCANLINE)
+            {
+                decoder.decoding_user_data       = &imgdata;
+                decoder.realloc_nonimage_data_fn = &realloc_deepdata;
+            }
+            else
+            {
+                if (doread) imgdata.resize (bytes);
+            }
+            rv = exr_decoding_choose_default_routines (f, part, &decoder);
+            if (rv != EXR_ERR_SUCCESS)
+            {
+                frv = rv;
+                break;
+            }
+        }
+        else
+        {
+            rv = exr_decoding_update (f, part, &cinfo, &decoder);
+            if (rv != EXR_ERR_SUCCESS)
+            {
+                frv = rv;
+                if (reduceTime) break;
+                continue;
+            }
+        }
+
+        if (doread)
+        {
+            if (cinfo.type != EXR_STORAGE_DEEP_SCANLINE)
+            {
+                uint8_t* dptr = &(imgdata[0]);
+                for (int c = 0; c < decoder.channel_count; c++)
+                {
+                    exr_coding_channel_info_t& outc = decoder.channels[c];
+                    outc.decode_to_ptr              = dptr;
+                    outc.user_pixel_stride = outc.user_bytes_per_element;
+                    outc.user_line_stride  = outc.user_pixel_stride * width;
+
+                    dptr += width * (uint64_t) outc.user_bytes_per_element *
+                            (uint64_t) lines_per_chunk;
+                }
+            }
+
+            rv = exr_decoding_run (f, part, &decoder);
+            if (rv != EXR_ERR_SUCCESS)
+            {
+                frv = rv;
+                if (reduceTime) break;
+            }
+        }
+    }
+
+    exr_decoding_destroy (f, &decoder);
+
+    return (frv != EXR_ERR_SUCCESS);
+}
+
+////////////////////////////////////////
+
+bool
+readCoreTiledPart (exr_context_t f, int part, bool reduceMemory = false, bool reduceTime = false)
+    
+{
+    exr_result_t rv, frv;
+
+    exr_attr_box2i_t datawin;
+    rv = exr_get_data_window (f, part, &datawin);
+    if (rv != EXR_ERR_SUCCESS) return true;
+
+    uint32_t              txsz, tysz;
+    exr_tile_level_mode_t levelmode;
+    exr_tile_round_mode_t roundingmode;
+
+    rv = exr_get_tile_descriptor (
+        f, part, &txsz, &tysz, &levelmode, &roundingmode);
+    if (rv != EXR_ERR_SUCCESS) return true;
+
+    int32_t levelsx, levelsy;
+    rv = exr_get_tile_levels (f, part, &levelsx, &levelsy);
+    if (rv != EXR_ERR_SUCCESS) return true;
+
+    frv            = rv;
+    bool keepgoing = true;
+    for (int32_t ylevel = 0; keepgoing && ylevel < levelsy; ++ylevel)
+    {
+        for (int32_t xlevel = 0; keepgoing && xlevel < levelsx; ++xlevel)
+        {
+            int32_t levw, levh;
+            rv = exr_get_level_sizes (f, part, xlevel, ylevel, &levw, &levh);
+            if (rv != EXR_ERR_SUCCESS)
+            {
+                frv = rv;
+                if (reduceTime)
+                {
+                    keepgoing = false;
+                    break;
+                }
+                continue;
+            }
+
+            int32_t curtw, curth;
+            rv = exr_get_tile_sizes (f, part, xlevel, ylevel, &curtw, &curth);
+            if (rv != EXR_ERR_SUCCESS)
+            {
+                frv = rv;
+                if (reduceTime)
+                {
+                    keepgoing = false;
+                    break;
+                }
+                continue;
+            }
+
+            // we could make this over all levels but then would have to
+            // re-check the allocation size, let's leave it here to check when
+            // tile size is < full / top level tile size
+            std::vector<uint8_t>  tiledata;
+            bool                  doread = false;
+            exr_chunk_info_t      cinfo;
+            exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
+
+            int tx, ty;
+            ty = 0;
+            for (int64_t cury = 0; keepgoing && cury < levh;
+                 cury += curth, ++ty)
+            {
+                tx = 0;
+                for (int64_t curx = 0; keepgoing && curx < levw;
+                     curx += curtw, ++tx)
+                {
+                    rv = exr_read_tile_chunk_info (
+                        f, part, tx, ty, xlevel, ylevel, &cinfo);
+                    if (rv != EXR_ERR_SUCCESS)
+                    {
+                        frv = rv;
+                        if (reduceTime)
+                        {
+                            keepgoing = false;
+                            break;
+                        }
+                        continue;
+                    }
+
+                    if (decoder.channels == NULL)
+                    {
+                        rv =
+                            exr_decoding_initialize (f, part, &cinfo, &decoder);
+                        if (rv != EXR_ERR_SUCCESS)
+                        {
+                            frv       = rv;
+                            keepgoing = false;
+                            break;
+                        }
+
+                        uint64_t bytes = 0;
+                        for (int c = 0; c < decoder.channel_count; c++)
+                        {
+                            exr_coding_channel_info_t& outc =
+                                decoder.channels[c];
+                            // fake addr for default routines
+                            outc.decode_to_ptr = (uint8_t*) 0x1000 + bytes;
+                            outc.user_pixel_stride =
+                                outc.user_bytes_per_element;
+                            outc.user_line_stride =
+                                outc.user_pixel_stride * curtw;
+                            bytes += (uint64_t) curtw *
+                                     (uint64_t) outc.user_bytes_per_element *
+                                     (uint64_t) curth;
+                        }
+
+                        doread = true;
+
+                        if (cinfo.type == EXR_STORAGE_DEEP_TILED)
+                        {
+                            decoder.decoding_user_data = &tiledata;
+                            decoder.realloc_nonimage_data_fn =
+                                &realloc_deepdata;
+                        }
+                        else
+                        {
+                            if (doread) tiledata.resize (bytes);
+                        }
+                        rv = exr_decoding_choose_default_routines (
+                            f, part, &decoder);
+                        if (rv != EXR_ERR_SUCCESS)
+                        {
+                            frv       = rv;
+                            keepgoing = false;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        rv = exr_decoding_update (f, part, &cinfo, &decoder);
+                        if (rv != EXR_ERR_SUCCESS)
+                        {
+                            frv = rv;
+                            if (reduceTime)
+                            {
+                                keepgoing = false;
+                                break;
+                            }
+                            continue;
+                        }
+                    }
+
+                    if (doread)
+                    {
+                        if (cinfo.type != EXR_STORAGE_DEEP_TILED)
+                        {
+                            uint8_t* dptr = &(tiledata[0]);
+                            for (int c = 0; c < decoder.channel_count; c++)
+                            {
+                                exr_coding_channel_info_t& outc =
+                                    decoder.channels[c];
+                                outc.decode_to_ptr = dptr;
+                                outc.user_pixel_stride =
+                                    outc.user_bytes_per_element;
+                                outc.user_line_stride =
+                                    outc.user_pixel_stride * curtw;
+                                dptr += (uint64_t) curtw *
+                                        (uint64_t) outc.user_bytes_per_element *
+                                        (uint64_t) curth;
+                            }
+                        }
+
+                        rv = exr_decoding_run (f, part, &decoder);
+                        if (rv != EXR_ERR_SUCCESS)
+                        {
+                            frv = rv;
+                            if (reduceTime)
+                            {
+                                keepgoing = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            exr_decoding_destroy (f, &decoder);
+        }
+    }
+
+    return (frv != EXR_ERR_SUCCESS);
+}
+
+
+InputFile::InputFile(std::string filename)
+{
+    exr_result_t              rv;
+    exr_context_t             f;
+    exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
+
+    cinit.error_handler_fn = &core_error_handler_cb;
+
+    rv = exr_start_read (&f, filename.c_str(), &cinit);
+    if (rv != EXR_ERR_SUCCESS)
+        return;
+    
+    int numparts;
+        
+    rv = exr_get_count (f, &numparts);
+    if (rv != EXR_ERR_SUCCESS)
+        return;
+
+    _pyHeaders.resize(numparts);
+
+    bool reduceMemory = false;
+    bool reduceTime = false;
+    
+    pybind11::module_ imath = pybind11::module_::import("Imath");
+    pybind11::object V2i = imath.attr("V2i");
+    pybind11::object V2f = imath.attr("V2f");
+    pybind11::object Box2i = imath.attr("Box2i");
+    pybind11::object Box2f = imath.attr("Box2f");
+    
+    for (int p = 0; p < numparts; ++p)
+    {
+        pybind11::dict& h = _pyHeaders[p];
+
+        int32_t attrcount;
+        rv = exr_get_attribute_count(f, p, &attrcount);
+        if (rv != EXR_ERR_SUCCESS)
+            return;
+
+        for (int32_t a = 0; a < attrcount; ++a)
+        {
+            const exr_attribute_t* attr;
+            rv = exr_get_attribute_by_index(f, p, EXR_ATTR_LIST_FILE_ORDER, a, &attr);
+
+            printf ("attr->name: %s ", attr->name);
+            
+            switch (attr->type)
+            {
+            case EXR_ATTR_BOX2I:
+                h[attr->name] = Box2i(V2i(attr->box2i->min.x, attr->box2i->min.y),
+                                      V2i(attr->box2i->max.x, attr->box2i->max.y));
+                break;
+            case EXR_ATTR_BOX2F:
+                h[attr->name] = Box2f(V2f(attr->box2i->min.x, attr->box2i->min.y),
+                                      V2f(attr->box2i->max.x, attr->box2i->max.y));
+                break;
+            case EXR_ATTR_CHLIST:
+                printf ("%d channels\n", attr->chlist->num_channels);
+                for (int c = 0; c < attr->chlist->num_channels; ++c)
+                {
+                    if (c > 0) printf ("\n");
+                    printf (
+                        "   '%s': %s samp %d %d",
+                        attr->chlist->entries[c].name.str,
+                        (attr->chlist->entries[c].pixel_type == EXR_PIXEL_UINT
+                         ? "uint"
+                         : (attr->chlist->entries[c].pixel_type == EXR_PIXEL_HALF
+                            ? "half"
+                            : attr->chlist->entries[c].pixel_type ==
+                            EXR_PIXEL_FLOAT
+                            ? "float"
+                            : "<UNKNOWN>")),
+                        attr->chlist->entries[c].x_sampling,
+                        attr->chlist->entries[c].y_sampling);
+                }
+                break;
+            case EXR_ATTR_CHROMATICITIES:
+                h[attr->name] = Chromaticiies(Chromaticity(attr->chromaticities->red_x,
+                                                           attr->chromaticities->red_y),
+                                              Chromaticity(attr->chromaticities->green_x,
+                                                           attr->chromaticities->green_y),
+                                              Chromaticity(attr->chromaticities->blue_x,
+                                                           attr->chromaticities->blue_y),
+                                              Chromaticity(attr->chromaticities->white_x,
+                                                           attr->chromaticities->white_y));
+                break;
+            case EXR_ATTR_COMPRESSION: {
+                static const char* compressionnames[] = {
+                    "none",
+                    "rle",
+                    "zips",
+                    "zip",
+                    "piz",
+                    "pxr24",
+                    "b44",
+                    "b44a",
+                    "dwaa",
+                    "dwab"};
+                h[attr->name] = pybind11::str(compressionnames[attr->uc]);
+                break;
+            }
+            case EXR_ATTR_DOUBLE:
+                h[attr->name] = pybind11::float_(attr->d);
+                break;
+            case EXR_ATTR_ENVMAP:
+                h[attr->name] = pybind11::str(attr->uc == 0 ? "latlong" : "cube");
+                break;
+            case EXR_ATTR_FLOAT:
+                h[attr->name] = pybind11::float_(attr->f);
+                break;
+#if XXX
+            case EXR_ATTR_FLOAT_VECTOR:
+                printf ("[%d entries]:\n   ", attr->floatvector->length);
+                for (int i = 0; i < attr->floatvector->length; ++i)
+                    printf (" %g", (double) attr->floatvector->arr[i]);
+                break;
+#endif
+            case EXR_ATTR_INT:
+                h[attr->name] = pybind11::int_(attr->i);
+                printf ("%d", attr->i);
+                break;
+            case EXR_ATTR_KEYCODE:
+                h[attr->name] = pybind11::make_tuple(
+                    attr->keycode->film_mfc_code,
+                    attr->keycode->film_type,
+                    attr->keycode->prefix,
+                    attr->keycode->count,
+                    attr->keycode->perf_offset,
+                    attr->keycode->perfs_per_frame,
+                    attr->keycode->perfs_per_count);
+                
+                printf (
+                    "mfgc %d film %d prefix %d count %d perf_off %d ppf %d ppc %d",
+                    attr->keycode->film_mfc_code,
+                    attr->keycode->film_type,
+                    attr->keycode->prefix,
+                    attr->keycode->count,
+                    attr->keycode->perf_offset,
+                    attr->keycode->perfs_per_frame,
+                    attr->keycode->perfs_per_count);
+                break;
+            case EXR_ATTR_LINEORDER:
+                h[attr->name] = pybind11::int_(attr->uc);
+                printf (
+                    "%d (%s)",
+                    (int) attr->uc,
+                    attr->uc == EXR_LINEORDER_INCREASING_Y
+                    ? "increasing"
+                    : (attr->uc == EXR_LINEORDER_DECREASING_Y
+                       ? "decreasing"
+                       : (attr->uc == EXR_LINEORDER_RANDOM_Y ? "random"
+                          : "<UNKNOWN>")));
+                break;
+            case EXR_ATTR_M33F:
+                printf (
+                    "[ [%g %g %g] [%g %g %g] [%g %g %g] ]",
+                    (double) attr->m33f->m[0],
+                    (double) attr->m33f->m[1],
+                    (double) attr->m33f->m[2],
+                    (double) attr->m33f->m[3],
+                    (double) attr->m33f->m[4],
+                    (double) attr->m33f->m[5],
+                    (double) attr->m33f->m[6],
+                    (double) attr->m33f->m[7],
+                    (double) attr->m33f->m[8]);
+                break;
+            case EXR_ATTR_M33D:
+                printf (
+                    "[ [%g %g %g] [%g %g %g] [%g %g %g] ]",
+                    attr->m33d->m[0],
+                    attr->m33d->m[1],
+                    attr->m33d->m[2],
+                    attr->m33d->m[3],
+                    attr->m33d->m[4],
+                    attr->m33d->m[5],
+                    attr->m33d->m[6],
+                    attr->m33d->m[7],
+                    attr->m33d->m[8]);
+                break;
+            case EXR_ATTR_M44F:
+                printf (
+                    "[ [%g %g %g %g] [%g %g %g %g] [%g %g %g %g] [%g %g %g %g] ]",
+                    (double) attr->m44f->m[0],
+                    (double) attr->m44f->m[1],
+                    (double) attr->m44f->m[2],
+                    (double) attr->m44f->m[3],
+                    (double) attr->m44f->m[4],
+                    (double) attr->m44f->m[5],
+                    (double) attr->m44f->m[6],
+                    (double) attr->m44f->m[7],
+                    (double) attr->m44f->m[8],
+                    (double) attr->m44f->m[9],
+                    (double) attr->m44f->m[10],
+                    (double) attr->m44f->m[11],
+                    (double) attr->m44f->m[12],
+                    (double) attr->m44f->m[13],
+                    (double) attr->m44f->m[14],
+                    (double) attr->m44f->m[15]);
+                break;
+            case EXR_ATTR_M44D:
+                printf (
+                    "[ [%g %g %g %g] [%g %g %g %g] [%g %g %g %g] [%g %g %g %g] ]",
+                    attr->m44d->m[0],
+                    attr->m44d->m[1],
+                    attr->m44d->m[2],
+                    attr->m44d->m[3],
+                    attr->m44d->m[4],
+                    attr->m44d->m[5],
+                    attr->m44d->m[6],
+                    attr->m44d->m[7],
+                    attr->m44d->m[8],
+                    attr->m44d->m[9],
+                    attr->m44d->m[10],
+                    attr->m44d->m[11],
+                    attr->m44d->m[12],
+                    attr->m44d->m[13],
+                    attr->m44d->m[14],
+                    attr->m44d->m[15]);
+                break;
+            case EXR_ATTR_PREVIEW:
+                printf ("%u x %u", attr->preview->width, attr->preview->height);
+                break;
+            case EXR_ATTR_RATIONAL:
+                printf ("%d / %u", attr->rational->num, attr->rational->denom);
+                if (attr->rational->denom != 0)
+                    printf (
+                        " (%g)",
+                        (double) (attr->rational->num) /
+                        (double) (attr->rational->denom));
+                break;
+            case EXR_ATTR_STRING:
+                h[attr->name] = pybind11::str(attr->string->str);
+                printf ("'%s'", attr->string->str ? attr->string->str : "<NULL>");
+                break;
+            case EXR_ATTR_STRING_VECTOR:
+                printf ("[%d entries]:\n", attr->stringvector->n_strings);
+                for (int i = 0; i < attr->stringvector->n_strings; ++i)
+                {
+                    if (i > 0) printf ("\n");
+                    printf ("    '%s'", attr->stringvector->strings[i].str);
+                }
+                break;
+            case EXR_ATTR_TILEDESC: {
+                static const char* lvlModes[] = {
+                    "single image", "mipmap", "ripmap"};
+                uint8_t lvlMode =
+                    (uint8_t) EXR_GET_TILE_LEVEL_MODE (*(attr->tiledesc));
+                uint8_t rndMode =
+                    (uint8_t) EXR_GET_TILE_ROUND_MODE (*(attr->tiledesc));
+                printf (
+                    "size %u x %u level %u (%s) round %u (%s)",
+                    attr->tiledesc->x_size,
+                    attr->tiledesc->y_size,
+                    lvlMode,
+                    lvlMode < 3 ? lvlModes[lvlMode] : "<UNKNOWN>",
+                    rndMode,
+                    rndMode == 0 ? "down" : "up");
+                break;
+            }
+            case EXR_ATTR_TIMECODE:
+                printf (
+                    "time %u user %u",
+                    attr->timecode->time_and_flags,
+                    attr->timecode->user_data);
+                break;
+            case EXR_ATTR_V2I: printf ("[ %d, %d ]", attr->v2i->x, attr->v2i->y); break;
+            case EXR_ATTR_V2F:
+                printf ("[ %g, %g ]", (double) attr->v2f->x, (double) attr->v2f->y);
+                break;
+            case EXR_ATTR_V2D: printf ("[ %g, %g ]", attr->v2d->x, attr->v2d->y); break;
+            case EXR_ATTR_V3I:
+                printf ("[ %d, %d, %d ]", attr->v3i->x, attr->v3i->y, attr->v3i->z);
+                break;
+            case EXR_ATTR_V3F:
+                printf (
+                    "[ %g, %g, %g ]",
+                    (double) attr->v3f->x,
+                    (double) attr->v3f->y,
+                    (double) attr->v3f->z);
+                break;
+            case EXR_ATTR_V3D:
+                printf ("[ %g, %g, %g ]", attr->v3d->x, attr->v3d->y, attr->v3d->z);
+                break;
+            case EXR_ATTR_OPAQUE: {
+                uintptr_t faddr_unpack = (uintptr_t) attr->opaque->unpack_func_ptr;
+                uintptr_t faddr_pack   = (uintptr_t) attr->opaque->pack_func_ptr;
+                uintptr_t faddr_destroy =
+                    (uintptr_t) attr->opaque->destroy_unpacked_func_ptr;
+                printf (
+                    "(size %d unp size %d hdlrs %p %p %p)",
+                    attr->opaque->size,
+                    attr->opaque->unpacked_size,
+                    (void*) faddr_unpack,
+                    (void*) faddr_pack,
+                    (void*) faddr_destroy);
+                break;
+            }
+            case EXR_ATTR_UNKNOWN:
+            case EXR_ATTR_LAST_KNOWN_TYPE:
+            default: printf ("<ERROR Unknown type '%s'>", attr->type_name);
+                break;
+            }
+
+            printf("\n");
+        }
+        
+        exr_storage_t store;
+        rv = exr_get_storage (f, p, &store);
+        if (rv != EXR_ERR_SUCCESS)
+            return;
+
+        if (store == EXR_STORAGE_SCANLINE || store == EXR_STORAGE_DEEP_SCANLINE)
+        {
+            if (readCoreScanlinePart (f, p, reduceMemory, reduceTime))
+                return;
+        }
+        else if (store == EXR_STORAGE_TILED || store == EXR_STORAGE_DEEP_TILED)
+        {
+            if (readCoreTiledPart (f, p, reduceMemory, reduceTime))
+                return;
+        }
+    }
+    
+    exr_finish (&f);
+}
+    
+class OutputFile
+{
+  public:
+    OutputFile(std::string, pybind11::dict header) 
+    {
+    }
+    
+    pybind11::object writePixels(pybind11::dict channels)
+    {
+        return pybind11::none();
+    }
+    
+    pybind11::object currentScanline()
+    {
+        return pybind11::none();
+    }
+    
+    pybind11::object close()
+    {
+        return pybind11::none();
+    }
+};
+    
+pybind11::object
+makeHeader(int width, int height)
+{
+    pybind11::dict h;
+    h["width"] = width;
+    h["height"] = height;
+    return h;
+}
+    
+}// namespace
+
+PYBIND11_MODULE(OpenEXRp11, m)
+{
+    using namespace pybind11::literals;
+
+    m.doc() = "openexrp11 doc";
+    m.attr("__version__") = "dev";
+
+    m.def("Header", [](int width, int height) -> pybind11::object
+    {
+        return makeHeader(width, height);
+    });
+          
+    auto ifile = pybind11::class_<InputFile>(m, "InputFile");
+    ifile.def(pybind11::init<std::string>());
+
+    ifile.def("xxx", [](InputFile& self) -> pybind11::object
+    {
+        pybind11::module_ imath = pybind11::module_::import("Imath");
+        pybind11::object min = imath.attr("V2i")(1,2);
+        pybind11::object max = imath.attr("V2i")(10,20);
+        pybind11::object box = imath.attr("Box2i")(min,max);
+        return box;
+    });
+    
+    ifile.def("parts", &InputFile::numparts);
+
+    ifile.def("header", [](InputFile& self) -> pybind11::object
+    {
+        return self.py_header();
+    });
+    
+    ifile.def("header", [](InputFile& self, int part) -> pybind11::object
+    {
+        return self.py_header(part);
+    });
+    
+    ifile.def("channel", [](InputFile& self,std::string c) -> pybind11::object
+    {
+        return self.channel(c);
+    });
+    
+    ifile.def("channels", [](InputFile& self) -> pybind11::object
+    {
+        return self.channels();
+    });
+    ifile.def("close", [](InputFile& self) -> pybind11::object
+    {
+        return self.close();
+    });
+    
+    ifile.def("isComplete", [](InputFile& self) -> pybind11::object
+    {
+        return self.isComplete();
+    });
+    
+    auto ofile = pybind11::class_<OutputFile>(m, "OutputFile");
+    ofile.def(pybind11::init<std::string,pybind11::dict>());
+    
+    ofile.def("writePixels", [](OutputFile& self, pybind11::dict channels) -> pybind11::object
+    {
+        return self.writePixels(channels);
+    });
+    ofile.def("currentScanline", [](OutputFile& self) -> pybind11::object
+    {
+        return self.currentScanline();
+    });
+    ofile.def("close", [](OutputFile& self) -> pybind11::object
+    {
+        return self.close();
+    });
+    
+
+    m.attr("FLOAT") = static_cast<int> (OPENEXR_IMF_NAMESPACE::FLOAT);
+    m.attr("HALF") = static_cast<int> (OPENEXR_IMF_NAMESPACE::HALF);
+    m.attr("UINT") = static_cast<int> (OPENEXR_IMF_NAMESPACE::UINT);
+
+    m.attr("__version__") = OPENEXR_VERSION_STRING;
+    m.attr("__xersion__") = pybind11::str(std::string(OPENEXR_VERSION_STRING));
+}
+
+#if XXX
+        
 #define PY_SSIZE_T_CLEAN // required for Py_BuildValue("s#") for Python 3.10
 #include <Python.h>
 
@@ -1521,3 +2429,5 @@ MOD_INIT (OpenEXR)
 
     return MOD_SUCCESS_VAL (m);
 }
+
+#endif
