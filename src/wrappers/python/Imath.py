@@ -26,6 +26,17 @@ class point(object):
     def __eq__(self, other):
         return (self.x, self.y) == (other.x, other.y)
 
+class point3(object):
+    """Point is a 2D point, with members *x*, *y*, and *z*."""
+    def __init__(self, x, y, z):
+        self.x = x;
+        self.y = y;
+        self.z = z;
+    def __repr__(self):
+        return repr((self.x, self.y, self.z))
+    def __eq__(self, other):
+        return (self.x, self.y, self.z) == (other.x, other.y, other.z)
+    
 class V2i(point):
     """V2i is a 2D point, with members *x* and *y*."""
     pass
@@ -33,6 +44,80 @@ class V2i(point):
 class V2f(point):
     """V2f is a 2D point, with members *x* and *y*."""
     pass
+
+class V2d(point):
+    """V2d is a 2D point, with members *x* and *y*."""
+    pass
+
+class V3i(point3):
+    """V3i is a 3D point, with members *x*, *y*, and *z*."""
+    pass
+
+class V3f(point3):
+    """V3f is a 3D point, with members *x*, *y*, and *z*."""
+    pass
+
+class V3d(point3):
+    """V3d is a 3D point, with members *x*, *y*, and *z*."""
+    pass
+
+class M33(object):
+    """M33 is a 3x3 matrix"""
+    def __init__(self, m00, m01, m02, m10, m11, m12, m20, m21, m22):
+        self.m00 = m00;
+        self.m01 = m01;
+        self.m02 = m02;
+        self.m10 = m10;
+        self.m11 = m11;
+        self.m12 = m12;
+        self.m20 = m20;
+        self.m21 = m21;
+        self.m22 = m22;
+    def __repr__(self):
+        return repr((self.m00, self.m01, self.m02,
+                     self.m10, self.m11, self.m12,
+                     self.m20, self.m21, self.m22))
+    def __eq__(self, other):
+        return ((self.m00, self.m01, self.m02,
+                 self.m10, self.m11, self.m12,
+                 self.m20, self.m21, self.m22) ==
+                (other.m00, other.m01, other.m02,
+                 other.m10, other.m11, other.m12,
+                 other.m20, other.m21, other.m22))
+
+class M44(object):
+    """M44 is a 4x4 matrix"""
+    def __init__(self, m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33):
+        self.m00 = m00;
+        self.m01 = m01;
+        self.m02 = m02;
+        self.m03 = m03;
+        self.m10 = m10;
+        self.m11 = m11;
+        self.m12 = m12;
+        self.m13 = m13;
+        self.m20 = m20;
+        self.m21 = m21;
+        self.m22 = m22;
+        self.m23 = m23;
+        self.m30 = m30;
+        self.m31 = m31;
+        self.m32 = m32;
+        self.m33 = m33;
+    def __repr__(self):
+        return repr((self.m00, self.m01, self.m02, self.m03,
+                     self.m10, self.m11, self.m12, self.m13,
+                     self.m20, self.m21, self.m22, self.m23,
+                     self.m30, self.m31, self.m22, self.m33))
+    def __eq__(self, other):
+        return ((self.m00, self.m01, self.m02, self.m03,
+                 self.m10, self.m11, self.m12, self.m13,
+                 self.m20, self.m21, self.m22, self.m23,
+                 self.m30, self.m31, self.m32, self.m33) ==
+                (other.m00, other.m01, other.m02, other.m03,
+                 other.m10, other.m11, other.m12, other.m13,
+                 other.m20, other.m21, other.m22, other.m23,
+                 other.m30, other.m31, other.m32, other.m33))
 
 class Box:
     """Box is a 2D box, specified by its two corners *min* and *max*, both of which are :class:`point` """
@@ -49,6 +134,18 @@ class Box2i(Box):
     pass
 
 class Box2f(Box):
+    """Box2f is a 2D box, specified by its two corners *min* and *max*."""
+    pass
+
+class Box2d(Box):
+    """Box2f is a 2D box, specified by its two corners *min* and *max*."""
+    pass
+
+class Box3f(Box):
+    """Box2f is a 2D box, specified by its two corners *min* and *max*."""
+    pass
+
+class Box3d(Box):
     """Box2f is a 2D box, specified by its two corners *min* and *max*."""
     pass
 
