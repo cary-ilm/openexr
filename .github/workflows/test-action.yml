@@ -21,6 +21,9 @@ jobs:
         run: echo OPENEXR_PREFIX=openexr-${TAG//v} >> $GITHUB_ENV
         shell: bash
         
+      - name: Checkout
+        uses: actions/checkout@v2
+
       - name: Create archive
         run: git archive --format=tar.gz -o ${OPENEXR_PREFIX}.tar.gz --prefix ${OPENEXR_PREFIX} ${TAG}
 
