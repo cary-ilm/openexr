@@ -8,17 +8,19 @@ on:
 jobs:
 
   test:
+
     name: Test
     runs-on: ubuntu-latest
 
-  env:
-    TAG_NAME: v1.2.3
+    env:
+      TAG_NAME: v1.2.3
 
-  steps:
+    steps:
 
-    - name: Strip
-      run: echo VERSION=${TAG_NAME//v} >> $GITHUB_ENV
-      shell: bash
-    - name: Test
-      run: echo "VERSION=${VERSION}"
+      - name: Strip
+        run: echo VERSION=${TAG_NAME//v} >> $GITHUB_ENV
+        shell: bash
+      - name: Test
+        run: echo "VERSION=${VERSION}"
+        shell: bash
       
