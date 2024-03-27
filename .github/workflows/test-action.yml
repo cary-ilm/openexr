@@ -13,14 +13,16 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      TAG_NAME: v1.2.3
-
+       TAG: v3.2.4
+       
     steps:
 
-      - name: Strip
-        run: echo VERSION=${TAG_NAME//v} >> $GITHUB_ENV
+      - name: Set Version
+        run: echo OPENEXR_PREFIX=openexr-${TAG//v} >> $GITHUB_ENV
         shell: bash
-      - name: Test
-        run: echo "VERSION=${VERSION}"
-        shell: bash
-      
+        
+      - name: Create archive
+        run: git archive --format=tar.gz -o ${OPENEXR_PREFIX}.tar.gz --prefix ${OPENEXR_PREFIX} ${TAG}
+
+      - name: Validate archive
+        run: tar tvf openexr-3.2.4.tar.gz
