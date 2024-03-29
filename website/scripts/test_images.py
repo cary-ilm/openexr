@@ -325,7 +325,7 @@ def write_exr_to_index(index_file, repo, tag, exr_lpath, readme):
 
     # row for the image
     index_file.write(f'          <td style="vertical-align: top; width:250px">\n')
-    index_file.write(f'              <a href={base_path}.html> <img width="250" src="{jpg_url}"> </a>\n') 
+    index_file.write(f'              <a href=test_images/{base_path}.html> <img width="250" src="{jpg_url}"> </a>\n') 
     index_file.write(f'          </td>\n')
 
     # row for the summary
@@ -400,7 +400,7 @@ tag = sys.argv[2] if len(sys.argv) > 2 else 'main'
 
 try:
     
-    with open('website/test_images/index.rst', 'w') as index_file:
+    with open('website/TestImages.rst', 'w') as index_file:
 
         index_file.write('Test Images\n')
         index_file.write('###########\n')
@@ -409,7 +409,7 @@ try:
         index_file.write('   :caption: Test Images\n')
         index_file.write('   :maxdepth: 2\n')
         index_file.write('\n')
-        index_file.write('   toctree\n')
+        index_file.write('   test_images/toctree\n')
         index_file.write('\n')
 
         toctree = []

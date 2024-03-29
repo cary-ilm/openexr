@@ -5,7 +5,7 @@ Test Images
    :caption: Test Images
    :maxdepth: 2
 
-   toctree
+   test_images/toctree
 
 ..
   SPDX-License-Identifier: BSD-3-Clause
@@ -27,7 +27,7 @@ values.
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=TestImages/AllHalfValues.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/AllHalfValues.jpg"> </a>
+              <a href=test_images/TestImages/AllHalfValues.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/AllHalfValues.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> AllHalfValues.exr </b>
@@ -49,7 +49,7 @@ values.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=TestImages/BrightRings.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/BrightRings.jpg"> </a>
+              <a href=test_images/TestImages/BrightRings.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/BrightRings.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> BrightRings.exr </b>
@@ -77,7 +77,7 @@ values.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=TestImages/BrightRingsNanInf.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/BrightRingsNanInf.jpg"> </a>
+              <a href=test_images/TestImages/BrightRingsNanInf.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/BrightRingsNanInf.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> BrightRingsNanInf.exr </b>
@@ -97,7 +97,7 @@ values.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=TestImages/GammaChart.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/GammaChart.jpg"> </a>
+              <a href=test_images/TestImages/GammaChart.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/GammaChart.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> GammaChart.exr </b>
@@ -111,7 +111,7 @@ values.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=TestImages/GrayRampsDiagonal.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/GrayRampsDiagonal.jpg"> </a>
+              <a href=test_images/TestImages/GrayRampsDiagonal.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/GrayRampsDiagonal.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> GrayRampsDiagonal.exr </b>
@@ -125,7 +125,7 @@ values.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=TestImages/GrayRampsHorizontal.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/GrayRampsHorizontal.jpg"> </a>
+              <a href=test_images/TestImages/GrayRampsHorizontal.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/GrayRampsHorizontal.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> GrayRampsHorizontal.exr </b>
@@ -139,7 +139,7 @@ values.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=TestImages/RgbRampsDiagonal.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/RgbRampsDiagonal.jpg"> </a>
+              <a href=test_images/TestImages/RgbRampsDiagonal.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/RgbRampsDiagonal.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> RgbRampsDiagonal.exr </b>
@@ -153,7 +153,7 @@ values.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=TestImages/SquaresSwirls.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/SquaresSwirls.jpg"> </a>
+              <a href=test_images/TestImages/SquaresSwirls.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/SquaresSwirls.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> SquaresSwirls.exr </b>
@@ -175,7 +175,7 @@ values.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=TestImages/WideColorGamut.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/WideColorGamut.jpg"> </a>
+              <a href=test_images/TestImages/WideColorGamut.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/WideColorGamut.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> WideColorGamut.exr </b>
@@ -202,7 +202,7 @@ values.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=TestImages/WideFloatRange.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/WideFloatRange.jpg"> </a>
+              <a href=test_images/TestImages/WideFloatRange.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/TestImages/WideFloatRange.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> WideFloatRange.exr </b>
@@ -242,7 +242,7 @@ Examples of scanline images.
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=ScanLines/Blobbies.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/Blobbies.jpg"> </a>
+              <a href=test_images/ScanLines/Blobbies.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/Blobbies.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Blobbies.exr </b>
@@ -260,7 +260,7 @@ Examples of scanline images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=ScanLines/CandleGlass.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/CandleGlass.jpg"> </a>
+              <a href=test_images/ScanLines/CandleGlass.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/CandleGlass.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> CandleGlass.exr </b>
@@ -279,7 +279,7 @@ Examples of scanline images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=ScanLines/Cannon.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/Cannon.jpg"> </a>
+              <a href=test_images/ScanLines/Cannon.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/Cannon.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Cannon.exr </b>
@@ -297,7 +297,7 @@ Examples of scanline images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=ScanLines/Carrots.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/Carrots.jpg"> </a>
+              <a href=test_images/ScanLines/Carrots.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/Carrots.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Carrots.exr </b>
@@ -316,7 +316,7 @@ Examples of scanline images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=ScanLines/Desk.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/Desk.jpg"> </a>
+              <a href=test_images/ScanLines/Desk.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/Desk.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Desk.exr </b>
@@ -334,7 +334,7 @@ Examples of scanline images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=ScanLines/MtTamWest.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/MtTamWest.jpg"> </a>
+              <a href=test_images/ScanLines/MtTamWest.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/MtTamWest.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> MtTamWest.exr </b>
@@ -353,7 +353,7 @@ Examples of scanline images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=ScanLines/PrismsLenses.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/PrismsLenses.jpg"> </a>
+              <a href=test_images/ScanLines/PrismsLenses.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/PrismsLenses.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> PrismsLenses.exr </b>
@@ -372,7 +372,7 @@ Examples of scanline images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=ScanLines/StillLife.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/StillLife.jpg"> </a>
+              <a href=test_images/ScanLines/StillLife.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/StillLife.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> StillLife.exr </b>
@@ -390,7 +390,7 @@ Examples of scanline images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=ScanLines/Tree.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/Tree.jpg"> </a>
+              <a href=test_images/ScanLines/Tree.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/ScanLines/Tree.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Tree.exr </b>
@@ -427,7 +427,7 @@ Examples of tiled images.
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Tiles/GoldenGate.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Tiles/GoldenGate.jpg"> </a>
+              <a href=test_images/Tiles/GoldenGate.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Tiles/GoldenGate.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> GoldenGate.exr </b>
@@ -446,7 +446,7 @@ Examples of tiled images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Tiles/Ocean.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Tiles/Ocean.jpg"> </a>
+              <a href=test_images/Tiles/Ocean.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Tiles/Ocean.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Ocean.exr </b>
@@ -464,7 +464,7 @@ Examples of tiled images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Tiles/Spirals.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Tiles/Spirals.jpg"> </a>
+              <a href=test_images/Tiles/Spirals.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Tiles/Spirals.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Spirals.exr </b>
@@ -504,7 +504,7 @@ Displayed properly, all four images should look the same.
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Chromaticities/Rec709.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Chromaticities/Rec709.jpg"> </a>
+              <a href=test_images/Chromaticities/Rec709.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Chromaticities/Rec709.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Rec709.exr </b>
@@ -523,7 +523,7 @@ Displayed properly, all four images should look the same.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Chromaticities/Rec709_YC.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Chromaticities/Rec709_YC.jpg"> </a>
+              <a href=test_images/Chromaticities/Rec709_YC.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Chromaticities/Rec709_YC.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Rec709_YC.exr </b>
@@ -543,7 +543,7 @@ Displayed properly, all four images should look the same.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Chromaticities/XYZ.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Chromaticities/XYZ.jpg"> </a>
+              <a href=test_images/Chromaticities/XYZ.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Chromaticities/XYZ.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> XYZ.exr </b>
@@ -563,7 +563,7 @@ Displayed properly, all four images should look the same.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Chromaticities/XYZ_YC.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Chromaticities/XYZ_YC.jpg"> </a>
+              <a href=test_images/Chromaticities/XYZ_YC.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Chromaticities/XYZ_YC.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> XYZ_YC.exr </b>
@@ -604,7 +604,7 @@ RGB.
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=LuminanceChroma/CrissyField.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/LuminanceChroma/CrissyField.jpg"> </a>
+              <a href=test_images/LuminanceChroma/CrissyField.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/LuminanceChroma/CrissyField.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> CrissyField.exr </b>
@@ -623,7 +623,7 @@ RGB.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=LuminanceChroma/Flowers.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/LuminanceChroma/Flowers.jpg"> </a>
+              <a href=test_images/LuminanceChroma/Flowers.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/LuminanceChroma/Flowers.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Flowers.exr </b>
@@ -641,7 +641,7 @@ RGB.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=LuminanceChroma/Garden.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/LuminanceChroma/Garden.jpg"> </a>
+              <a href=test_images/LuminanceChroma/Garden.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/LuminanceChroma/Garden.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Garden.exr </b>
@@ -659,7 +659,7 @@ RGB.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=LuminanceChroma/MtTamNorth.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/LuminanceChroma/MtTamNorth.jpg"> </a>
+              <a href=test_images/LuminanceChroma/MtTamNorth.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/LuminanceChroma/MtTamNorth.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> MtTamNorth.exr </b>
@@ -677,7 +677,7 @@ RGB.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=LuminanceChroma/StarField.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/LuminanceChroma/StarField.jpg"> </a>
+              <a href=test_images/LuminanceChroma/StarField.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/LuminanceChroma/StarField.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> StarField.exr </b>
@@ -718,7 +718,7 @@ files.
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t01.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t01.jpg"> </a>
+              <a href=test_images/DisplayWindow/t01.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t01.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t01.exr </b>
@@ -738,7 +738,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t02.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t02.jpg"> </a>
+              <a href=test_images/DisplayWindow/t02.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t02.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t02.exr </b>
@@ -761,7 +761,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t03.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t03.jpg"> </a>
+              <a href=test_images/DisplayWindow/t03.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t03.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t03.exr </b>
@@ -784,7 +784,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t04.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t04.jpg"> </a>
+              <a href=test_images/DisplayWindow/t04.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t04.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t04.exr </b>
@@ -807,7 +807,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t05.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t05.jpg"> </a>
+              <a href=test_images/DisplayWindow/t05.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t05.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t05.exr </b>
@@ -830,7 +830,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t06.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t06.jpg"> </a>
+              <a href=test_images/DisplayWindow/t06.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t06.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t06.exr </b>
@@ -853,7 +853,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t07.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t07.jpg"> </a>
+              <a href=test_images/DisplayWindow/t07.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t07.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t07.exr </b>
@@ -876,7 +876,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t08.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t08.jpg"> </a>
+              <a href=test_images/DisplayWindow/t08.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t08.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t08.exr </b>
@@ -899,7 +899,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t09.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t09.jpg"> </a>
+              <a href=test_images/DisplayWindow/t09.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t09.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t09.exr </b>
@@ -920,7 +920,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t10.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t10.jpg"> </a>
+              <a href=test_images/DisplayWindow/t10.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t10.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t10.exr </b>
@@ -941,7 +941,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t11.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t11.jpg"> </a>
+              <a href=test_images/DisplayWindow/t11.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t11.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t11.exr </b>
@@ -962,7 +962,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t12.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t12.jpg"> </a>
+              <a href=test_images/DisplayWindow/t12.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t12.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t12.exr </b>
@@ -983,7 +983,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t13.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t13.jpg"> </a>
+              <a href=test_images/DisplayWindow/t13.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t13.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t13.exr </b>
@@ -1004,7 +1004,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t14.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t14.jpg"> </a>
+              <a href=test_images/DisplayWindow/t14.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t14.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t14.exr </b>
@@ -1025,7 +1025,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t15.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t15.jpg"> </a>
+              <a href=test_images/DisplayWindow/t15.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t15.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t15.exr </b>
@@ -1048,7 +1048,7 @@ files.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=DisplayWindow/t16.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t16.jpg"> </a>
+              <a href=test_images/DisplayWindow/t16.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/DisplayWindow/t16.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> t16.exr </b>
@@ -1197,7 +1197,7 @@ Note the following about these images:
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/multipart.0001.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0001.jpg"> </a>
+              <a href=test_images/Beachball/multipart.0001.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0001.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> multipart.0001.exr </b>
@@ -1211,7 +1211,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/multipart.0002.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0002.jpg"> </a>
+              <a href=test_images/Beachball/multipart.0002.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0002.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> multipart.0002.exr </b>
@@ -1225,7 +1225,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/multipart.0003.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0003.jpg"> </a>
+              <a href=test_images/Beachball/multipart.0003.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0003.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> multipart.0003.exr </b>
@@ -1239,7 +1239,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/multipart.0004.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0004.jpg"> </a>
+              <a href=test_images/Beachball/multipart.0004.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0004.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> multipart.0004.exr </b>
@@ -1253,7 +1253,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/multipart.0005.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0005.jpg"> </a>
+              <a href=test_images/Beachball/multipart.0005.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0005.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> multipart.0005.exr </b>
@@ -1267,7 +1267,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/multipart.0006.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0006.jpg"> </a>
+              <a href=test_images/Beachball/multipart.0006.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0006.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> multipart.0006.exr </b>
@@ -1281,7 +1281,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/multipart.0007.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0007.jpg"> </a>
+              <a href=test_images/Beachball/multipart.0007.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0007.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> multipart.0007.exr </b>
@@ -1295,7 +1295,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/multipart.0008.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0008.jpg"> </a>
+              <a href=test_images/Beachball/multipart.0008.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/multipart.0008.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> multipart.0008.exr </b>
@@ -1309,7 +1309,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/singlepart.0001.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0001.jpg"> </a>
+              <a href=test_images/Beachball/singlepart.0001.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0001.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> singlepart.0001.exr </b>
@@ -1323,7 +1323,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/singlepart.0002.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0002.jpg"> </a>
+              <a href=test_images/Beachball/singlepart.0002.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0002.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> singlepart.0002.exr </b>
@@ -1337,7 +1337,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/singlepart.0003.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0003.jpg"> </a>
+              <a href=test_images/Beachball/singlepart.0003.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0003.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> singlepart.0003.exr </b>
@@ -1351,7 +1351,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/singlepart.0004.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0004.jpg"> </a>
+              <a href=test_images/Beachball/singlepart.0004.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0004.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> singlepart.0004.exr </b>
@@ -1365,7 +1365,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/singlepart.0005.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0005.jpg"> </a>
+              <a href=test_images/Beachball/singlepart.0005.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0005.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> singlepart.0005.exr </b>
@@ -1379,7 +1379,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/singlepart.0006.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0006.jpg"> </a>
+              <a href=test_images/Beachball/singlepart.0006.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0006.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> singlepart.0006.exr </b>
@@ -1393,7 +1393,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/singlepart.0007.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0007.jpg"> </a>
+              <a href=test_images/Beachball/singlepart.0007.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0007.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> singlepart.0007.exr </b>
@@ -1407,7 +1407,7 @@ Note the following about these images:
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=Beachball/singlepart.0008.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0008.jpg"> </a>
+              <a href=test_images/Beachball/singlepart.0008.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/Beachball/singlepart.0008.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> singlepart.0008.exr </b>
@@ -1445,7 +1445,7 @@ displayed images should be about 5 to 10 inches (12 to 25 cm).
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiView/Adjuster.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiView/Adjuster.jpg"> </a>
+              <a href=test_images/MultiView/Adjuster.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiView/Adjuster.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Adjuster.exr </b>
@@ -1464,7 +1464,7 @@ displayed images should be about 5 to 10 inches (12 to 25 cm).
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiView/Balls.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiView/Balls.jpg"> </a>
+              <a href=test_images/MultiView/Balls.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiView/Balls.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Balls.exr </b>
@@ -1483,7 +1483,7 @@ displayed images should be about 5 to 10 inches (12 to 25 cm).
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiView/Fog.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiView/Fog.jpg"> </a>
+              <a href=test_images/MultiView/Fog.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiView/Fog.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Fog.exr </b>
@@ -1502,7 +1502,7 @@ displayed images should be about 5 to 10 inches (12 to 25 cm).
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiView/Impact.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiView/Impact.jpg"> </a>
+              <a href=test_images/MultiView/Impact.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiView/Impact.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Impact.exr </b>
@@ -1521,7 +1521,7 @@ displayed images should be about 5 to 10 inches (12 to 25 cm).
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiView/LosPadres.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiView/LosPadres.jpg"> </a>
+              <a href=test_images/MultiView/LosPadres.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiView/LosPadres.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> LosPadres.exr </b>
@@ -1562,7 +1562,7 @@ Regular Images
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/Bonita.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/Bonita.jpg"> </a>
+              <a href=test_images/MultiResolution/Bonita.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/Bonita.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Bonita.exr </b>
@@ -1581,7 +1581,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/ColorCodedLevels.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/ColorCodedLevels.jpg"> </a>
+              <a href=test_images/MultiResolution/ColorCodedLevels.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/ColorCodedLevels.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> ColorCodedLevels.exr </b>
@@ -1604,7 +1604,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/Kapaa.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/Kapaa.jpg"> </a>
+              <a href=test_images/MultiResolution/Kapaa.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/Kapaa.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Kapaa.exr </b>
@@ -1623,7 +1623,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/KernerEnvCube.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/KernerEnvCube.jpg"> </a>
+              <a href=test_images/MultiResolution/KernerEnvCube.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/KernerEnvCube.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> KernerEnvCube.exr </b>
@@ -1645,7 +1645,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/KernerEnvLatLong.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/KernerEnvLatLong.jpg"> </a>
+              <a href=test_images/MultiResolution/KernerEnvLatLong.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/KernerEnvLatLong.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> KernerEnvLatLong.exr </b>
@@ -1666,7 +1666,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/MirrorPattern.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/MirrorPattern.jpg"> </a>
+              <a href=test_images/MultiResolution/MirrorPattern.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/MirrorPattern.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> MirrorPattern.exr </b>
@@ -1687,7 +1687,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/OrientationCube.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/OrientationCube.jpg"> </a>
+              <a href=test_images/MultiResolution/OrientationCube.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/OrientationCube.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> OrientationCube.exr </b>
@@ -1708,7 +1708,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/OrientationLatLong.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/OrientationLatLong.jpg"> </a>
+              <a href=test_images/MultiResolution/OrientationLatLong.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/OrientationLatLong.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> OrientationLatLong.exr </b>
@@ -1729,7 +1729,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/PeriodicPattern.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/PeriodicPattern.jpg"> </a>
+              <a href=test_images/MultiResolution/PeriodicPattern.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/PeriodicPattern.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> PeriodicPattern.exr </b>
@@ -1750,7 +1750,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/StageEnvCube.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/StageEnvCube.jpg"> </a>
+              <a href=test_images/MultiResolution/StageEnvCube.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/StageEnvCube.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> StageEnvCube.exr </b>
@@ -1771,7 +1771,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/StageEnvLatLong.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/StageEnvLatLong.jpg"> </a>
+              <a href=test_images/MultiResolution/StageEnvLatLong.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/StageEnvLatLong.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> StageEnvLatLong.exr </b>
@@ -1792,7 +1792,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/WavyLinesCube.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/WavyLinesCube.jpg"> </a>
+              <a href=test_images/MultiResolution/WavyLinesCube.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/WavyLinesCube.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> WavyLinesCube.exr </b>
@@ -1824,7 +1824,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/WavyLinesLatLong.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/WavyLinesLatLong.jpg"> </a>
+              <a href=test_images/MultiResolution/WavyLinesLatLong.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/WavyLinesLatLong.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> WavyLinesLatLong.exr </b>
@@ -1856,7 +1856,7 @@ Regular Images
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=MultiResolution/WavyLinesSphere.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/WavyLinesSphere.jpg"> </a>
+              <a href=test_images/MultiResolution/WavyLinesSphere.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/MultiResolution/WavyLinesSphere.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> WavyLinesSphere.exr </b>
@@ -1902,7 +1902,7 @@ EXR.  The composited image has four separate parts.
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/Stereo/Balls.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/Stereo/Balls.jpg"> </a>
+              <a href=test_images/v2/Stereo/Balls.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/Stereo/Balls.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Balls.exr </b>
@@ -1916,7 +1916,7 @@ EXR.  The composited image has four separate parts.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/Stereo/Ground.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/Stereo/Ground.jpg"> </a>
+              <a href=test_images/v2/Stereo/Ground.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/Stereo/Ground.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Ground.exr </b>
@@ -1930,7 +1930,7 @@ EXR.  The composited image has four separate parts.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/Stereo/Leaves.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/Stereo/Leaves.jpg"> </a>
+              <a href=test_images/v2/Stereo/Leaves.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/Stereo/Leaves.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Leaves.exr </b>
@@ -1944,7 +1944,7 @@ EXR.  The composited image has four separate parts.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/Stereo/Trunks.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/Stereo/Trunks.jpg"> </a>
+              <a href=test_images/v2/Stereo/Trunks.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/Stereo/Trunks.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Trunks.exr </b>
@@ -1958,7 +1958,7 @@ EXR.  The composited image has four separate parts.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/Stereo/composited.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/Stereo/composited.jpg"> </a>
+              <a href=test_images/v2/Stereo/composited.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/Stereo/composited.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> composited.exr </b>
@@ -1993,7 +1993,7 @@ These images are the left view only of the above stereo images.
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/LeftView/Balls.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LeftView/Balls.jpg"> </a>
+              <a href=test_images/v2/LeftView/Balls.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LeftView/Balls.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Balls.exr </b>
@@ -2007,7 +2007,7 @@ These images are the left view only of the above stereo images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/LeftView/Ground.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LeftView/Ground.jpg"> </a>
+              <a href=test_images/v2/LeftView/Ground.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LeftView/Ground.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Ground.exr </b>
@@ -2021,7 +2021,7 @@ These images are the left view only of the above stereo images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/LeftView/Leaves.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LeftView/Leaves.jpg"> </a>
+              <a href=test_images/v2/LeftView/Leaves.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LeftView/Leaves.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Leaves.exr </b>
@@ -2035,7 +2035,7 @@ These images are the left view only of the above stereo images.
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/LeftView/Trunks.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LeftView/Trunks.jpg"> </a>
+              <a href=test_images/v2/LeftView/Trunks.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LeftView/Trunks.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Trunks.exr </b>
@@ -2073,7 +2073,7 @@ composited, flattened image, with no depth channel, as a regular
 
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/LowResLeftView/Balls.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LowResLeftView/Balls.jpg"> </a>
+              <a href=test_images/v2/LowResLeftView/Balls.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LowResLeftView/Balls.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Balls.exr </b>
@@ -2087,7 +2087,7 @@ composited, flattened image, with no depth channel, as a regular
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/LowResLeftView/Ground.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LowResLeftView/Ground.jpg"> </a>
+              <a href=test_images/v2/LowResLeftView/Ground.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LowResLeftView/Ground.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Ground.exr </b>
@@ -2101,7 +2101,7 @@ composited, flattened image, with no depth channel, as a regular
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/LowResLeftView/Leaves.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LowResLeftView/Leaves.jpg"> </a>
+              <a href=test_images/v2/LowResLeftView/Leaves.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LowResLeftView/Leaves.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Leaves.exr </b>
@@ -2115,7 +2115,7 @@ composited, flattened image, with no depth channel, as a regular
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/LowResLeftView/Trunks.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LowResLeftView/Trunks.jpg"> </a>
+              <a href=test_images/v2/LowResLeftView/Trunks.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LowResLeftView/Trunks.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> Trunks.exr </b>
@@ -2129,7 +2129,7 @@ composited, flattened image, with no depth channel, as a regular
      </tr>
      <tr>
           <td style="vertical-align: top; width:250px">
-              <a href=v2/LowResLeftView/composited.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LowResLeftView/composited.jpg"> </a>
+              <a href=test_images/v2/LowResLeftView/composited.html> <img width="250" src="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main/v2/LowResLeftView/composited.jpg"> </a>
           </td>
           <td style="vertical-align: top; width:250px">
             <b> composited.exr </b>
