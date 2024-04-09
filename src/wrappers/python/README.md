@@ -71,12 +71,14 @@ for more information.
 
 The "hello, world" image writer:
 
-    import OpenEXR
+    import OpenEXR, Imath
+    from array import array
     
     width = 10
     height = 10
     size = width * height
     
+    FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
     h = OpenEXR.Header(width,height)
     h['channels'] = {'R' : Imath.Channel(FLOAT),
                      'G' : Imath.Channel(FLOAT),
