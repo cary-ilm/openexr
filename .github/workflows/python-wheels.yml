@@ -63,6 +63,8 @@ jobs:
           # Also skip the PyPy builds, since they fail the unit tests
           CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
           CIBW_TEST_SKIP: "*-macosx*arm64"
+          CIBW_TEST_REQUIRES: pytest
+          CIBW_TEST_COMMAND: "pytest {project}/src/wrappers/python/tests"
 
       - name: Upload artifact
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
