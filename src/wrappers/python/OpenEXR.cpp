@@ -18,6 +18,35 @@ using namespace py::literals;
 
 namespace {
 
+class Channel 
+{
+public:
+
+    std::string           _name;
+    int                   _type;
+    std::vector<half>     _half;
+    std::vector<float>    _float;
+    std::vector<uint8_t>  _uint;
+};
+    
+class Part
+{
+public:
+    std::string           _name;
+    py::dict              _attributes;
+    int                   _type;
+    int                   _compression;
+    std::vector<Channel>  _channels;
+};
+
+class File 
+{
+public:
+    File(const std::string& filename);
+    
+    std::vector<Part>  _parts;
+};
+    
 class InputFile 
 {
   public:
@@ -149,7 +178,7 @@ realloc_deepdata (exr_decode_pipeline_t* decode)
 }
 
 bool
-readCoreScanlinePart (exr_context_t f, int part, bool reduceMemory = false, bool reduceTime = false) 
+readCoreScanlinePart (exr_context_t f, int part)
 {
     exr_result_t     rv, frv;
     exr_attr_box2i_t datawin;
@@ -180,8 +209,7 @@ readCoreScanlinePart (exr_context_t f, int part, bool reduceMemory = false, bool
         if (rv != EXR_ERR_SUCCESS)
         {
             frv = rv;
-            if (reduceTime) break;
-            continue;
+            break;
         }
 
         if (decoder.channels == NULL)
@@ -225,8 +253,7 @@ readCoreScanlinePart (exr_context_t f, int part, bool reduceMemory = false, bool
             if (rv != EXR_ERR_SUCCESS)
             {
                 frv = rv;
-                if (reduceTime) break;
-                continue;
+                break;
             }
         }
 
@@ -251,7 +278,7 @@ readCoreScanlinePart (exr_context_t f, int part, bool reduceMemory = false, bool
             if (rv != EXR_ERR_SUCCESS)
             {
                 frv = rv;
-                if (reduceTime) break;
+                break;
             }
         }
     }
@@ -264,7 +291,7 @@ readCoreScanlinePart (exr_context_t f, int part, bool reduceMemory = false, bool
 ////////////////////////////////////////
 
 bool
-readCoreTiledPart (exr_context_t f, int part, bool reduceMemory = false, bool reduceTime = false)
+readCoreTiledPart (exr_context_t f, int part)
     
 {
     exr_result_t rv, frv;
@@ -296,12 +323,8 @@ readCoreTiledPart (exr_context_t f, int part, bool reduceMemory = false, bool re
             if (rv != EXR_ERR_SUCCESS)
             {
                 frv = rv;
-                if (reduceTime)
-                {
-                    keepgoing = false;
-                    break;
-                }
-                continue;
+                keepgoing = false;
+                break;
             }
 
             int32_t curtw, curth;
@@ -309,12 +332,8 @@ readCoreTiledPart (exr_context_t f, int part, bool reduceMemory = false, bool re
             if (rv != EXR_ERR_SUCCESS)
             {
                 frv = rv;
-                if (reduceTime)
-                {
-                    keepgoing = false;
-                    break;
-                }
-                continue;
+                keepgoing = false;
+                break;
             }
 
             // we could make this over all levels but then would have to
@@ -339,12 +358,8 @@ readCoreTiledPart (exr_context_t f, int part, bool reduceMemory = false, bool re
                     if (rv != EXR_ERR_SUCCESS)
                     {
                         frv = rv;
-                        if (reduceTime)
-                        {
-                            keepgoing = false;
-                            break;
-                        }
-                        continue;
+                        keepgoing = false;
+                        break;
                     }
 
                     if (decoder.channels == NULL)
@@ -401,12 +416,8 @@ readCoreTiledPart (exr_context_t f, int part, bool reduceMemory = false, bool re
                         if (rv != EXR_ERR_SUCCESS)
                         {
                             frv = rv;
-                            if (reduceTime)
-                            {
-                                keepgoing = false;
-                                break;
-                            }
-                            continue;
+                            keepgoing = false;
+                            break;
                         }
                     }
 
@@ -434,11 +445,8 @@ readCoreTiledPart (exr_context_t f, int part, bool reduceMemory = false, bool re
                         if (rv != EXR_ERR_SUCCESS)
                         {
                             frv = rv;
-                            if (reduceTime)
-                            {
-                                keepgoing = false;
-                                break;
-                            }
+                            keepgoing = false;
+                            break;
                         }
                     }
                 }
@@ -466,28 +474,20 @@ lineorder_name(int lineorder)
     return "UNKNOWN";
 }
 
-InputFile::InputFile(std::string filename)
+py::object
+getAttribute(exr_context_t f, int32_t p, int32_t a, std::string& name) 
 {
     exr_result_t              rv;
-    exr_context_t             f;
-    exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
 
-    cinit.error_handler_fn = &core_error_handler_cb;
-
-    rv = exr_start_read (&f, filename.c_str(), &cinit);
+    const exr_attribute_t* attr;
+    rv = exr_get_attribute_by_index(f, p, EXR_ATTR_LIST_FILE_ORDER, a, &attr);
     if (rv != EXR_ERR_SUCCESS)
-        return;
+    {
+        name = "";
+        return py::none();
+    }
     
-    int numparts;
-        
-    rv = exr_get_count (f, &numparts);
-    if (rv != EXR_ERR_SUCCESS)
-        return;
-
-    _pyHeaders.resize(numparts);
-
-    bool reduceMemory = false;
-    bool reduceTime = false;
+    name = attr->name;
     
     py::module_ imath = py::module_::import("Imath");
     py::object V2i = imath.attr("V2i");
@@ -525,9 +525,239 @@ InputFile::InputFile(std::string filename)
     py::object HALF = PixelType("HALF");
     py::object FLOAT = PixelType("FLOAT");
     
+    switch (attr->type)
+    {
+    case EXR_ATTR_BOX2I:
+        return Box2i(V2i(attr->box2i->min.x, attr->box2i->min.y),
+                     V2i(attr->box2i->max.x, attr->box2i->max.y));
+    case EXR_ATTR_BOX2F:
+        return Box2f(V2f(attr->box2i->min.x, attr->box2i->min.y),
+                     V2f(attr->box2i->max.x, attr->box2i->max.y));
+    case EXR_ATTR_CHLIST:
+        {
+            auto l = py::list();
+            for (int c = 0; c < attr->chlist->num_channels; ++c)
+            {
+                        
+                auto e = attr->chlist->entries[c];
+                auto ll = py::list();
+                ll.append(py::str(e.name.str));
+                py::object p;
+                if (e.pixel_type == EXR_PIXEL_UINT)
+                    p = UINT;
+                else if (e.pixel_type == EXR_PIXEL_HALF)
+                    p = HALF;
+                else if (e.pixel_type == EXR_PIXEL_FLOAT)
+                    p = FLOAT;
+                else
+                    p = py::none();
+                auto x = py::int_(e.x_sampling);
+                auto y = py::int_(e.y_sampling);
+                ll.append(Channel(p, x, y));
+                l.append(ll);
+            }
+            return l;
+        }
+        break;
+    case EXR_ATTR_CHROMATICITIES:
+        return Chromaticities(chromaticity(attr->chromaticities->red_x,
+                                           attr->chromaticities->red_y),
+                              chromaticity(attr->chromaticities->green_x,
+                                           attr->chromaticities->green_y),
+                              chromaticity(attr->chromaticities->blue_x,
+                                           attr->chromaticities->blue_y),
+                              chromaticity(attr->chromaticities->white_x,
+                                           attr->chromaticities->white_y));
+        break;
+    case EXR_ATTR_COMPRESSION: {
+        {
+            static const char* compressionnames[] = {
+                "none",
+                "rle",
+                "zips",
+                "zip",
+                "piz",
+                "pxr24",
+                "b44",
+                "b44a",
+                "dwaa",
+                "dwab"};
+            return py::str(compressionnames[attr->uc]);
+        }
+        break;
+    }
+    case EXR_ATTR_DOUBLE:
+        return py::float_(attr->d);
+    case EXR_ATTR_ENVMAP:
+        return py::str(attr->uc == 0 ? "latlong" : "cube");
+    case EXR_ATTR_FLOAT:
+        return py::float_(attr->f);
+    case EXR_ATTR_FLOAT_VECTOR:
+        {
+            auto l = py::list();
+            for (int i = 0; i < attr->floatvector->length; ++i)
+                l.append(py::float_(attr->floatvector->arr[i]));
+            return l;
+        }
+        break;
+    case EXR_ATTR_INT:
+        return py::int_(attr->i);
+    case EXR_ATTR_KEYCODE:
+        return KeyCode(attr->keycode->film_mfc_code,
+                       attr->keycode->film_type,
+                       attr->keycode->prefix,
+                       attr->keycode->count,
+                       attr->keycode->perf_offset,
+                       attr->keycode->perfs_per_frame,
+                       attr->keycode->perfs_per_count);
+    case EXR_ATTR_LINEORDER:
+        return py::str(lineorder_name(attr->uc));
+    case EXR_ATTR_M33F:
+        return M33(attr->m33f->m[0],
+                   attr->m33f->m[1],
+                   attr->m33f->m[2],
+                   attr->m33f->m[3],
+                   attr->m33f->m[4],
+                   attr->m33f->m[5],
+                   attr->m33f->m[6],
+                   attr->m33f->m[7],
+                   attr->m33f->m[8]);
+    case EXR_ATTR_M33D:
+        return M33(attr->m33d->m[0],
+                     attr->m33d->m[1],
+                     attr->m33d->m[2],
+                     attr->m33d->m[3],
+                     attr->m33d->m[4],
+                     attr->m33d->m[5],
+                     attr->m33d->m[6],
+                     attr->m33d->m[7],
+                     attr->m33d->m[8]);
+    case EXR_ATTR_M44F:
+        return M44(attr->m44f->m[0],
+                   attr->m44f->m[1],
+                   attr->m44f->m[2],
+                   attr->m44f->m[3],
+                   attr->m44f->m[4],
+                   attr->m44f->m[5],
+                   attr->m44f->m[6],
+                   attr->m44f->m[7],
+                   attr->m44f->m[8],
+                   attr->m44f->m[9],
+                   attr->m44f->m[10],
+                   attr->m44f->m[11],
+                   attr->m44f->m[12],
+                   attr->m44f->m[13],
+                   attr->m44f->m[14],
+                   attr->m44f->m[15]);
+    case EXR_ATTR_M44D:
+        return M44(attr->m44d->m[0],
+                   attr->m44d->m[1],
+                   attr->m44d->m[2],
+                   attr->m44d->m[3],
+                   attr->m44d->m[4],
+                   attr->m44d->m[5],
+                   attr->m44d->m[6],
+                   attr->m44d->m[7],
+                   attr->m44d->m[8],
+                   attr->m44d->m[9],
+                   attr->m44d->m[10],
+                   attr->m44d->m[11],
+                   attr->m44d->m[12],
+                   attr->m44d->m[13],
+                   attr->m44d->m[14],
+                   attr->m44d->m[15]);
+    case EXR_ATTR_PREVIEW:
+        return PreviewImage(attr->preview->width, attr->preview->height, "");
+    case EXR_ATTR_RATIONAL:
+        {
+            auto l = py::list();
+            l.append(py::int_(attr->rational->num));
+            l.append(py::int_(attr->rational->denom));
+            return l;
+        }
+        break;
+    case EXR_ATTR_STRING:
+        return py::str(attr->string->str);
+        break;
+    case EXR_ATTR_STRING_VECTOR:
+        {
+            auto l = py::list();
+            for (int i = 0; i < attr->stringvector->n_strings; ++i)
+                l.append(py::str(attr->stringvector->strings[i].str));
+            return l;
+        }
+        break;
+    case EXR_ATTR_TILEDESC: {
+        {
+            auto lm = (uint8_t) EXR_GET_TILE_LEVEL_MODE (*(attr->tiledesc));
+            auto rm = (uint8_t) EXR_GET_TILE_ROUND_MODE (*(attr->tiledesc));
+            return TileDescription(attr->tiledesc->x_size,
+                                   attr->tiledesc->y_size,
+                                   LevelMode(lm), LevelRoundingMode(rm));
+        }
+        break;
+    }
+    case EXR_ATTR_TIMECODE:
+        {
+            auto t = OPENEXR_IMF_NAMESPACE::TimeCode(attr->timecode->time_and_flags,
+                                                     attr->timecode->user_data);
+            return TimeCode(t.hours(), t.minutes(), t.seconds(), t.frame(), t.dropFrame(), t.colorFrame(),
+                            t.fieldPhase(), t.bgf0(), t.bgf1(), t.bgf2(),
+                            t.binaryGroup(1),
+                            t.binaryGroup(2),
+                            t.binaryGroup(3),
+                            t.binaryGroup(4),
+                            t.binaryGroup(5),
+                            t.binaryGroup(6),
+                            t.binaryGroup(7),
+                            t.binaryGroup(8));
+        }
+        break;
+    case EXR_ATTR_V2I:
+        return V2i(attr->v2i->x, attr->v2i->y);
+    case EXR_ATTR_V2F:
+        return V2f(attr->v2f->x, attr->v2f->y);
+    case EXR_ATTR_V2D:
+        return V2d(attr->v2d->x, attr->v2d->y);
+    case EXR_ATTR_V3I:
+        return V3i(attr->v3i->x, attr->v3i->y, attr->v3i->z);
+    case EXR_ATTR_V3F:
+        return V3f(attr->v3f->x, attr->v3f->y, attr->v3f->z);
+    case EXR_ATTR_V3D:
+        return V3d(attr->v3d->x, attr->v3d->y, attr->v3d->z);
+    case EXR_ATTR_OPAQUE: 
+        return py::none();
+    case EXR_ATTR_UNKNOWN:
+    case EXR_ATTR_LAST_KNOWN_TYPE:
+    default: printf ("<ERROR Unknown type '%s'>", attr->type_name);
+        break;
+    }
+    return py::none();
+}
+
+File::File(const std::string& filename)
+{
+    exr_result_t              rv;
+    exr_context_t             f;
+    exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
+
+    cinit.error_handler_fn = &core_error_handler_cb;
+
+    rv = exr_start_read (&f, filename.c_str(), &cinit);
+    if (rv != EXR_ERR_SUCCESS)
+        return;
+    
+    int numparts;
+        
+    rv = exr_get_count (f, &numparts);
+    if (rv != EXR_ERR_SUCCESS)
+        return;
+
+    _parts.resize(numparts);
+    
     for (int p = 0; p < numparts; ++p)
     {
-        py::dict& h = _pyHeaders[p];
+        py::dict& h = _parts[p]._attributes;
 
         int32_t attrcount;
         rv = exr_get_attribute_count(f, p, &attrcount);
@@ -536,241 +766,11 @@ InputFile::InputFile(std::string filename)
 
         for (int32_t a = 0; a < attrcount; ++a)
         {
-            const exr_attribute_t* attr;
-            rv = exr_get_attribute_by_index(f, p, EXR_ATTR_LIST_FILE_ORDER, a, &attr);
-
-            switch (attr->type)
-            {
-            case EXR_ATTR_BOX2I:
-                h[attr->name] = Box2i(V2i(attr->box2i->min.x, attr->box2i->min.y),
-                                      V2i(attr->box2i->max.x, attr->box2i->max.y));
-                break;
-            case EXR_ATTR_BOX2F:
-                h[attr->name] = Box2f(V2f(attr->box2i->min.x, attr->box2i->min.y),
-                                      V2f(attr->box2i->max.x, attr->box2i->max.y));
-                break;
-            case EXR_ATTR_CHLIST:
-                {
-                    auto l = py::list();
-                    for (int c = 0; c < attr->chlist->num_channels; ++c)
-                    {
-                        
-                        auto e = attr->chlist->entries[c];
-                        auto ll = py::list();
-                        ll.append(py::str(e.name.str));
-                        py::object p;
-                        if (e.pixel_type == EXR_PIXEL_UINT)
-                            p = UINT;
-                        else if (e.pixel_type == EXR_PIXEL_HALF)
-                            p = HALF;
-                        else if (e.pixel_type == EXR_PIXEL_FLOAT)
-                            p = FLOAT;
-                        else
-                            p = py::none();
-                        auto x = py::int_(e.x_sampling);
-                        auto y = py::int_(e.y_sampling);
-                        ll.append(Channel(p, x, y));
-                        l.append(ll);
-                    }
-                    h[attr->name] = l;
-                }
-                break;
-            case EXR_ATTR_CHROMATICITIES:
-                h[attr->name] = Chromaticities(chromaticity(attr->chromaticities->red_x,
-                                                           attr->chromaticities->red_y),
-                                              chromaticity(attr->chromaticities->green_x,
-                                                           attr->chromaticities->green_y),
-                                              chromaticity(attr->chromaticities->blue_x,
-                                                           attr->chromaticities->blue_y),
-                                              chromaticity(attr->chromaticities->white_x,
-                                                           attr->chromaticities->white_y));
-                break;
-            case EXR_ATTR_COMPRESSION: {
-                static const char* compressionnames[] = {
-                    "none",
-                    "rle",
-                    "zips",
-                    "zip",
-                    "piz",
-                    "pxr24",
-                    "b44",
-                    "b44a",
-                    "dwaa",
-                    "dwab"};
-                h[attr->name] = py::str(compressionnames[attr->uc]);
-                break;
-            }
-            case EXR_ATTR_DOUBLE:
-                h[attr->name] = py::float_(attr->d);
-                break;
-            case EXR_ATTR_ENVMAP:
-                h[attr->name] = py::str(attr->uc == 0 ? "latlong" : "cube");
-                break;
-            case EXR_ATTR_FLOAT:
-                h[attr->name] = py::float_(attr->f);
-                break;
-            case EXR_ATTR_FLOAT_VECTOR:
-                {
-                    auto l = py::list();
-                    for (int i = 0; i < attr->floatvector->length; ++i)
-                        l.append(py::float_(attr->floatvector->arr[i]));
-                    h[attr->name] = l;
-                }
-                break;
-            case EXR_ATTR_INT:
-                h[attr->name] = py::int_(attr->i);
-                break;
-            case EXR_ATTR_KEYCODE:
-                h[attr->name] = KeyCode(
-                    attr->keycode->film_mfc_code,
-                    attr->keycode->film_type,
-                    attr->keycode->prefix,
-                    attr->keycode->count,
-                    attr->keycode->perf_offset,
-                    attr->keycode->perfs_per_frame,
-                    attr->keycode->perfs_per_count);
-                break;
-            case EXR_ATTR_LINEORDER:
-                h[attr->name] = py::str(lineorder_name(attr->uc));
-                break;
-            case EXR_ATTR_M33F:
-                h[attr->name] = M33(
-                    attr->m33f->m[0],
-                    attr->m33f->m[1],
-                    attr->m33f->m[2],
-                    attr->m33f->m[3],
-                    attr->m33f->m[4],
-                    attr->m33f->m[5],
-                    attr->m33f->m[6],
-                    attr->m33f->m[7],
-                    attr->m33f->m[8]);
-                break;
-            case EXR_ATTR_M33D:
-                h[attr->name] = M33(
-                    attr->m33d->m[0],
-                    attr->m33d->m[1],
-                    attr->m33d->m[2],
-                    attr->m33d->m[3],
-                    attr->m33d->m[4],
-                    attr->m33d->m[5],
-                    attr->m33d->m[6],
-                    attr->m33d->m[7],
-                    attr->m33d->m[8]);
-                break;
-            case EXR_ATTR_M44F:
-                h[attr->name] = M44(
-                     attr->m44f->m[0],
-                     attr->m44f->m[1],
-                     attr->m44f->m[2],
-                     attr->m44f->m[3],
-                     attr->m44f->m[4],
-                     attr->m44f->m[5],
-                     attr->m44f->m[6],
-                     attr->m44f->m[7],
-                     attr->m44f->m[8],
-                     attr->m44f->m[9],
-                     attr->m44f->m[10],
-                     attr->m44f->m[11],
-                     attr->m44f->m[12],
-                     attr->m44f->m[13],
-                     attr->m44f->m[14],
-                     attr->m44f->m[15]);
-                break;
-            case EXR_ATTR_M44D:
-                h[attr->name] = M44(
-                    attr->m44d->m[0],
-                    attr->m44d->m[1],
-                    attr->m44d->m[2],
-                    attr->m44d->m[3],
-                    attr->m44d->m[4],
-                    attr->m44d->m[5],
-                    attr->m44d->m[6],
-                    attr->m44d->m[7],
-                    attr->m44d->m[8],
-                    attr->m44d->m[9],
-                    attr->m44d->m[10],
-                    attr->m44d->m[11],
-                    attr->m44d->m[12],
-                    attr->m44d->m[13],
-                    attr->m44d->m[14],
-                    attr->m44d->m[15]);
-                break;
-            case EXR_ATTR_PREVIEW:
-                h[attr->name] = PreviewImage(attr->preview->width, attr->preview->height, "");
-                break;
-            case EXR_ATTR_RATIONAL:
-                {
-                    auto l = py::list();
-                    l.append(py::int_(attr->rational->num));
-                    l.append(py::int_(attr->rational->denom));
-                    h[attr->name] = l;
-                }
-                break;
-            case EXR_ATTR_STRING:
-                h[attr->name] = py::str(attr->string->str);
-                break;
-            case EXR_ATTR_STRING_VECTOR:
-                {
-                    auto l = py::list();
-                    for (int i = 0; i < attr->stringvector->n_strings; ++i)
-                        l.append(py::str(attr->stringvector->strings[i].str));
-                    h[attr->name] = l;
-                }
-            case EXR_ATTR_TILEDESC: {
-                {
-                    auto lm = (uint8_t) EXR_GET_TILE_LEVEL_MODE (*(attr->tiledesc));
-                    auto rm = (uint8_t) EXR_GET_TILE_ROUND_MODE (*(attr->tiledesc));
-                    h[attr->name] = TileDescription(attr->tiledesc->x_size,
-                                                    attr->tiledesc->y_size,
-                                                    LevelMode(lm), LevelRoundingMode(rm));
-                }
-                break;
-            }
-            case EXR_ATTR_TIMECODE:
-                {
-                    auto t = OPENEXR_IMF_NAMESPACE::TimeCode(attr->timecode->time_and_flags,
-                                                             attr->timecode->user_data);
-                    h[attr->name] = TimeCode(t.hours(), t.minutes(), t.seconds(), t.frame(), t.dropFrame(), t.colorFrame(),
-                                             t.fieldPhase(), t.bgf0(), t.bgf1(), t.bgf2(),
-                                             t.binaryGroup(1),
-                                             t.binaryGroup(2),
-                                             t.binaryGroup(3),
-                                             t.binaryGroup(4),
-                                             t.binaryGroup(5),
-                                             t.binaryGroup(6),
-                                             t.binaryGroup(7),
-                                             t.binaryGroup(8));
-                }
-                break;
-            case EXR_ATTR_V2I:
-                h[attr->name] = V2i(attr->v2i->x, attr->v2i->y);
-                break;
-            case EXR_ATTR_V2F:
-                h[attr->name] = V2f(attr->v2f->x, attr->v2f->y);
-                break;
-            case EXR_ATTR_V2D:
-                h[attr->name] = V2d(attr->v2d->x, attr->v2d->y);
-                break;
-            case EXR_ATTR_V3I:
-                h[attr->name] = V3i(attr->v3i->x, attr->v3i->y, attr->v3i->z);
-                break;
-            case EXR_ATTR_V3F:
-                h[attr->name] = V3f(attr->v3f->x, attr->v3f->y, attr->v3f->z);
-                break;
-            case EXR_ATTR_V3D:
-                h[attr->name] = V3d(attr->v3d->x, attr->v3d->y, attr->v3d->z);
-                break;
-            case EXR_ATTR_OPAQUE: {
-                h[attr->name] = py::none();
-                break;
-            }
-            case EXR_ATTR_UNKNOWN:
-            case EXR_ATTR_LAST_KNOWN_TYPE:
-            default: printf ("<ERROR Unknown type '%s'>", attr->type_name);
-                break;
-            }
+            std::string name;
+            py::object attr = getAttribute(f, p, a, name);
+            h[name.c_str()] = attr;
         }
-        
+
         exr_storage_t store;
         rv = exr_get_storage (f, p, &store);
         if (rv != EXR_ERR_SUCCESS)
@@ -778,19 +778,17 @@ InputFile::InputFile(std::string filename)
 
         if (store == EXR_STORAGE_SCANLINE || store == EXR_STORAGE_DEEP_SCANLINE)
         {
-            if (readCoreScanlinePart (f, p, reduceMemory, reduceTime))
+            if (readCoreScanlinePart (f, p))
                 return;
         }
         else if (store == EXR_STORAGE_TILED || store == EXR_STORAGE_DEEP_TILED)
         {
-            if (readCoreTiledPart (f, p, reduceMemory, reduceTime))
+            if (readCoreTiledPart (f, p))
                 return;
         }
     }
-    
-    exr_finish (&f);
 }
-    
+
 class OutputFile
 {
   public:
@@ -837,6 +835,9 @@ PYBIND11_MODULE(OpenEXRp11, m)
         return makeHeader(width, height);
     });
           
+    auto f = py::class_<File>(m, "File");
+    f.def(py::init<std::string>());
+
     auto ifile = py::class_<InputFile>(m, "InputFile");
     ifile.def(py::init<std::string>());
 
@@ -2415,3 +2416,326 @@ MOD_INIT (OpenEXR)
 }
 
 #endif
+
+InputFile::InputFile(std::string filename)
+{
+    exr_result_t              rv;
+    exr_context_t             f;
+    exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
+
+    cinit.error_handler_fn = &core_error_handler_cb;
+
+    rv = exr_start_read (&f, filename.c_str(), &cinit);
+    if (rv != EXR_ERR_SUCCESS)
+        return;
+    
+    int numparts;
+        
+    rv = exr_get_count (f, &numparts);
+    if (rv != EXR_ERR_SUCCESS)
+        return;
+
+    _pyHeaders.resize(numparts);
+
+    py::module_ imath = py::module_::import("Imath");
+    py::object V2i = imath.attr("V2i");
+    py::object V2f = imath.attr("V2f");
+    py::object V2d = imath.attr("V2d");
+    py::object V3i = imath.attr("V3i");
+    py::object V3f = imath.attr("V3f");
+    py::object V3d = imath.attr("V3d");
+    py::object Box2i = imath.attr("Box2i");
+    py::object Box2f = imath.attr("Box2f");
+    py::object Box2d = imath.attr("Box2d");
+    py::object Box3f = imath.attr("Box3f");
+    py::object Box3d = imath.attr("Box3d");
+    py::object M33 = imath.attr("M33");
+    py::object M44 = imath.attr("M44");
+    py::object chromaticity = imath.attr("chromaticity");
+    py::object Chromaticities = imath.attr("Chromaticities");
+    py::object KeyCode = imath.attr("KeyCode");
+    py::object TimeCode = imath.attr("TimeCode");
+    py::object Rational = imath.attr("Rational");
+    py::object LineOrder = imath.attr("LineOrder");
+    py::object Compression = imath.attr("Compression");
+    py::object Channel = imath.attr("Channel");
+    py::object LevelMode = imath.attr("LevelMode");
+    py::object ONE_LEVEL = LevelMode("ONE_LEVEL");
+    py::object MIPMAP_LEVEL = LevelMode("MIPMAP_LEVELS");
+    py::object RIPMAP_LEVEL = LevelMode("RIPMAP_LEVELS");
+    py::object LevelRoundingMode = imath.attr("LevelRoundingMode");
+    py::object ROUND_UP = LevelMode("ROUND_UP");
+    py::object ROUND_DOWN = LevelMode("ROUND_DOWN");
+    py::object TileDescription = imath.attr("TileDescription");
+    py::object PreviewImage = imath.attr("PreviewImage");
+    py::object PixelType = imath.attr("PixelType");
+    py::object UINT = PixelType("UINT");
+    py::object HALF = PixelType("HALF");
+    py::object FLOAT = PixelType("FLOAT");
+    
+    for (int p = 0; p < numparts; ++p)
+    {
+        py::dict& h = _pyHeaders[p];
+
+        int32_t attrcount;
+        rv = exr_get_attribute_count(f, p, &attrcount);
+        if (rv != EXR_ERR_SUCCESS)
+            return;
+
+        for (int32_t a = 0; a < attrcount; ++a)
+        {
+            const exr_attribute_t* attr;
+            rv = exr_get_attribute_by_index(f, p, EXR_ATTR_LIST_FILE_ORDER, a, &attr);
+
+            switch (attr->type)
+            {
+            case EXR_ATTR_BOX2I:
+                h[attr->name] = Box2i(V2i(attr->box2i->min.x, attr->box2i->min.y),
+                                      V2i(attr->box2i->max.x, attr->box2i->max.y));
+                break;
+            case EXR_ATTR_BOX2F:
+                h[attr->name] = Box2f(V2f(attr->box2i->min.x, attr->box2i->min.y),
+                                      V2f(attr->box2i->max.x, attr->box2i->max.y));
+                break;
+            case EXR_ATTR_CHLIST:
+                {
+                    auto l = py::list();
+                    for (int c = 0; c < attr->chlist->num_channels; ++c)
+                    {
+                        
+                        auto e = attr->chlist->entries[c];
+                        auto ll = py::list();
+                        ll.append(py::str(e.name.str));
+                        py::object p;
+                        if (e.pixel_type == EXR_PIXEL_UINT)
+                            p = UINT;
+                        else if (e.pixel_type == EXR_PIXEL_HALF)
+                            p = HALF;
+                        else if (e.pixel_type == EXR_PIXEL_FLOAT)
+                            p = FLOAT;
+                        else
+                            p = py::none();
+                        auto x = py::int_(e.x_sampling);
+                        auto y = py::int_(e.y_sampling);
+                        ll.append(Channel(p, x, y));
+                        l.append(ll);
+                    }
+                    h[attr->name] = l;
+                }
+                break;
+            case EXR_ATTR_CHROMATICITIES:
+                h[attr->name] = Chromaticities(chromaticity(attr->chromaticities->red_x,
+                                                           attr->chromaticities->red_y),
+                                              chromaticity(attr->chromaticities->green_x,
+                                                           attr->chromaticities->green_y),
+                                              chromaticity(attr->chromaticities->blue_x,
+                                                           attr->chromaticities->blue_y),
+                                              chromaticity(attr->chromaticities->white_x,
+                                                           attr->chromaticities->white_y));
+                break;
+            case EXR_ATTR_COMPRESSION: {
+                static const char* compressionnames[] = {
+                    "none",
+                    "rle",
+                    "zips",
+                    "zip",
+                    "piz",
+                    "pxr24",
+                    "b44",
+                    "b44a",
+                    "dwaa",
+                    "dwab"};
+                h[attr->name] = py::str(compressionnames[attr->uc]);
+                break;
+            }
+            case EXR_ATTR_DOUBLE:
+                h[attr->name] = py::float_(attr->d);
+                break;
+            case EXR_ATTR_ENVMAP:
+                h[attr->name] = py::str(attr->uc == 0 ? "latlong" : "cube");
+                break;
+            case EXR_ATTR_FLOAT:
+                h[attr->name] = py::float_(attr->f);
+                break;
+            case EXR_ATTR_FLOAT_VECTOR:
+                {
+                    auto l = py::list();
+                    for (int i = 0; i < attr->floatvector->length; ++i)
+                        l.append(py::float_(attr->floatvector->arr[i]));
+                    h[attr->name] = l;
+                }
+                break;
+            case EXR_ATTR_INT:
+                h[attr->name] = py::int_(attr->i);
+                break;
+            case EXR_ATTR_KEYCODE:
+                h[attr->name] = KeyCode(
+                    attr->keycode->film_mfc_code,
+                    attr->keycode->film_type,
+                    attr->keycode->prefix,
+                    attr->keycode->count,
+                    attr->keycode->perf_offset,
+                    attr->keycode->perfs_per_frame,
+                    attr->keycode->perfs_per_count);
+                break;
+            case EXR_ATTR_LINEORDER:
+                h[attr->name] = py::str(lineorder_name(attr->uc));
+                break;
+            case EXR_ATTR_M33F:
+                h[attr->name] = M33(
+                    attr->m33f->m[0],
+                    attr->m33f->m[1],
+                    attr->m33f->m[2],
+                    attr->m33f->m[3],
+                    attr->m33f->m[4],
+                    attr->m33f->m[5],
+                    attr->m33f->m[6],
+                    attr->m33f->m[7],
+                    attr->m33f->m[8]);
+                break;
+            case EXR_ATTR_M33D:
+                h[attr->name] = M33(
+                    attr->m33d->m[0],
+                    attr->m33d->m[1],
+                    attr->m33d->m[2],
+                    attr->m33d->m[3],
+                    attr->m33d->m[4],
+                    attr->m33d->m[5],
+                    attr->m33d->m[6],
+                    attr->m33d->m[7],
+                    attr->m33d->m[8]);
+                break;
+            case EXR_ATTR_M44F:
+                h[attr->name] = M44(
+                     attr->m44f->m[0],
+                     attr->m44f->m[1],
+                     attr->m44f->m[2],
+                     attr->m44f->m[3],
+                     attr->m44f->m[4],
+                     attr->m44f->m[5],
+                     attr->m44f->m[6],
+                     attr->m44f->m[7],
+                     attr->m44f->m[8],
+                     attr->m44f->m[9],
+                     attr->m44f->m[10],
+                     attr->m44f->m[11],
+                     attr->m44f->m[12],
+                     attr->m44f->m[13],
+                     attr->m44f->m[14],
+                     attr->m44f->m[15]);
+                break;
+            case EXR_ATTR_M44D:
+                h[attr->name] = M44(
+                    attr->m44d->m[0],
+                    attr->m44d->m[1],
+                    attr->m44d->m[2],
+                    attr->m44d->m[3],
+                    attr->m44d->m[4],
+                    attr->m44d->m[5],
+                    attr->m44d->m[6],
+                    attr->m44d->m[7],
+                    attr->m44d->m[8],
+                    attr->m44d->m[9],
+                    attr->m44d->m[10],
+                    attr->m44d->m[11],
+                    attr->m44d->m[12],
+                    attr->m44d->m[13],
+                    attr->m44d->m[14],
+                    attr->m44d->m[15]);
+                break;
+            case EXR_ATTR_PREVIEW:
+                h[attr->name] = PreviewImage(attr->preview->width, attr->preview->height, "");
+                break;
+            case EXR_ATTR_RATIONAL:
+                {
+                    auto l = py::list();
+                    l.append(py::int_(attr->rational->num));
+                    l.append(py::int_(attr->rational->denom));
+                    h[attr->name] = l;
+                }
+                break;
+            case EXR_ATTR_STRING:
+                h[attr->name] = py::str(attr->string->str);
+                break;
+            case EXR_ATTR_STRING_VECTOR:
+                {
+                    auto l = py::list();
+                    for (int i = 0; i < attr->stringvector->n_strings; ++i)
+                        l.append(py::str(attr->stringvector->strings[i].str));
+                    h[attr->name] = l;
+                }
+            case EXR_ATTR_TILEDESC: {
+                {
+                    auto lm = (uint8_t) EXR_GET_TILE_LEVEL_MODE (*(attr->tiledesc));
+                    auto rm = (uint8_t) EXR_GET_TILE_ROUND_MODE (*(attr->tiledesc));
+                    h[attr->name] = TileDescription(attr->tiledesc->x_size,
+                                                    attr->tiledesc->y_size,
+                                                    LevelMode(lm), LevelRoundingMode(rm));
+                }
+                break;
+            }
+            case EXR_ATTR_TIMECODE:
+                {
+                    auto t = OPENEXR_IMF_NAMESPACE::TimeCode(attr->timecode->time_and_flags,
+                                                             attr->timecode->user_data);
+                    h[attr->name] = TimeCode(t.hours(), t.minutes(), t.seconds(), t.frame(), t.dropFrame(), t.colorFrame(),
+                                             t.fieldPhase(), t.bgf0(), t.bgf1(), t.bgf2(),
+                                             t.binaryGroup(1),
+                                             t.binaryGroup(2),
+                                             t.binaryGroup(3),
+                                             t.binaryGroup(4),
+                                             t.binaryGroup(5),
+                                             t.binaryGroup(6),
+                                             t.binaryGroup(7),
+                                             t.binaryGroup(8));
+                }
+                break;
+            case EXR_ATTR_V2I:
+                h[attr->name] = V2i(attr->v2i->x, attr->v2i->y);
+                break;
+            case EXR_ATTR_V2F:
+                h[attr->name] = V2f(attr->v2f->x, attr->v2f->y);
+                break;
+            case EXR_ATTR_V2D:
+                h[attr->name] = V2d(attr->v2d->x, attr->v2d->y);
+                break;
+            case EXR_ATTR_V3I:
+                h[attr->name] = V3i(attr->v3i->x, attr->v3i->y, attr->v3i->z);
+                break;
+            case EXR_ATTR_V3F:
+                h[attr->name] = V3f(attr->v3f->x, attr->v3f->y, attr->v3f->z);
+                break;
+            case EXR_ATTR_V3D:
+                h[attr->name] = V3d(attr->v3d->x, attr->v3d->y, attr->v3d->z);
+                break;
+            case EXR_ATTR_OPAQUE: {
+                h[attr->name] = py::none();
+                break;
+            }
+            case EXR_ATTR_UNKNOWN:
+            case EXR_ATTR_LAST_KNOWN_TYPE:
+            default: printf ("<ERROR Unknown type '%s'>", attr->type_name);
+                break;
+            }
+        }
+        
+        exr_storage_t store;
+        rv = exr_get_storage (f, p, &store);
+        if (rv != EXR_ERR_SUCCESS)
+            return;
+
+        if (store == EXR_STORAGE_SCANLINE || store == EXR_STORAGE_DEEP_SCANLINE)
+        {
+            if (readCoreScanlinePart (f, p))
+                return;
+        }
+        else if (store == EXR_STORAGE_TILED || store == EXR_STORAGE_DEEP_TILED)
+        {
+            if (readCoreTiledPart (f, p))
+                return;
+        }
+    }
+    
+    exr_finish (&f);
+}
+    
