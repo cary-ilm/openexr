@@ -32,6 +32,17 @@ public:
 class Part
 {
 public:
+    Part() :
+        _type (0),
+        _compression (0)
+    {
+    }
+        
+    const py::dict& attributes() const 
+    {
+        return _attributes;
+    }
+    
     std::string           _name;
     py::dict              _attributes;
     int                   _type;
@@ -43,6 +54,22 @@ class File
 {
 public:
     File(const std::string& filename);
+    
+    const py::list parts() 
+    {
+        const py::list l = py::cast(_parts);
+        return l;
+    }
+    
+    int numparts() const 
+    {
+        return _parts.size();
+    }
+
+    const py::dict& attributes() const 
+    {
+        return _parts[0]._attributes;
+    }
     
     std::vector<Part>  _parts;
 };
@@ -835,13 +862,20 @@ PYBIND11_MODULE(OpenEXRp11, m)
         return makeHeader(width, height);
     });
           
-    auto f = py::class_<File>(m, "File");
-    f.def(py::init<std::string>());
+    auto P = py::class_<Part>(m, "Part");
+    P.def(py::init());
+    P.def("attributes", &Part::attributes);
+
+    auto F = py::class_<File>(m, "File");
+    F.def(py::init<std::string>());
+    F.def("numparts", &File::numparts);
+    F.def("parts", &File::parts);
+    F.def("attributes", &File::attributes);
 
     auto ifile = py::class_<InputFile>(m, "InputFile");
     ifile.def(py::init<std::string>());
 
-    ifile.def("parts", &InputFile::numparts);
+    ifile.def("numparts", &InputFile::numparts);
 
     ifile.def("header", [](InputFile& self) -> py::object
     {
