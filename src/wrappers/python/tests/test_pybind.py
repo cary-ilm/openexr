@@ -19,19 +19,22 @@ print(f"OpenEXR: {OpenEXR.__version__} {OpenEXR.__file__}")
 filename = "test.exr"
 filename = "multipart.exr"
 i = OpenEXR.File(filename)
-print(f"numparts: {i.numparts()}")
 print(f"parts:")
 parts = i.parts()
 for p in parts:
     print(f"  part: {p}")
-    h = p.attributes()
+    h = p.header()
     for a in h:
-        print(f"    {a} {h[a]}")
+        print(f"    {a}: {h[a]}")
 
     
-print(f"attributes:")
-h = i.attributes()
+print(f"header:")
+h = i.header()
 for a in h:
-    print(f"  {a} {h[a]}")
+    print(f"  {a}: {h[a]}")
+
+print(f"channels:")
+for c in i.channels():
+    print(f"  {c.name()}: {c.type()}")
 
 print("ok")

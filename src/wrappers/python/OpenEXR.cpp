@@ -10,6 +10,7 @@
 
 #include "openexr.h"
 
+#include <ImfCompression.h>
 #include <ImfTimeCodeAttribute.h>
 #include <ImfPixelType.h>
 
@@ -22,8 +23,17 @@ class Channel
 {
 public:
 
+    Channel() : _type(0) {}
+    
+    const std::string& name() { return _name; }
+    int                type() { return _type; }
+    int                xsamples() { return _xsamples; }
+    int                ysamples() { return _ysamples; }
+    
     std::string           _name;
     int                   _type;
+    int                   _xsamples;
+    int                   _ysamples;
     std::vector<half>     _half;
     std::vector<float>    _float;
     std::vector<uint8_t>  _uint;
@@ -32,21 +42,18 @@ public:
 class Part
 {
 public:
-    Part() :
-        _type (0),
-        _compression (0)
-    {
-    }
+    Part() : _type(0), _compression (0) {}
         
-    const py::dict& attributes() const 
-    {
-        return _attributes;
-    }
-    
+    const std::string& name() { return _name; }
+    int                type() const { return _type; }
+    int                compression() const { return _compression; }
+    const py::dict&    header() const { return _header; }
+    py::list           channels() const { return py::cast(_channels); }
+
     std::string           _name;
-    py::dict              _attributes;
     int                   _type;
     int                   _compression;
+    py::dict              _header;
     std::vector<Channel>  _channels;
 };
 
@@ -55,21 +62,9 @@ class File
 public:
     File(const std::string& filename);
     
-    const py::list parts() 
-    {
-        const py::list l = py::cast(_parts);
-        return l;
-    }
-    
-    int numparts() const 
-    {
-        return _parts.size();
-    }
-
-    const py::dict& attributes() const 
-    {
-        return _parts[0]._attributes;
-    }
+    py::list        parts() const { return py::cast(_parts); }
+    const py::dict& header() const { return _parts[0].header(); }
+    py::list        channels() const { return _parts[0].channels(); }
     
     std::vector<Part>  _parts;
 };
@@ -205,7 +200,7 @@ realloc_deepdata (exr_decode_pipeline_t* decode)
 }
 
 bool
-readCoreScanlinePart (exr_context_t f, int part)
+readCoreScanlinePart (exr_context_t f, int part, Part& P)
 {
     exr_result_t     rv, frv;
     exr_attr_box2i_t datawin;
@@ -244,6 +239,8 @@ readCoreScanlinePart (exr_context_t f, int part)
             rv = exr_decoding_initialize (f, part, &cinfo, &decoder);
             if (rv != EXR_ERR_SUCCESS) break;
 
+            P._channels.resize(decoder.channel_count);
+            
             uint64_t bytes = 0;
             for (int c = 0; c < decoder.channel_count; c++)
             {
@@ -254,6 +251,9 @@ readCoreScanlinePart (exr_context_t f, int part)
                 outc.user_line_stride  = outc.user_pixel_stride * width;
                 bytes += width * (uint64_t) outc.user_bytes_per_element *
                          (uint64_t) lines_per_chunk;
+
+                P._channels[c]._name = outc.channel_name;
+                P._channels[c]._type = outc.data_type;
             }
 
             doread = true;
@@ -318,7 +318,7 @@ readCoreScanlinePart (exr_context_t f, int part)
 ////////////////////////////////////////
 
 bool
-readCoreTiledPart (exr_context_t f, int part)
+readCoreTiledPart (exr_context_t f, int part, Part& P)
     
 {
     exr_result_t rv, frv;
@@ -784,7 +784,7 @@ File::File(const std::string& filename)
     
     for (int p = 0; p < numparts; ++p)
     {
-        py::dict& h = _parts[p]._attributes;
+        py::dict& h = _parts[p]._header;
 
         int32_t attrcount;
         rv = exr_get_attribute_count(f, p, &attrcount);
@@ -805,12 +805,12 @@ File::File(const std::string& filename)
 
         if (store == EXR_STORAGE_SCANLINE || store == EXR_STORAGE_DEEP_SCANLINE)
         {
-            if (readCoreScanlinePart (f, p))
+            if (readCoreScanlinePart (f, p, _parts[p]))
                 return;
         }
         else if (store == EXR_STORAGE_TILED || store == EXR_STORAGE_DEEP_TILED)
         {
-            if (readCoreTiledPart (f, p))
+            if (readCoreTiledPart (f, p, _parts[p]))
                 return;
         }
     }
@@ -857,21 +857,53 @@ PYBIND11_MODULE(OpenEXRp11, m)
     m.doc() = "openexrp11 doc";
     m.attr("__version__") = OPENEXR_VERSION_STRING;
 
+#if XXX
+    m.value("UINT", EXR_PIXEL_UINT);
+    m.value("HALF", EXR_PIXEL_HALF);
+    m.value("FLOAT", EXR_PIXEL_FLOAT);
+    m.export_values();
+#endif
+    
+    auto c = py::enum_<OPENEXR_IMF_NAMESPACE::Compression>(m, "Compression");
+    c.value("NO_COMPRESSION", OPENEXR_IMF_NAMESPACE::NO_COMPRESSION);
+    c.value("RLE_COMPRESSION", OPENEXR_IMF_NAMESPACE::RLE_COMPRESSION);
+    c.value("ZIPS_COMPRESSION", OPENEXR_IMF_NAMESPACE::ZIPS_COMPRESSION);
+    c.value("ZIP_COMPRESSION", OPENEXR_IMF_NAMESPACE::ZIP_COMPRESSION);
+    c.value("PIZ_COMPRESSION", OPENEXR_IMF_NAMESPACE::PIZ_COMPRESSION);
+    c.value("PXR24_COMPRESSION", OPENEXR_IMF_NAMESPACE::PXR24_COMPRESSION);
+    c.value("B44_COMPRESSION", OPENEXR_IMF_NAMESPACE::B44_COMPRESSION);
+    c.value("B44A_COMPRESSION", OPENEXR_IMF_NAMESPACE::B44A_COMPRESSION);
+    c.value("DWAA_COMPRESSION", OPENEXR_IMF_NAMESPACE::DWAA_COMPRESSION);
+    c.value("DWAB_COMPRESSION", OPENEXR_IMF_NAMESPACE::DWAB_COMPRESSION);
+    c.value("NUM_COMPRESSION_METHODS", OPENEXR_IMF_NAMESPACE::NUM_COMPRESSION_METHODS);
+    c.export_values();
+
+    auto C = py::class_<Channel>(m, "Channel");
+    C.def(py::init());
+    C.def("name", &Channel::name);
+    C.def("type", &Channel::type);
+    C.def("xsamples", &Channel::xsamples);
+    C.def("ysamples", &Channel::ysamples);
+
+    auto P = py::class_<Part>(m, "Part");
+    P.def(py::init());
+    P.def("name", &Part::name);
+    P.def("type", &Part::type);
+    P.def("compression", &Part::compression);
+    P.def("header", &Part::header);
+    P.def("channels", &Part::channels);
+
+    auto F = py::class_<File>(m, "File");
+    F.def(py::init<std::string>());
+    F.def("parts", &File::parts);
+    F.def("header", &File::header);
+    F.def("channels", &File::channels);
+
     m.def("Header", [](int width, int height) -> py::object
     {
         return makeHeader(width, height);
     });
           
-    auto P = py::class_<Part>(m, "Part");
-    P.def(py::init());
-    P.def("attributes", &Part::attributes);
-
-    auto F = py::class_<File>(m, "File");
-    F.def(py::init<std::string>());
-    F.def("numparts", &File::numparts);
-    F.def("parts", &File::parts);
-    F.def("attributes", &File::attributes);
-
     auto ifile = py::class_<InputFile>(m, "InputFile");
     ifile.def(py::init<std::string>());
 
@@ -925,7 +957,6 @@ PYBIND11_MODULE(OpenEXRp11, m)
     m.attr("FLOAT") = static_cast<int> (OPENEXR_IMF_NAMESPACE::FLOAT);
     m.attr("HALF") = static_cast<int> (OPENEXR_IMF_NAMESPACE::HALF);
     m.attr("UINT") = static_cast<int> (OPENEXR_IMF_NAMESPACE::UINT);
-
 }
 
 #if XXX
@@ -2760,12 +2791,14 @@ InputFile::InputFile(std::string filename)
 
         if (store == EXR_STORAGE_SCANLINE || store == EXR_STORAGE_DEEP_SCANLINE)
         {
-            if (readCoreScanlinePart (f, p))
+            Part P;
+            if (readCoreScanlinePart (f, p, P))
                 return;
         }
         else if (store == EXR_STORAGE_TILED || store == EXR_STORAGE_DEEP_TILED)
         {
-            if (readCoreTiledPart (f, p))
+            Part P;
+            if (readCoreTiledPart (f, p, P))
                 return;
         }
     }
