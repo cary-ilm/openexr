@@ -10,9 +10,12 @@
 
 #include "openexr.h"
 
-#include <ImfCompression.h>
 #include <ImfTimeCodeAttribute.h>
+#include <ImfCompression.h>
 #include <ImfPixelType.h>
+#include <ImfTileDescription.h>
+#include <ImfRational.h>
+#include <ImfKeyCode.h>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -857,26 +860,54 @@ PYBIND11_MODULE(OpenEXRp11, m)
     m.doc() = "openexrp11 doc";
     m.attr("__version__") = OPENEXR_VERSION_STRING;
 
-#if XXX
-    m.value("UINT", EXR_PIXEL_UINT);
-    m.value("HALF", EXR_PIXEL_HALF);
-    m.value("FLOAT", EXR_PIXEL_FLOAT);
-    m.export_values();
-#endif
-    
-    auto c = py::enum_<OPENEXR_IMF_NAMESPACE::Compression>(m, "Compression");
-    c.value("NO_COMPRESSION", OPENEXR_IMF_NAMESPACE::NO_COMPRESSION);
-    c.value("RLE_COMPRESSION", OPENEXR_IMF_NAMESPACE::RLE_COMPRESSION);
-    c.value("ZIPS_COMPRESSION", OPENEXR_IMF_NAMESPACE::ZIPS_COMPRESSION);
-    c.value("ZIP_COMPRESSION", OPENEXR_IMF_NAMESPACE::ZIP_COMPRESSION);
-    c.value("PIZ_COMPRESSION", OPENEXR_IMF_NAMESPACE::PIZ_COMPRESSION);
-    c.value("PXR24_COMPRESSION", OPENEXR_IMF_NAMESPACE::PXR24_COMPRESSION);
-    c.value("B44_COMPRESSION", OPENEXR_IMF_NAMESPACE::B44_COMPRESSION);
-    c.value("B44A_COMPRESSION", OPENEXR_IMF_NAMESPACE::B44A_COMPRESSION);
-    c.value("DWAA_COMPRESSION", OPENEXR_IMF_NAMESPACE::DWAA_COMPRESSION);
-    c.value("DWAB_COMPRESSION", OPENEXR_IMF_NAMESPACE::DWAB_COMPRESSION);
-    c.value("NUM_COMPRESSION_METHODS", OPENEXR_IMF_NAMESPACE::NUM_COMPRESSION_METHODS);
-    c.export_values();
+    py::enum_<OPENEXR_IMF_NAMESPACE::LevelMode>(m, "LevelRoundingMode")
+        .value("ROUND_UP", OPENEXR_IMF_NAMESPACE::ROUND_UP)
+        .value("ROUND_DOWN", OPENEXR_IMF_NAMESPACE::ROUND_DOWN)
+        .value("NUM_ROUNDINGMODES", OPENEXR_IMF_NAMESPACE::NUM_ROUNDINGMODES)
+        .export_values();
+
+    py::enum_<OPENEXR_IMF_NAMESPACE::LevelMode>(m, "LevelMode")
+        .value("ONE_LEVEL", OPENEXR_IMF_NAMESPACE::ONE_LEVEL)
+        .value("MIPMAP_LEVELS", OPENEXR_IMF_NAMESPACE::MIPMAP_LEVELS)
+        .value("RIPMAP_LEVELS", OPENEXR_IMF_NAMESPACE::RIPMAP_LEVELS)
+        .value("NUM_LEVELMODES", OPENEXR_IMF_NAMESPACE::NUL_LEVELMODES)
+        .export_values();
+
+    py::enum_<OPENEXR_IMF_NAMESPACE::LineOrder>(m, "LineOrder")
+        .value("INCREASING_Y", OPENEXR_IMF_NAMESPACE::INCREASING_Y)
+        .value("DECREASING_Y", OPENEXR_IMF_NAMESPACE::DECREASING_Y)
+        .value("RANDOM_Y", OPENEXR_IMF_NAMESPACE::RANDOM_Y)
+        .value("NUM_LINEORDERS", OPENEXR_IMF_NAMESPACE::NUM_LINEORDERS)
+        .export_values();
+
+    py::enum_<OPENEXR_IMF_NAMESPACE::PixelType>(m, "PixelType")
+        .value("UINT", OPENEXR_IMF_NAMESPACE::UINT)
+        .value("HALF", OPENEXR_IMF_NAMESPACE::HALF)
+        .value("FLOAT", OPENEXR_IMF_NAMESPACE::FLOAT)
+        .value("NUM_PIXELTYPES", OPENEXR_IMF_NAMESPACE::NUM_PIXELTYPES)
+        .export_values();
+
+    py::enum_<OPENEXR_IMF_NAMESPACE::Compression>(m, "Compression")
+        .value("NO_COMPRESSION", OPENEXR_IMF_NAMESPACE::NO_COMPRESSION)
+        .value("RLE_COMPRESSION", OPENEXR_IMF_NAMESPACE::RLE_COMPRESSION)
+        .value("ZIPS_COMPRESSION", OPENEXR_IMF_NAMESPACE::ZIPS_COMPRESSION)
+        .value("ZIP_COMPRESSION", OPENEXR_IMF_NAMESPACE::ZIP_COMPRESSION)
+        .value("PIZ_COMPRESSION", OPENEXR_IMF_NAMESPACE::PIZ_COMPRESSION)
+        .value("PXR24_COMPRESSION", OPENEXR_IMF_NAMESPACE::PXR24_COMPRESSION)
+        .value("B44_COMPRESSION", OPENEXR_IMF_NAMESPACE::B44_COMPRESSION)
+        .value("B44A_COMPRESSION", OPENEXR_IMF_NAMESPACE::B44A_COMPRESSION)
+        .value("DWAA_COMPRESSION", OPENEXR_IMF_NAMESPACE::DWAA_COMPRESSION)
+        .value("DWAB_COMPRESSION", OPENEXR_IMF_NAMESPACE::DWAB_COMPRESSION)
+        .value("NUM_COMPRESSION_METHODS", OPENEXR_IMF_NAMESPACE::NUM_COMPRESSION_METHODS)
+        .export_values();
+
+    py::class_<OPENEXR_IMF_NAMESPACE::Rational>(m, "Rational")
+        .def("n", &OPENEXR_IMF_NAMESPACE::Rational::n)
+        .def("d", &OPENEXR_IMF_NAMESPACE::Rational::d);
+
+    py::class_<OPENEXR_IMF_NAMESPACE::KeyCode>(m, "KeyCode")
+        .def("filmMfcCode", &OPENEXR_IMF_NAMESPACE::KeyCode::filmMfcCode)
+        .def("setFilmMfcCode", &OPENEXR_IMF_NAMESPACE::KeyCode::setFilmMfcCode)
 
     auto C = py::class_<Channel>(m, "Channel");
     C.def(py::init());
