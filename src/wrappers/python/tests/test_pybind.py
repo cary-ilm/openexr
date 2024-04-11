@@ -16,16 +16,24 @@ import Imath
 
 print(f"OpenEXR: {OpenEXR.__version__} {OpenEXR.__file__}")
 
-filename = "test.exr"
+filename = "tiled.exr"
 filename = "multipart.exr"
+filename = "test.exr"
+
+
 i = OpenEXR.File(filename)
 print(f"parts:")
 parts = i.parts()
 for p in parts:
-    print(f"  part: {p}")
+    print(f"  part: {p.name} {p.type} {p.compression}")
     h = p.header()
     for a in h:
         print(f"    {a}: {h[a]}")
+        if a == "tiles":
+            t = h[a]
+            lm = t.mode
+            rm = t.roundingMode
+            print(f">> tile description: level mode={lm}, round mode={rm}")
 
     
 print(f"header:")
@@ -35,6 +43,25 @@ for a in h:
 
 print(f"channels:")
 for c in i.channels():
-    print(f"  {c.name()}: {c.type()}")
+    print(f"  {c.name}: {c.type}")
 
 print("ok")
+
+exit(0)
+
+k = OpenEXR.KeyCode()
+print(f"filmMfcCode={k.filmMfcCode}")
+print(f"filmType={k.filmType}")
+print(f"prefix={k.prefix}")
+print(f"count={k.count}")
+print(f"perfOffset={k.perfOffset}")
+print(f"perfsPerFrame={k.perfsPerFrame}")
+print(f"perfsPerCount={k.perfsPerCount}")
+exit(0)
+
+r = OpenEXR.Rational(1,2)
+print(f"r.n={r.n}")
+print(f"r.d={r.d}")
+exit(0)
+
+
