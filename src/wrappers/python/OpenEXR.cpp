@@ -16,6 +16,7 @@
 #include <ImfTileDescription.h>
 #include <ImfRational.h>
 #include <ImfKeyCode.h>
+#include <ImfLineOrder.h>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -860,7 +861,7 @@ PYBIND11_MODULE(OpenEXRp11, m)
     m.doc() = "openexrp11 doc";
     m.attr("__version__") = OPENEXR_VERSION_STRING;
 
-    py::enum_<OPENEXR_IMF_NAMESPACE::LevelMode>(m, "LevelRoundingMode")
+    py::enum_<OPENEXR_IMF_NAMESPACE::LevelRoundingMode>(m, "LevelRoundingMode")
         .value("ROUND_UP", OPENEXR_IMF_NAMESPACE::ROUND_UP)
         .value("ROUND_DOWN", OPENEXR_IMF_NAMESPACE::ROUND_DOWN)
         .value("NUM_ROUNDINGMODES", OPENEXR_IMF_NAMESPACE::NUM_ROUNDINGMODES)
@@ -870,7 +871,7 @@ PYBIND11_MODULE(OpenEXRp11, m)
         .value("ONE_LEVEL", OPENEXR_IMF_NAMESPACE::ONE_LEVEL)
         .value("MIPMAP_LEVELS", OPENEXR_IMF_NAMESPACE::MIPMAP_LEVELS)
         .value("RIPMAP_LEVELS", OPENEXR_IMF_NAMESPACE::RIPMAP_LEVELS)
-        .value("NUM_LEVELMODES", OPENEXR_IMF_NAMESPACE::NUL_LEVELMODES)
+        .value("NUM_LEVELMODES", OPENEXR_IMF_NAMESPACE::NUM_LEVELMODES)
         .export_values();
 
     py::enum_<OPENEXR_IMF_NAMESPACE::LineOrder>(m, "LineOrder")
@@ -901,13 +902,15 @@ PYBIND11_MODULE(OpenEXRp11, m)
         .value("NUM_COMPRESSION_METHODS", OPENEXR_IMF_NAMESPACE::NUM_COMPRESSION_METHODS)
         .export_values();
 
+#if XXX
     py::class_<OPENEXR_IMF_NAMESPACE::Rational>(m, "Rational")
         .def("n", &OPENEXR_IMF_NAMESPACE::Rational::n)
         .def("d", &OPENEXR_IMF_NAMESPACE::Rational::d);
-
+#endif
+    
     py::class_<OPENEXR_IMF_NAMESPACE::KeyCode>(m, "KeyCode")
         .def("filmMfcCode", &OPENEXR_IMF_NAMESPACE::KeyCode::filmMfcCode)
-        .def("setFilmMfcCode", &OPENEXR_IMF_NAMESPACE::KeyCode::setFilmMfcCode)
+        .def("setFilmMfcCode", &OPENEXR_IMF_NAMESPACE::KeyCode::setFilmMfcCode);
 
     auto C = py::class_<Channel>(m, "Channel");
     C.def(py::init());
