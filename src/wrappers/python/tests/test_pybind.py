@@ -16,10 +16,10 @@ import Imath
 
 print(f"OpenEXR: {OpenEXR.__version__} {OpenEXR.__file__}")
 
-filename = "tiled.exr"
 filename = "test.exr"
 filename = "multipart.exr"
 filename = "10x100.exr"
+filename = "GoldenGate.exr"
 
 i = OpenEXR.File(filename)
 print(f"parts:")
@@ -29,17 +29,12 @@ for p in parts:
     h = p.header()
     for a in h:
         print(f"    {a}: {h[a]}")
-        if a == "tiles":
-            t = h[a]
-            lm = t.mode
-            rm = t.roundingMode
-            print(f">> tile description: level mode={lm}, round mode={rm}")
 
     for c in p.channels():
         pixels = c.pixels
-        for y in range(0,p.height):
+        for y in range(0,min(p.height,100)):
             s = f"{c.name}[{y}]:"
-            for x in range(0,p.width):
+            for x in range(0,min(p.width,100)):
                 s += f" {pixels[x][y]}"
             print(s)
     

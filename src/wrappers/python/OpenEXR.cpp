@@ -15,7 +15,6 @@
 #include <ImfTileDescription.h>
 #include <ImfRational.h>
 #include <ImfKeyCode.h>
-#include <ImfChromaticities.h>
 #include <ImfPreviewImage.h>
 
 //#define DEBUGGIT 1
@@ -110,82 +109,8 @@ core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
         msg);
 }
 
-static exr_result_t
-realloc_deepdata (exr_decode_pipeline_t* decode)
-{
-    int32_t               w        = decode->chunk.width;
-    int32_t               h        = decode->chunk.height;
-    uint64_t              totsamps = 0, bytes = 0;
-    const int32_t*        sampbuffer = decode->sample_count_table;
-    std::vector<uint8_t>* ud =
-        static_cast<std::vector<uint8_t>*> (decode->decoding_user_data);
-
-    if (!ud)
-    {
-        for (int c = 0; c < decode->channel_count; c++)
-        {
-            exr_coding_channel_info_t& outc = decode->channels[c];
-            outc.decode_to_ptr              = NULL;
-            outc.user_pixel_stride          = outc.user_bytes_per_element;
-            outc.user_line_stride           = 0;
-        }
-        return EXR_ERR_SUCCESS;
-    }
-
-    if ((decode->decode_flags & EXR_DECODE_SAMPLE_COUNTS_AS_INDIVIDUAL))
-    {
-        for (int32_t y = 0; y < h; ++y)
-        {
-            for (int x = 0; x < w; ++x)
-                totsamps += sampbuffer[x];
-            sampbuffer += w;
-        }
-    }
-    else
-    {
-        for (int32_t y = 0; y < h; ++y)
-            totsamps += sampbuffer[y * w + w - 1];
-    }
-
-    for (int c = 0; c < decode->channel_count; c++)
-    {
-        exr_coding_channel_info_t& outc = decode->channels[c];
-        bytes += totsamps * outc.user_bytes_per_element;
-    }
-
-    if (bytes == 0)
-    {
-        for (int c = 0; c < decode->channel_count; c++)
-        {
-            exr_coding_channel_info_t& outc = decode->channels[c];
-            outc.decode_to_ptr              = NULL;
-            outc.user_pixel_stride          = outc.user_bytes_per_element;
-            outc.user_line_stride           = 0;
-        }
-        return EXR_ERR_SUCCESS;
-    }
-
-    if (ud->size () < bytes)
-    {
-        ud->resize (bytes);
-        if (ud->capacity () < bytes) return EXR_ERR_OUT_OF_MEMORY;
-    }
-
-    uint8_t* dptr = &((*ud)[0]);
-    for (int c = 0; c < decode->channel_count; c++)
-    {
-        exr_coding_channel_info_t& outc = decode->channels[c];
-        outc.decode_to_ptr              = dptr;
-        outc.user_pixel_stride          = outc.user_bytes_per_element;
-        outc.user_line_stride           = 0;
-
-        dptr += totsamps * (uint64_t) outc.user_bytes_per_element;
-    }
-    return EXR_ERR_SUCCESS;
-}
-
 bool
-readCoreScanlinePart (exr_context_t f, int part, Part& P)
+readScanlinePart (exr_context_t f, int part, Part& P)
 {
     exr_result_t     rv, frv;
     exr_attr_box2i_t datawin;
@@ -204,7 +129,6 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
     std::cout << "Part " << P.name << " " << width << "x" << height << std::endl;
 #endif
     
-    std::vector<uint8_t>  imgdata;
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
 
     int32_t lines_per_chunk;
@@ -329,10 +253,8 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
     return (frv != EXR_ERR_SUCCESS);
 }
 
-////////////////////////////////////////
-
 bool
-readCoreTiledPart (exr_context_t f, int part, Part& P)
+readTiledPart (exr_context_t f, int part, Part& P)
     
 {
     exr_result_t rv, frv;
@@ -340,6 +262,9 @@ readCoreTiledPart (exr_context_t f, int part, Part& P)
     exr_attr_box2i_t datawin;
     rv = exr_get_data_window (f, part, &datawin);
     if (rv != EXR_ERR_SUCCESS) return true;
+
+    P.width = datawin.max.x - datawin.min.x + 1;
+    P.height = datawin.max.y - datawin.min.y + 1;
 
     uint32_t              txsz, tysz;
     exr_tile_level_mode_t levelmode;
@@ -354,17 +279,15 @@ readCoreTiledPart (exr_context_t f, int part, Part& P)
     if (rv != EXR_ERR_SUCCESS) return true;
 
     frv            = rv;
-    bool keepgoing = true;
-    for (int32_t ylevel = 0; keepgoing && ylevel < levelsy; ++ylevel)
+    for (int32_t ylevel = 0; ylevel < levelsy; ++ylevel)
     {
-        for (int32_t xlevel = 0; keepgoing && xlevel < levelsx; ++xlevel)
+        for (int32_t xlevel = 0; xlevel < levelsx; ++xlevel)
         {
             int32_t levw, levh;
             rv = exr_get_level_sizes (f, part, xlevel, ylevel, &levw, &levh);
             if (rv != EXR_ERR_SUCCESS)
             {
                 frv = rv;
-                keepgoing = false;
                 break;
             }
 
@@ -373,46 +296,40 @@ readCoreTiledPart (exr_context_t f, int part, Part& P)
             if (rv != EXR_ERR_SUCCESS)
             {
                 frv = rv;
-                keepgoing = false;
                 break;
             }
 
             // we could make this over all levels but then would have to
             // re-check the allocation size, let's leave it here to check when
             // tile size is < full / top level tile size
-            std::vector<uint8_t>  tiledata;
-            bool                  doread = false;
             exr_chunk_info_t      cinfo;
             exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
 
             int tx, ty;
             ty = 0;
-            for (int64_t cury = 0; keepgoing && cury < levh;
-                 cury += curth, ++ty)
+            for (int64_t cury = 0; cury < levh; cury += curth, ++ty)
             {
                 tx = 0;
-                for (int64_t curx = 0; keepgoing && curx < levw;
-                     curx += curtw, ++tx)
+                for (int64_t curx = 0; curx < levw; curx += curtw, ++tx)
                 {
                     rv = exr_read_tile_chunk_info (
                         f, part, tx, ty, xlevel, ylevel, &cinfo);
                     if (rv != EXR_ERR_SUCCESS)
                     {
                         frv = rv;
-                        keepgoing = false;
                         break;
                     }
 
                     if (decoder.channels == NULL)
                     {
-                        rv =
-                            exr_decoding_initialize (f, part, &cinfo, &decoder);
+                        rv = exr_decoding_initialize (f, part, &cinfo, &decoder);
                         if (rv != EXR_ERR_SUCCESS)
                         {
                             frv       = rv;
-                            keepgoing = false;
                             break;
                         }
+
+                        P._channels.resize(decoder.channel_count);
 
                         uint64_t bytes = 0;
                         for (int c = 0; c < decoder.channel_count; c++)
@@ -428,26 +345,38 @@ readCoreTiledPart (exr_context_t f, int part, Part& P)
                             bytes += (uint64_t) curtw *
                                      (uint64_t) outc.user_bytes_per_element *
                                      (uint64_t) curth;
+
+
+                            P._channels[c].name = outc.channel_name;
+                            P._channels[c].type = exr_pixel_type_t(outc.data_type);
+
+                            std::vector<size_t> shape, strides;
+                            shape.assign({ P.width, P.height });
+
+                            const auto style = py::array::c_style | py::array::forcecast;
+                
+                            switch (outc.data_type)
+                            {
+                            case EXR_PIXEL_UINT:
+                                strides.assign({ sizeof(uint8_t), sizeof(uint8_t) });
+                                P._channels[c].pixels = py::array_t<uint8_t,style>(shape, strides);
+                                break;
+                            case EXR_PIXEL_HALF:
+                                strides.assign({ sizeof(half), sizeof(half) });
+                                P._channels[c].pixels = py::array_t<half,style>(shape, strides);
+                                break;
+                            case EXR_PIXEL_FLOAT:
+                                strides.assign({ sizeof(float), sizeof(float) });
+                                P._channels[c].pixels = py::array_t<float,style>(shape, strides);
+                                break;
+                            }
                         }
 
-                        doread = true;
-
-                        if (cinfo.type == EXR_STORAGE_DEEP_TILED)
-                        {
-                            decoder.decoding_user_data = &tiledata;
-                            decoder.realloc_nonimage_data_fn =
-                                &realloc_deepdata;
-                        }
-                        else
-                        {
-                            if (doread) tiledata.resize (bytes);
-                        }
                         rv = exr_decoding_choose_default_routines (
                             f, part, &decoder);
                         if (rv != EXR_ERR_SUCCESS)
                         {
                             frv       = rv;
-                            keepgoing = false;
                             break;
                         }
                     }
@@ -457,38 +386,48 @@ readCoreTiledPart (exr_context_t f, int part, Part& P)
                         if (rv != EXR_ERR_SUCCESS)
                         {
                             frv = rv;
-                            keepgoing = false;
                             break;
                         }
                     }
 
-                    if (doread)
+                    if (cinfo.type != EXR_STORAGE_DEEP_TILED)
                     {
-                        if (cinfo.type != EXR_STORAGE_DEEP_TILED)
+                        for (int c = 0; c < decoder.channel_count; c++)
                         {
-                            uint8_t* dptr = &(tiledata[0]);
-                            for (int c = 0; c < decoder.channel_count; c++)
+                            exr_coding_channel_info_t& outc = decoder.channels[c];
+                            outc.user_pixel_stride = outc.user_bytes_per_element;
+                            outc.user_line_stride = outc.user_pixel_stride * curtw;
+
+                            py::buffer_info buf = P._channels[c].pixels.request();
+                            switch (outc.data_type)
                             {
-                                exr_coding_channel_info_t& outc =
-                                    decoder.channels[c];
-                                outc.decode_to_ptr = dptr;
-                                outc.user_pixel_stride =
-                                    outc.user_bytes_per_element;
-                                outc.user_line_stride =
-                                    outc.user_pixel_stride * curtw;
-                                dptr += (uint64_t) curtw *
-                                        (uint64_t) outc.user_bytes_per_element *
-                                        (uint64_t) curth;
+                            case EXR_PIXEL_UINT:
+                                {
+                                    uint8_t* pixels = static_cast<uint8_t*>(buf.ptr);
+                                    outc.decode_to_ptr = &pixels[cury*P.width];
+                                }
+                                break;
+                            case EXR_PIXEL_HALF:
+                                {
+                                    half* pixels = static_cast<half*>(buf.ptr);
+                                    outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[cury*P.width]);
+                                }
+                                break;
+                            case EXR_PIXEL_FLOAT:
+                                {
+                                    float* pixels = static_cast<float*>(buf.ptr);
+                                    outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[cury*P.width]);
+                                }
+                                break;
                             }
                         }
+                    }
 
-                        rv = exr_decoding_run (f, part, &decoder);
-                        if (rv != EXR_ERR_SUCCESS)
-                        {
-                            frv = rv;
-                            keepgoing = false;
-                            break;
-                        }
+                    rv = exr_decoding_run (f, part, &decoder);
+                    if (rv != EXR_ERR_SUCCESS)
+                    {
+                        frv = rv;
+                        break;
                     }
                 }
             }
@@ -549,20 +488,25 @@ getAttribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
               return l;
           }
       case EXR_ATTR_CHROMATICITIES:
-          return py::cast(OPENEXR_IMF_NAMESPACE::Chromaticities(IMATH_NAMESPACE::V2f(attr->chromaticities->red_x,
-                                                                                     attr->chromaticities->red_y),
-                                                                IMATH_NAMESPACE::V2f(attr->chromaticities->green_x,
-                                                                                     attr->chromaticities->green_y),
-                                                                IMATH_NAMESPACE::V2f(attr->chromaticities->blue_x,
-                                                                                     attr->chromaticities->blue_y),
-                                                                IMATH_NAMESPACE::V2f(attr->chromaticities->white_x,
-                                                                                     attr->chromaticities->white_y)));
+          {
+              exr_attr_chromaticities_t c = {
+                  attr->chromaticities->red_x,
+                  attr->chromaticities->red_y,
+                  attr->chromaticities->green_x,
+                  attr->chromaticities->green_y,
+                  attr->chromaticities->blue_x,
+                  attr->chromaticities->blue_y,
+                  attr->chromaticities->white_x,
+                  attr->chromaticities->white_y
+              };
+              return py::cast(c);
+          }
       case EXR_ATTR_COMPRESSION: 
           return py::cast(exr_compression_t(attr->uc));
       case EXR_ATTR_DOUBLE:
           return py::float_(attr->d);
       case EXR_ATTR_ENVMAP:
-          return py::str(attr->uc == 0 ? "latlong" : "cube");
+          return py::cast(exr_envmap_t(attr->uc));
       case EXR_ATTR_FLOAT:
           return py::float_(attr->f);
       case EXR_ATTR_FLOAT_VECTOR:
@@ -737,12 +681,12 @@ File::File(const std::string& filename)
 
         if (store == EXR_STORAGE_SCANLINE || store == EXR_STORAGE_DEEP_SCANLINE)
         {
-            if (readCoreScanlinePart (f, p, _parts[p]))
+            if (readScanlinePart (f, p, _parts[p]))
                 return;
         }
         else if (store == EXR_STORAGE_TILED || store == EXR_STORAGE_DEEP_TILED)
         {
-            if (readCoreTiledPart (f, p, _parts[p]))
+            if (readTiledPart (f, p, _parts[p]))
                 return;
         }
     }
@@ -774,7 +718,11 @@ PYBIND11_MODULE(OpenEXRp11, m)
         .def(py::init())
         .def("__repr__", [](OPENEXR_IMF_NAMESPACE::TileDescription& v) {
             std::stringstream stream;
-            stream << "TileDescription(" << v.xSize << ", " << v.ySize << ", " << v.mode << ", " << v.roundingMode << ")";
+            stream << "TileDescription(" << v.xSize
+                   << ", " << v.ySize
+                   << ", " << py::cast(v.mode)
+                   << ", " << py::cast(v.roundingMode)
+                   << ")";
             return stream.str();
         })
         .def_readwrite("xSize", &OPENEXR_IMF_NAMESPACE::TileDescription::xSize)
@@ -811,6 +759,12 @@ PYBIND11_MODULE(OpenEXRp11, m)
         .value("NUM_COMPRESSION_METHODS", EXR_COMPRESSION_LAST_TYPE)
         .export_values();
     
+    py::enum_<exr_envmap_t>(m, "EnvMap")
+        .value("EXR_ENVMAP_LATLONG", EXR_ENVMAP_LATLONG)
+        .value("EXR_ENVMAP_CUBE", EXR_ENVMAP_CUBE)    
+        .value("EXR_ENVMAP_LAST_TYPE", EXR_ENVMAP_LAST_TYPE)
+        .export_values();
+
     py::enum_<exr_storage_t>(m, "Storage")
         .value("scanlineimage", EXR_STORAGE_SCANLINE)
         .value("tiledimage,", EXR_STORAGE_TILED)
@@ -857,12 +811,15 @@ PYBIND11_MODULE(OpenEXRp11, m)
         .def("setTimeAndFlags", &OPENEXR_IMF_NAMESPACE::TimeCode::setTimeAndFlags)
         ;
 
-    py::class_<OPENEXR_IMF_NAMESPACE::Chromaticities>(m, "Chromaticities")
-        .def(py::init())
-        .def_readwrite("red", &OPENEXR_IMF_NAMESPACE::Chromaticities::red)
-        .def_readwrite("green", &OPENEXR_IMF_NAMESPACE::Chromaticities::green)
-        .def_readwrite("blue", &OPENEXR_IMF_NAMESPACE::Chromaticities::blue)
-        .def_readwrite("white", &OPENEXR_IMF_NAMESPACE::Chromaticities::white)
+    py::class_<exr_attr_chromaticities_t>(m, "Chromaticities")
+        .def_readwrite("red_x", &exr_attr_chromaticities_t::red_x)
+        .def_readwrite("red_y", &exr_attr_chromaticities_t::red_y)
+        .def_readwrite("green_x", &exr_attr_chromaticities_t::green_x)
+        .def_readwrite("green_y", &exr_attr_chromaticities_t::green_y)
+        .def_readwrite("blue_x", &exr_attr_chromaticities_t::blue_x)
+        .def_readwrite("blue_y", &exr_attr_chromaticities_t::blue_y)
+        .def_readwrite("white_x", &exr_attr_chromaticities_t::white_x)
+        .def_readwrite("white_y", &exr_attr_chromaticities_t::white_y)
         ;
 
     py::class_<OPENEXR_IMF_NAMESPACE::PreviewRgba>(m, "PreviewRgba")
@@ -884,7 +841,11 @@ PYBIND11_MODULE(OpenEXRp11, m)
         .def(py::init<const char*,exr_pixel_type_t,int,int>())
         .def("__repr__", [](const Channel& c) {
             std::stringstream stream;
-            stream << "Channel(\"" << c.name << "\", type=" << c.type << ", xsamples=" << c.xsamples << ", ysamples=" << c.ysamples << ")";
+            stream << "Channel(\"" << c.name 
+                << "\", type=" << py::cast(c.type) 
+                << ", xsamples=" << c.xsamples 
+                << ", ysamples=" << c.ysamples
+                   << ")";
             return stream.str();
         })
         .def_readwrite("name", &Channel::name)
@@ -892,7 +853,6 @@ PYBIND11_MODULE(OpenEXRp11, m)
         .def_readwrite("xsamples", &Channel::xsamples)
         .def_readwrite("ysamples", &Channel::ysamples)
         .def_readwrite("pixels", &Channel::pixels)
-//        .def("pixels", &Channel::pixels)
         ;
     
     py::class_<Part>(m, "Part")
