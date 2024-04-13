@@ -6,5 +6,4 @@ else
     BUILD_ROOT=/home/cary/builds/src/cary-ilm/openexr/pybind11-Release
 fi
 
-env PYTHONPATH=$BUILD_ROOT/src/wrappers/python python3 test_pybind.py
-
+env ASAN_OPTIONS="verify_asan_link_order=0:detect_leaks=0" PYTHONPATH=$BUILD_ROOT/src/wrappers/python python3 test_pybind.py

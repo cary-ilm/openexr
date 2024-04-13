@@ -7,6 +7,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
 
 #include "openexr.h"
 
@@ -17,8 +18,37 @@
 #include <ImfChromaticities.h>
 #include <ImfPreviewImage.h>
 
+//#define DEBUGGIT 1
+
 namespace py = pybind11;
 using namespace py::literals;
+
+namespace pybind11 {
+namespace detail {
+
+    // This half casting support for numpy was all derived from discussions
+    // here: https://github.com/pybind/pybind11/issues/1776
+
+    // Similar to enums in `pybind11/numpy.h`. Determined by doing:
+    // python3 -c 'import numpy as np; print(np.dtype(np.float16).num)'
+    constexpr int NPY_FLOAT16 = 23;
+
+    template<> struct npy_format_descriptor<half> {
+        static pybind11::dtype dtype()
+        {
+            handle ptr = npy_api::get().PyArray_DescrFromType_(NPY_FLOAT16);
+            return reinterpret_borrow<pybind11::dtype>(ptr);
+        }
+        static std::string format()
+        {
+            // following: https://docs.python.org/3/library/struct.html#format-characters
+            return "e";
+        }
+        static constexpr auto name = _("float16");
+    };
+
+}  // namespace detail
+}  // namespace pybind11
 
 namespace {
 
@@ -34,10 +64,7 @@ public:
     exr_pixel_type_t      type;
     int                   xsamples;
     int                   ysamples;
-
-    std::vector<half>     _half;
-    std::vector<float>    _float;
-    std::vector<uint8_t>  _uint;
+    py::array             pixels;
 };
     
 class Part
@@ -169,13 +196,14 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
         (uint64_t) ((int64_t) datawin.max.x - (int64_t) datawin.min.x + 1);
     uint64_t height =
         (uint64_t) ((int64_t) datawin.max.y - (int64_t) datawin.min.y + 1);
-    uint64_t size = width * height;
 
     P.width = width;
     P.height = height;
     
+#if DEBUGGIT
     std::cout << "Part " << P.name << " " << width << "x" << height << std::endl;
-
+#endif
+    
     std::vector<uint8_t>  imgdata;
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
 
@@ -197,22 +225,11 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
             break;
         }
 
-        std::cout << "chunk=" << chunk
-                  << " idx=" << cinfo.idx
-                  << " start_x=" << cinfo.start_x
-                  << " start_y=" << cinfo.start_y
-                  << " width=" << cinfo.width
-                  << " height=" << cinfo.height
-                  << " size=" << size
-                  << std::endl;
-
         if (decoder.channels == NULL)
         {
             rv = exr_decoding_initialize (f, part, &cinfo, &decoder);
             if (rv != EXR_ERR_SUCCESS) break;
 
-            std::cout << "initializing channels: " << decoder.channel_count << std::endl;
-            
             P._channels.resize(decoder.channel_count);
 
             for (int c = 0; c < decoder.channel_count; c++)
@@ -226,33 +243,28 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
                 P._channels[c].name = outc.channel_name;
                 P._channels[c].type = exr_pixel_type_t(outc.data_type);
 
+                std::vector<size_t> shape, strides;
+                shape.assign({ width, height });
+
+                const auto style = py::array::c_style | py::array::forcecast;
+                
                 switch (outc.data_type)
                 {
                 case EXR_PIXEL_UINT:
-                    P._channels[c]._uint.resize(size);
+                    strides.assign({ sizeof(uint8_t), sizeof(uint8_t) });
+                    P._channels[c].pixels = py::array_t<uint8_t,style>(shape, strides);
                     break;
                 case EXR_PIXEL_HALF:
-                    P._channels[c]._half.resize(size);
+                    strides.assign({ sizeof(half), sizeof(half) });
+                    P._channels[c].pixels = py::array_t<half,style>(shape, strides);
                     break;
                 case EXR_PIXEL_FLOAT:
-                    P._channels[c]._float.resize(size);
+                    strides.assign({ sizeof(float), sizeof(float) });
+                    P._channels[c].pixels = py::array_t<float,style>(shape, strides);
                     break;
                 }
             }
 
-#if XXX
-            if (cinfo.type == EXR_STORAGE_DEEP_SCANLINE)
-            {
-                decoder.decoding_user_data       = &imgdata;
-                decoder.realloc_nonimage_data_fn = &realloc_deepdata;
-            }
-            else
-            {
-                std::cout << ">> imgdata.resize " << bytes << std::endl;
-                imgdata.resize (bytes);
-            }
-#endif
-            
             rv = exr_decoding_choose_default_routines (f, part, &decoder);
             if (rv != EXR_ERR_SUCCESS)
             {
@@ -276,16 +288,26 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
             {
                 exr_coding_channel_info_t& outc = decoder.channels[c];
 
+                py::buffer_info buf = P._channels[c].pixels.request();
                 switch (outc.data_type)
                 {
                 case EXR_PIXEL_UINT:
-                    outc.decode_to_ptr = &P._channels[c]._uint[y*width];
+                    {
+                        uint8_t* pixels = static_cast<uint8_t*>(buf.ptr);
+                        outc.decode_to_ptr = &pixels[y*width];
+                    }
                     break;
                 case EXR_PIXEL_HALF:
-                    outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&P._channels[c]._half[y*width]);
+                    {
+                        half* pixels = static_cast<half*>(buf.ptr);
+                        outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
+                    }
                     break;
                 case EXR_PIXEL_FLOAT:
-                    outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&P._channels[c]._float[y*width]);
+                    {
+                        float* pixels = static_cast<float*>(buf.ptr);
+                        outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
+                    }
                     break;
                 }
                 outc.user_pixel_stride = outc.user_bytes_per_element;
@@ -304,24 +326,6 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
 
     exr_decoding_destroy (f, &decoder);
 
-#if XXX
-    for (auto C: P._channels)
-    {
-        std::cout << "channel " << C.name << ":" << std::endl;
-        if (C._float.size() > 0)
-            for (uint64_t y=0; y<P.height; y++)
-            {
-                std::cout << C.name << " row " << y << ": ";
-                for (uint64_t x=0; x<P.width; x++)
-                {
-                    int k = y * width + x;
-                    std::cout << " " << C._float[k];
-                }
-                std::cout << std::endl;
-            }
-    }
-#endif
-    
     return (frv != EXR_ERR_SUCCESS);
 }
 
@@ -887,12 +891,16 @@ PYBIND11_MODULE(OpenEXRp11, m)
         .def_readwrite("type", &Channel::type)
         .def_readwrite("xsamples", &Channel::xsamples)
         .def_readwrite("ysamples", &Channel::ysamples)
+        .def_readwrite("pixels", &Channel::pixels)
+//        .def("pixels", &Channel::pixels)
         ;
     
     py::class_<Part>(m, "Part")
         .def(py::init())
         .def_readwrite("name", &Part::name)
         .def_readwrite("type", &Part::type)
+        .def_readwrite("width", &Part::width)
+        .def_readwrite("height", &Part::height)
         .def_readwrite("compression", &Part::compression)
         .def("header", &Part::header)
         .def("channels", &Part::channels)

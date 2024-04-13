@@ -17,15 +17,15 @@ import Imath
 print(f"OpenEXR: {OpenEXR.__version__} {OpenEXR.__file__}")
 
 filename = "tiled.exr"
-filename = "multipart.exr"
 filename = "test.exr"
+filename = "multipart.exr"
 filename = "10x100.exr"
 
 i = OpenEXR.File(filename)
 print(f"parts:")
 parts = i.parts()
 for p in parts:
-    print(f"  part: {p.name} {p.type} {p.compression}")
+    print(f"  part: {p.name} {p.type} {p.compression} {p.width}x{p.height}")
     h = p.header()
     for a in h:
         print(f"    {a}: {h[a]}")
@@ -35,17 +35,24 @@ for p in parts:
             rm = t.roundingMode
             print(f">> tile description: level mode={lm}, round mode={rm}")
 
+    for c in p.channels():
+        pixels = c.pixels
+        for y in range(0,p.height):
+            s = f"{c.name}[{y}]:"
+            for x in range(0,p.width):
+                s += f" {pixels[x][y]}"
+            print(s)
     
-print(f"header:")
-h = i.header()
-for a in h:
-    print(f"  {a}: {h[a]}")
+#print(f"header:")
+#h = i.header()
+#for a in h:
+#    print(f"  {a}: {h[a]}")
 
-print(f"channels:")
-for c in i.channels():
-    print(f"  {c.name}: {c.type}")
-
-print("ok")
+#print(f"channels:")
+#for c in i.channels():
+#    print(f"  {c.name}: {c.type}")
+#
+#print("ok")
 
 exit(0)
 
