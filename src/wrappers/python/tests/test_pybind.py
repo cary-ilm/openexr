@@ -19,7 +19,7 @@ print(f"OpenEXR: {OpenEXR.__version__} {OpenEXR.__file__}")
 filename = "tiled.exr"
 filename = "multipart.exr"
 filename = "test.exr"
-
+filename = "10x100.exr"
 
 i = OpenEXR.File(filename)
 print(f"parts:")

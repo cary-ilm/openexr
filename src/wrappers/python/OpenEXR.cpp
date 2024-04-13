@@ -27,7 +27,8 @@ class Channel
 public:
 
     Channel() : type(EXR_PIXEL_LAST_TYPE), xsamples(0), ysamples(0) {}
-    Channel(const char* n, exr_pixel_type_t t, int x, int y) : name(n), type(t), xsamples(x), ysamples(y) {}
+    Channel(const char* n, exr_pixel_type_t t, int x, int y)
+        : name(n), type(t), xsamples(x), ysamples(y) {}
     
     std::string           name;
     exr_pixel_type_t      type;
@@ -49,6 +50,8 @@ class Part
 
     std::string           name;
     exr_storage_t         type;
+    uint64_t              width;
+    uint64_t              height;
     exr_compression_t     compression;
 
     py::dict              _header;
@@ -166,9 +169,14 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
         (uint64_t) ((int64_t) datawin.max.x - (int64_t) datawin.min.x + 1);
     uint64_t height =
         (uint64_t) ((int64_t) datawin.max.y - (int64_t) datawin.min.y + 1);
+    uint64_t size = width * height;
+
+    P.width = width;
+    P.height = height;
+    
+    std::cout << "Part " << P.name << " " << width << "x" << height << std::endl;
 
     std::vector<uint8_t>  imgdata;
-    bool                  doread  = false;
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
 
     int32_t lines_per_chunk;
@@ -189,30 +197,50 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
             break;
         }
 
+        std::cout << "chunk=" << chunk
+                  << " idx=" << cinfo.idx
+                  << " start_x=" << cinfo.start_x
+                  << " start_y=" << cinfo.start_y
+                  << " width=" << cinfo.width
+                  << " height=" << cinfo.height
+                  << " size=" << size
+                  << std::endl;
+
         if (decoder.channels == NULL)
         {
             rv = exr_decoding_initialize (f, part, &cinfo, &decoder);
             if (rv != EXR_ERR_SUCCESS) break;
 
-            P._channels.resize(decoder.channel_count);
+            std::cout << "initializing channels: " << decoder.channel_count << std::endl;
             
-            uint64_t bytes = 0;
+            P._channels.resize(decoder.channel_count);
+
             for (int c = 0; c < decoder.channel_count; c++)
             {
                 exr_coding_channel_info_t& outc = decoder.channels[c];
-                // fake addr for default routines
+
                 outc.decode_to_ptr     = (uint8_t*) 0x1000;
                 outc.user_pixel_stride = outc.user_bytes_per_element;
                 outc.user_line_stride  = outc.user_pixel_stride * width;
-                bytes += width * (uint64_t) outc.user_bytes_per_element *
-                         (uint64_t) lines_per_chunk;
 
                 P._channels[c].name = outc.channel_name;
                 P._channels[c].type = exr_pixel_type_t(outc.data_type);
+
+                switch (outc.data_type)
+                {
+                case EXR_PIXEL_UINT:
+                    P._channels[c]._uint.resize(size);
+                    break;
+                case EXR_PIXEL_HALF:
+                    P._channels[c]._half.resize(size);
+                    break;
+                case EXR_PIXEL_FLOAT:
+                    P._channels[c]._float.resize(size);
+                    break;
+                }
             }
 
-            doread = true;
-
+#if XXX
             if (cinfo.type == EXR_STORAGE_DEEP_SCANLINE)
             {
                 decoder.decoding_user_data       = &imgdata;
@@ -220,8 +248,11 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
             }
             else
             {
-                if (doread) imgdata.resize (bytes);
+                std::cout << ">> imgdata.resize " << bytes << std::endl;
+                imgdata.resize (bytes);
             }
+#endif
+            
             rv = exr_decoding_choose_default_routines (f, part, &decoder);
             if (rv != EXR_ERR_SUCCESS)
             {
@@ -239,34 +270,58 @@ readCoreScanlinePart (exr_context_t f, int part, Part& P)
             }
         }
 
-        if (doread)
+        if (cinfo.type != EXR_STORAGE_DEEP_SCANLINE)
         {
-            if (cinfo.type != EXR_STORAGE_DEEP_SCANLINE)
+            for (int c = 0; c < decoder.channel_count; c++)
             {
-                uint8_t* dptr = &(imgdata[0]);
-                for (int c = 0; c < decoder.channel_count; c++)
+                exr_coding_channel_info_t& outc = decoder.channels[c];
+
+                switch (outc.data_type)
                 {
-                    exr_coding_channel_info_t& outc = decoder.channels[c];
-                    outc.decode_to_ptr              = dptr;
-                    outc.user_pixel_stride = outc.user_bytes_per_element;
-                    outc.user_line_stride  = outc.user_pixel_stride * width;
-
-                    dptr += width * (uint64_t) outc.user_bytes_per_element *
-                            (uint64_t) lines_per_chunk;
+                case EXR_PIXEL_UINT:
+                    outc.decode_to_ptr = &P._channels[c]._uint[y*width];
+                    break;
+                case EXR_PIXEL_HALF:
+                    outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&P._channels[c]._half[y*width]);
+                    break;
+                case EXR_PIXEL_FLOAT:
+                    outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&P._channels[c]._float[y*width]);
+                    break;
                 }
+                outc.user_pixel_stride = outc.user_bytes_per_element;
+                outc.user_line_stride  = outc.user_pixel_stride * width;
             }
+        }
 
-            rv = exr_decoding_run (f, part, &decoder);
-            if (rv != EXR_ERR_SUCCESS)
-            {
-                frv = rv;
-                break;
-            }
+        
+        rv = exr_decoding_run (f, part, &decoder);
+        if (rv != EXR_ERR_SUCCESS)
+        {
+            frv = rv;
+            break;
         }
     }
 
     exr_decoding_destroy (f, &decoder);
 
+#if XXX
+    for (auto C: P._channels)
+    {
+        std::cout << "channel " << C.name << ":" << std::endl;
+        if (C._float.size() > 0)
+            for (uint64_t y=0; y<P.height; y++)
+            {
+                std::cout << C.name << " row " << y << ": ";
+                for (uint64_t x=0; x<P.width; x++)
+                {
+                    int k = y * width + x;
+                    std::cout << " " << C._float[k];
+                }
+                std::cout << std::endl;
+            }
+    }
+#endif
+    
     return (frv != EXR_ERR_SUCCESS);
 }
 
