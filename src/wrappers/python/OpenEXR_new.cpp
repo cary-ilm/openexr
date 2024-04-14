@@ -17,6 +17,9 @@
 #include <ImfKeyCode.h>
 #include <ImfPreviewImage.h>
 
+#include <ImathVec.h>
+#include <ImathBox.h>
+
 //#define DEBUGGIT 1
 
 namespace py = pybind11;
@@ -93,6 +96,8 @@ public:
     const py::dict& header() const { return _parts[0].header(); }
     py::list        channels() const { return _parts[0].channels(); }
     
+    exr_result_t    write(const char* filename);
+    
     std::vector<Part>  _parts;
 };
     
@@ -115,7 +120,8 @@ readScanlinePart (exr_context_t f, int part, Part& P)
     exr_result_t     rv, frv;
     exr_attr_box2i_t datawin;
     rv = exr_get_data_window (f, part, &datawin);
-    if (rv != EXR_ERR_SUCCESS) return true;
+    if (rv != EXR_ERR_SUCCESS)
+        return false;
 
     uint64_t width =
         (uint64_t) ((int64_t) datawin.max.x - (int64_t) datawin.min.x + 1);
@@ -133,7 +139,8 @@ readScanlinePart (exr_context_t f, int part, Part& P)
 
     int32_t lines_per_chunk;
     rv = exr_get_scanlines_per_chunk (f, part, &lines_per_chunk);
-    if (rv != EXR_ERR_SUCCESS) return true;
+    if (rv != EXR_ERR_SUCCESS)
+        return false;
 
     frv = rv;
 
@@ -144,15 +151,13 @@ readScanlinePart (exr_context_t f, int part, Part& P)
 
         rv = exr_read_scanline_chunk_info (f, part, y, &cinfo);
         if (rv != EXR_ERR_SUCCESS)
-        {
-            frv = rv;
-            break;
-        }
+            return false;
 
         if (decoder.channels == NULL)
         {
             rv = exr_decoding_initialize (f, part, &cinfo, &decoder);
-            if (rv != EXR_ERR_SUCCESS) break;
+            if (rv != EXR_ERR_SUCCESS)
+                return false;
 
             P._channels.resize(decoder.channel_count);
 
@@ -166,6 +171,8 @@ readScanlinePart (exr_context_t f, int part, Part& P)
 
                 P._channels[c].name = outc.channel_name;
                 P._channels[c].type = exr_pixel_type_t(outc.data_type);
+                P._channels[c].xsamples  = outc.x_samples;
+                P._channels[c].ysamples  = outc.y_samples;
 
                 std::vector<size_t> shape, strides;
                 shape.assign({ width, height });
@@ -208,7 +215,7 @@ readScanlinePart (exr_context_t f, int part, Part& P)
 
         if (cinfo.type != EXR_STORAGE_DEEP_SCANLINE)
         {
-            for (int c = 0; c < decoder.channel_count; c++)
+            for (int16_t c = 0; c < decoder.channel_count; c++)
             {
                 exr_coding_channel_info_t& outc = decoder.channels[c];
 
@@ -232,7 +239,9 @@ readScanlinePart (exr_context_t f, int part, Part& P)
                         float* pixels = static_cast<float*>(buf.ptr);
                         outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
                     }
-                    break;
+                case EXR_PIXEL_LAST_TYPE:
+                default:
+                    return false;
                 }
                 outc.user_pixel_stride = outc.user_bytes_per_element;
                 outc.user_line_stride  = outc.user_pixel_stride * width;
@@ -250,12 +259,11 @@ readScanlinePart (exr_context_t f, int part, Part& P)
 
     exr_decoding_destroy (f, &decoder);
 
-    return (frv != EXR_ERR_SUCCESS);
+    return frv;
 }
 
-bool
+exr_result_t
 readTiledPart (exr_context_t f, int part, Part& P)
-    
 {
     exr_result_t rv, frv;
 
@@ -455,14 +463,14 @@ getAttribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
     name = attr->name;
     
     py::module_ imath = py::module_::import("Imath");
-    py::object V2i = imath.attr("V2i");
-    py::object V2f = imath.attr("V2f");
+//    py::object V2i = imath.attr("V2i");
+//    py::object V2f = imath.attr("V2f");
     py::object V2d = imath.attr("V2d");
     py::object V3i = imath.attr("V3i");
     py::object V3f = imath.attr("V3f");
     py::object V3d = imath.attr("V3d");
-    py::object Box2i = imath.attr("Box2i");
-    py::object Box2f = imath.attr("Box2f");
+//    py::object Box2i = imath.attr("Box2i");
+//    py::object Box2f = imath.attr("Box2f");
     py::object Box2d = imath.attr("Box2d");
     py::object Box3f = imath.attr("Box3f");
     py::object Box3d = imath.attr("Box3d");
@@ -472,11 +480,19 @@ getAttribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
     switch (attr->type)
     {
       case EXR_ATTR_BOX2I:
-          return Box2i(V2i(attr->box2i->min.x, attr->box2i->min.y),
-                     V2i(attr->box2i->max.x, attr->box2i->max.y));
+          {
+              IMATH_NAMESPACE::V2i min(attr->box2i->min);
+              IMATH_NAMESPACE::V2i max(attr->box2i->max);
+              IMATH_NAMESPACE::Box2i box(min, max);
+              return py::cast(box);
+          }
       case EXR_ATTR_BOX2F:
-          return Box2f(V2f(attr->box2i->min.x, attr->box2i->min.y),
-                       V2f(attr->box2i->max.x, attr->box2i->max.y));
+          {
+              IMATH_NAMESPACE::V2f min(attr->box2f->min);
+              IMATH_NAMESPACE::V2f max(attr->box2f->max);
+              IMATH_NAMESPACE::Box2f box(min, max);
+              return py::cast(box);
+          }
       case EXR_ATTR_CHLIST:
           {
               auto l = py::list();
@@ -608,9 +624,9 @@ getAttribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
           return py::cast( OPENEXR_IMF_NAMESPACE::TimeCode(attr->timecode->time_and_flags,
                                                            attr->timecode->user_data));
       case EXR_ATTR_V2I:
-          return V2i(attr->v2i->x, attr->v2i->y);
+          return py::cast(IMATH_NAMESPACE::V2i(attr->v2i->x, attr->v2i->y));
       case EXR_ATTR_V2F:
-          return V2f(attr->v2f->x, attr->v2f->y);
+          return py::cast(IMATH_NAMESPACE::V2f(attr->v2f->x, attr->v2f->y));
       case EXR_ATTR_V2D:
           return V2d(attr->v2d->x, attr->v2d->y);
       case EXR_ATTR_V3I:
@@ -629,6 +645,18 @@ getAttribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
     return py::none();
 }
 
+#if XXX
+template <class T>
+bool
+Part::get_attr_value(const char* name, T& value)
+{
+    if (!_header.has(name))
+        return false;
+
+    auto v = _header[name];
+}
+#endif
+    
 File::File(const std::string& filename)
 {
     exr_result_t              rv;
@@ -692,13 +720,234 @@ File::File(const std::string& filename)
     }
 }
 
+exr_result_t
+File::write(const char* filename)
+{
+    exr_context_t f;
+    exr_context_initializer_t init = EXR_DEFAULT_CONTEXT_INITIALIZER;
+
+    exr_result_t result = exr_start_write(&f, filename, EXR_WRITE_FILE_DIRECTLY, &init);
+    if (result != EXR_ERR_SUCCESS)
+        return result;
+
+    exr_set_longname_support(f, 1);
+
+    for (size_t p=0; p<_parts.size(); p++)
+    {
+        const Part& P = _parts[p];
+            
+        int part_index;
+        result = exr_add_part(f, P.name.c_str(), P.type, &part_index);
+        if (result != EXR_ERR_SUCCESS) 
+            return result;
+
+        exr_lineorder_t lineOrder = EXR_LINEORDER_INCREASING_Y;
+        if (P._header.contains("lineOrder"))
+            lineOrder = py::cast<exr_lineorder_t>(P._header["lineOrder"]);
+        std::cout << "lineOrder=" << lineOrder << std::endl;
+
+        exr_compression_t compression = EXR_COMPRESSION_NONE;
+        if (P._header.contains("compression"))
+            compression = py::cast<exr_compression_t>(P._header["compression"]);
+        std::cout << "compression=" << compression << std::endl;
+        
+        exr_attr_box2i_t dataw = {0, 0, int32_t(P.width - 1), int32_t(P.height - 1)};
+        if (P._header.contains("dataWindow"))
+        {
+            IMATH_NAMESPACE::Box2i box = py::cast<IMATH_NAMESPACE::Box2i>(P._header["dataWindow"]);
+            dataw.min.x = box.min.x;
+            dataw.min.y = box.min.y;
+            dataw.max.x = box.max.x;
+            dataw.max.y = box.max.y;
+        }
+
+        exr_attr_box2i_t dispw = dataw;
+        if (P._header.contains("displayWindow"))
+        {
+            IMATH_NAMESPACE::Box2i box = py::cast<IMATH_NAMESPACE::Box2i>(P._header["displayWindow"]);
+            dispw.min.x = box.min.x;
+            dispw.min.y = box.min.y;
+            dispw.max.x = box.max.x;
+            dispw.max.y = box.max.y;
+        }
+
+        exr_attr_v2f_t   swc   = {0.5f, 0.5f}; // center of the screen window
+        if (P._header.contains("screenWindowCenter"))
+        {
+            IMATH_NAMESPACE::V2f v = py::cast<IMATH_NAMESPACE::V2f>(P._header["screenWindowCenter"]);
+            swc.x = v.x;
+            swc.y = v.y;
+        }
+
+        float sww = 1.0f;
+        if (P._header.contains("screenWindowWidth"))
+            sww = py::cast<float>(P._header["screenWindowWidth"]);
+
+        float pixelAspectRatio = 1.0f;
+        if (P._header.contains("pixelAspectRatio"))
+            sww = py::cast<float>(P._header["pixelAspectRatio"]);
+        
+        result = exr_initialize_required_attr (f, p, &dataw, &dispw, 
+                                               pixelAspectRatio, &swc, sww,
+                                               lineOrder, compression);
+        
+        if (result != EXR_ERR_SUCCESS)
+            return result;
+
+        for (size_t c=0; c<P._channels.size(); c++)
+        {
+            const Channel& C = P._channels[c];
+            std::cout << "exr_add_channel " << c
+                      << " " << C.name.c_str()
+                      << " type=" << C.type
+                      << " xs=" << C.xsamples
+                      << " ys=" << C.ysamples
+                      << std::endl;
+            
+            result = exr_add_channel(f, p, C.name.c_str(), C.type, 
+                                     EXR_PERCEPTUALLY_LOGARITHMIC,
+                                     C.xsamples, C.ysamples);
+            if (result != EXR_ERR_SUCCESS) 
+                return result;
+        }
+
+        result = exr_set_version(f, p, 1); // 1 is the latest version
+        if (result != EXR_ERR_SUCCESS) 
+            return result;
+
+        // set chromaticities to Rec. ITU-R BT.709-3
+        exr_attr_chromaticities_t chroma = {
+            0.6400f, 0.3300f,  // red
+            0.3000f, 0.6000f,  // green
+            0.1500f, 0.0600f,  // blue
+            0.3127f, 0.3290f}; // white
+        result = exr_attr_set_chromaticities(f, p, "chromaticities", &chroma);
+        if (result != EXR_ERR_SUCCESS) 
+            return result;
+    }
+
+    result = exr_write_header(f);
+    if (result != EXR_ERR_SUCCESS)
+        return result;
+
+    exr_encode_pipeline_t encoder;
+
+    for (size_t p=0; p<_parts.size(); p++)
+    {
+        const Part& P = _parts[p];
+            
+        exr_chunk_info_t cinfo;
+
+        int32_t scansperchunk = 0;
+        exr_get_scanlines_per_chunk(f, p, &scansperchunk);
+        if (result != EXR_ERR_SUCCESS)
+            return result;
+
+        bool first = true;
+
+        exr_attr_box2i_t dataw = {0, 0, int32_t(P.width - 1), int32_t(P.height - 1)};
+        if (P._header.contains("dataWindow"))
+        {
+            IMATH_NAMESPACE::Box2i box = py::cast<IMATH_NAMESPACE::Box2i>(P._header["dataWindow"]);
+            dataw.min.x = box.min.x;
+            dataw.min.y = box.min.y;
+            dataw.max.x = box.max.x;
+            dataw.max.y = box.max.y;
+        }
+
+        for (int16_t y = dataw.min.y; y <= dataw.max.y; y += scansperchunk)
+        {
+            std::cout << "Part " << p << " y=" << y << std::endl;
+
+            result = exr_write_scanline_chunk_info(f, p, y, &cinfo);
+            if (result != EXR_ERR_SUCCESS) 
+                return result;
+
+            if (first)
+                result = exr_encoding_initialize(f, p, &cinfo, &encoder);
+            else
+                result = exr_encoding_update(f, p, &cinfo, &encoder);
+            if (result != EXR_ERR_SUCCESS) 
+                return result;
+        
+            int channelCount = P._channels.size();
+            
+            for (size_t c=0; c<P._channels.size(); c++)
+            {
+                const auto& C = P._channels[c];
+                
+                encoder.channel_count = channelCount;
+                py::buffer_info buf = C.pixels.request();
+                switch (C.type)
+                {
+                case EXR_PIXEL_UINT:
+                    {
+                        const uint8_t* pixels = static_cast<const uint8_t*>(buf.ptr);
+                        encoder.channels[c].encode_from_ptr = &pixels[y*P.width];
+                        encoder.channels[c].user_pixel_stride = sizeof(uint8_t);
+                    }
+                    break;
+                case EXR_PIXEL_HALF:
+                    {
+                        const half* pixels = static_cast<const half*>(buf.ptr);
+                        encoder.channels[c].encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[y*P.width]);
+                        encoder.channels[c].user_pixel_stride = sizeof(half);
+                    }
+                    break;
+                case EXR_PIXEL_FLOAT:
+                    {
+                        const float* pixels = static_cast<const float*>(buf.ptr);
+                        encoder.channels[c].encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[y*P.width]);
+                        encoder.channels[c].user_pixel_stride = sizeof(float);
+                    }
+                    break;
+                case EXR_PIXEL_LAST_TYPE:
+                default:
+                    return false;
+                }
+                
+                encoder.channels[c].user_line_stride  = encoder.channels[c].user_pixel_stride * P.width;
+                encoder.channels[c].height            = scansperchunk; // chunk height
+                encoder.channels[c].width             = dataw.max.x - dataw.min.y + 1;
+
+                std::cout << " channel " << C.name
+                          << " " << encoder.channels[c].width
+                          << " x " << encoder.channels[c].height
+                          << std::endl;
+            }
+
+            if (first)
+            {
+                result = exr_encoding_choose_default_routines(f, p, &encoder);
+                if (result != EXR_ERR_SUCCESS) 
+                    return result;
+            }
+            
+            result = exr_encoding_run(f, p, &encoder);
+            if (result != EXR_ERR_SUCCESS)
+                return result;
+
+            first = false;
+        }
+    }
+
+    result = exr_encoding_destroy(f, &encoder);
+    if (result != EXR_ERR_SUCCESS)
+        return result;
+
+    result = exr_finish(&f);
+
+    return EXR_ERR_SUCCESS;
+}
+
+
 } // namespace
 
-PYBIND11_MODULE(OpenEXRp11, m)
+PYBIND11_MODULE(OpenEXR_new, m)
 {
     using namespace py::literals;
 
-    m.doc() = "openexrp11 doc";
+    m.doc() = "openexr doc";
     m.attr("__version__") = OPENEXR_VERSION_STRING;
 
     py::enum_<OPENEXR_IMF_NAMESPACE::LevelRoundingMode>(m, "LevelRoundingMode")
@@ -836,6 +1085,26 @@ PYBIND11_MODULE(OpenEXRp11, m)
         .def("height", &OPENEXR_IMF_NAMESPACE::PreviewImage::height)
         ;
     
+    py::class_<IMATH_NAMESPACE::V2i>(m, "V2i")
+        .def_readwrite("x", &Imath::V2i::x)
+        .def_readwrite("y", &Imath::V2i::y)
+        ;
+
+    py::class_<IMATH_NAMESPACE::Box2i>(m, "Box2i")
+        .def_readwrite("min", &IMATH_NAMESPACE::Box2i::min)
+        .def_readwrite("max", &IMATH_NAMESPACE::Box2i::max)
+        ;
+    
+    py::class_<IMATH_NAMESPACE::V2f>(m, "V2f")
+        .def_readwrite("x", &Imath::V2f::x)
+        .def_readwrite("y", &Imath::V2f::y)
+        ;
+
+    py::class_<IMATH_NAMESPACE::Box2f>(m, "Box2f")
+        .def_readwrite("min", &IMATH_NAMESPACE::Box2f::min)
+        .def_readwrite("max", &IMATH_NAMESPACE::Box2f::max)
+        ;
+    
     py::class_<Channel>(m, "Channel")
         .def(py::init())
         .def(py::init<const char*,exr_pixel_type_t,int,int>())
@@ -871,6 +1140,7 @@ PYBIND11_MODULE(OpenEXRp11, m)
         .def("parts", &File::parts)
         .def("header", &File::header)
         .def("channels", &File::channels)
+        .def("write", &File::write)
         ;
 }
 

@@ -12,26 +12,31 @@ endif()
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
-python_add_library (PyOpenEXR MODULE OpenEXR.cpp)
+python_add_library (PyOpenEXR_new MODULE OpenEXR_new.cpp)
+python_add_library (PyOpenEXR_old MODULE OpenEXR_old.cpp)
 
-target_link_libraries (PyOpenEXR PRIVATE "${Python_LIBRARIES}"
-OpenEXR::OpenEXR pybind11::headers)
+target_link_libraries (PyOpenEXR_new PRIVATE "${Python_LIBRARIES}" OpenEXR::OpenEXR pybind11::headers)
+target_link_libraries (PyOpenEXR_old PRIVATE "${Python_LIBRARIES}" OpenEXR::OpenEXR)
 
 # The python module should be called "OpenEXR.so", not "PyOpenEXR.so",
 # but "OpenEXR" is taken as a library name by the main lib, so specify
 # the name explicitly here.
 
-set_target_properties (PyOpenEXR PROPERTIES OUTPUT_NAME "OpenEXRp11")
+set_target_properties (PyOpenEXR_new PROPERTIES OUTPUT_NAME "OpenEXR_new")
+set_target_properties (PyOpenEXR_old PROPERTIES OUTPUT_NAME "OpenEXR_old")
 
 configure_file(Imath.py ${CMAKE_CURRENT_BINARY_DIR}/Imath.py COPYONLY)
+configure_file(OpenEXR.py ${CMAKE_CURRENT_BINARY_DIR}/OpenEXR.py COPYONLY)
 
 set(PYTHON_INSTALL_DIR "python/OpenEXR")
 if(SKBUILD)
   set(PYTHON_INSTALL_DIR ${SKBUILD_PLATLIB_DIR})
 endif()
 
-install(TARGETS PyOpenEXR DESTINATION ${PYTHON_INSTALL_DIR} COMPONENT python)
+install(TARGETS PyOpenEXR_new DESTINATION ${PYTHON_INSTALL_DIR} COMPONENT python)
+install(TARGETS PyOpenEXR_old DESTINATION ${PYTHON_INSTALL_DIR} COMPONENT python)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Imath.py DESTINATION ${PYTHON_INSTALL_DIR} COMPONENT python)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/OpenEXR.py DESTINATION ${PYTHON_INSTALL_DIR} COMPONENT python)
 
 if(BUILD_TESTING AND OPENEXR_TEST_PYTHON)
 

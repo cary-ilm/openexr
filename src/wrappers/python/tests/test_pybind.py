@@ -11,17 +11,20 @@ import os
 import random
 from array import array
 
-import OpenEXRp11 as OpenEXR
+#import OpenEXR_new as OpenEXR
+import OpenEXR
 import Imath
 
-print(f"OpenEXR: {OpenEXR.__version__} {OpenEXR.__file__}")
+#print(f"OpenEXR: {OpenEXR.__version__} {OpenEXR.__file__}")
+print(f"OpenEXR: {OpenEXR.__file__}")
 
 filename = "test.exr"
 filename = "multipart.exr"
-filename = "10x100.exr"
 filename = "GoldenGate.exr"
+filename = "10x100.exr"
 
 i = OpenEXR.File(filename)
+
 print(f"parts:")
 parts = i.parts()
 for p in parts:
@@ -30,14 +33,19 @@ for p in parts:
     for a in h:
         print(f"    {a}: {h[a]}")
 
-    for c in p.channels():
-        pixels = c.pixels
-        for y in range(0,min(p.height,100)):
-            s = f"{c.name}[{y}]:"
-            for x in range(0,min(p.width,100)):
-                s += f" {pixels[x][y]}"
-            print(s)
+    # for c in p.channels():
+    #     pixels = c.pixels
+    #     for y in range(0,min(p.height,100)):
+    #         s = f"{c.name}[{y}]:"
+    #         for x in range(0,min(p.width,100)):
+    #             s += f" {pixels[x][y]}"
+    #         print(s)
     
+print(f"writing out.exr")
+i.write("out.exr")
+exit(0)
+
+
 #print(f"header:")
 #h = i.header()
 #for a in h:
