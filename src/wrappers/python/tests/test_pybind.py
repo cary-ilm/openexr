@@ -23,15 +23,17 @@ filename = "multipart.exr"
 filename = "GoldenGate.exr"
 filename = "10x100.exr"
 
-i = OpenEXR.File(filename)
+def test_file():
 
-print(f"parts:")
-parts = i.parts()
-for p in parts:
-    print(f"  part: {p.name} {p.type} {p.compression} {p.width}x{p.height}")
-    h = p.header()
-    for a in h:
-        print(f"    {a}: {h[a]}")
+    i = OpenEXR.File(filename)
+
+    print(f"parts:")
+    parts = i.parts()
+    for p in parts:
+        print(f"  part: {p.name} {p.type} {p.compression} {p.width}x{p.height}")
+        h = p.header()
+        for a in h:
+            print(f"    {a}: {h[a]}")
 
     # for c in p.channels():
     #     pixels = c.pixels
@@ -41,37 +43,32 @@ for p in parts:
     #             s += f" {pixels[x][y]}"
     #         print(s)
     
-print(f"writing out.exr")
-i.write("out.exr")
-exit(0)
+    print(f"writing out.exr")
+    i.write("out.exr")
 
 
-#print(f"header:")
-#h = i.header()
-#for a in h:
-#    print(f"  {a}: {h[a]}")
+def test_keycode():
+    k = OpenEXR.KeyCode()
+    print(f"filmMfcCode={k.filmMfcCode}")
+    print(f"filmType={k.filmType}")
+    print(f"prefix={k.prefix}")
+    print(f"count={k.count}")
+    print(f"perfOffset={k.perfOffset}")
+    print(f"perfsPerFrame={k.perfsPerFrame}")
+    print(f"perfsPerCount={k.perfsPerCount}")
 
-#print(f"channels:")
-#for c in i.channels():
-#    print(f"  {c.name}: {c.type}")
-#
-#print("ok")
+def test_rational():
+    r = OpenEXR.Rational(1,2)
+    print(f"r.n={r.n}")
+    print(f"r.d={r.d}")
 
-exit(0)
+if os.path.isfile(filename):
+    test_file()
+    print("ok")
+else:    
+    print(f"skipping {sys.argv[0]}: no such file: {filename}")
 
-k = OpenEXR.KeyCode()
-print(f"filmMfcCode={k.filmMfcCode}")
-print(f"filmType={k.filmType}")
-print(f"prefix={k.prefix}")
-print(f"count={k.count}")
-print(f"perfOffset={k.perfOffset}")
-print(f"perfsPerFrame={k.perfsPerFrame}")
-print(f"perfsPerCount={k.perfsPerCount}")
-exit(0)
+    
 
-r = OpenEXR.Rational(1,2)
-print(f"r.n={r.n}")
-print(f"r.d={r.d}")
-exit(0)
 
 
