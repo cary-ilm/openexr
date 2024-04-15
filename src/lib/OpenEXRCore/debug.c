@@ -25,7 +25,7 @@ print_attr (const exr_attribute_t* a, int verbose)
     {
         case EXR_ATTR_BOX2I:
             printf (
-                "[ (%d, %d) - (%d, %d) ] %d x %d",
+                "[ %d, %d - %d %d ] %d x %d",
                 a->box2i->min.x,
                 a->box2i->min.y,
                 a->box2i->max.x,
@@ -35,7 +35,7 @@ print_attr (const exr_attribute_t* a, int verbose)
             break;
         case EXR_ATTR_BOX2F:
             printf (
-                "[ (%g, %g) - (%g, %g) ]",
+                "[ %g, %g - %g %g ]",
                 (double) a->box2f->min.x,
                 (double) a->box2f->min.y,
                 (double) a->box2f->max.x,
