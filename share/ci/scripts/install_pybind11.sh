@@ -5,7 +5,6 @@
 set -ex
 
 PYBIND11_VERSION="$1"
-INSTALL_TARGET="$2"
 
 git clone https://github.com/pybind/pybind11.git
 cd pybind11
@@ -20,7 +19,6 @@ fi
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release \
-      ${INSTALL_TARGET:+"-DCMAKE_INSTALL_PREFIX="${INSTALL_TARGET}""} \
       -DPYBIND11_INSTALL=ON \
       -DPYBIND11_TEST=OFF \
       ../.

@@ -49,13 +49,8 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Setup ext environment
-        run: |
-          EXT_PATH=/usr/local
-          echo "EXT_PATH=$EXT_PATH" >> $GITHUB_ENV
-
       - name: Install pybind11
-        run: sudo share/ci/scripts/install_pybind11.sh 2.9.2 $EXT_PATH
+        run: sudo share/ci/scripts/install_pybind11.sh 2.9.2
         
       - name: Create sdist
         # Only create it once.
