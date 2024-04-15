@@ -6,6 +6,12 @@ set -ex
 
 PYBIND11_VERSION="$1"
 
+if [[ $OSTYPE == "*win*" ]]; then
+    SUDO=""
+else
+    SUDO="sudo"
+fi
+
 git clone https://github.com/pybind/pybind11.git
 cd pybind11
 
@@ -22,7 +28,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DPYBIND11_INSTALL=ON \
       -DPYBIND11_TEST=OFF \
       ../.
-cmake --build . \
+$SUDO cmake --build . \
       --target install \
       --config Release \
       --parallel 2

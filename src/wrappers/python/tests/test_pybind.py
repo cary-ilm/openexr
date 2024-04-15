@@ -8,10 +8,7 @@
 from __future__ import print_function
 import sys
 import os
-import random
-from array import array
 
-#import OpenEXR_new as OpenEXR
 import OpenEXR
 import Imath
 
