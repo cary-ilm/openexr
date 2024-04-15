@@ -51,6 +51,7 @@ jobs:
 
       - name: Install pybind11
         run: sudo share/ci/scripts/install_pybind11.sh 2.9.2
+        shell: bash
         
       - name: Create sdist
         # Only create it once.
