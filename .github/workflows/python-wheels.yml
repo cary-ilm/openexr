@@ -50,7 +50,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install pybind11
-        run: sudo share/ci/scripts/install_pybind11.sh 2.9.2
+        run: share/ci/scripts/install_pybind11.sh 2.9.2
         shell: bash
         
       - name: Create sdist
