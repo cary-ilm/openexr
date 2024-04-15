@@ -55,7 +55,7 @@ jobs:
           echo "EXT_PATH=$EXT_PATH" >> $GITHUB_ENV
 
       - name: Install pybind11
-        run: share/ci/scripts/install_pybind11.sh 2.9.2 $EXT_PATH
+        run: sudo share/ci/scripts/install_pybind11.sh 2.9.2 $EXT_PATH
         
       - name: Create sdist
         # Only create it once.
