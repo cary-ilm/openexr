@@ -6,7 +6,7 @@ set -ex
 
 PYBIND11_VERSION="$1"
 
-if [[ $OSTYPE == "*msys*" ]]; then
+if [[ $OSTYPE == "msys" ]]; then
     SUDO=""
 else
     SUDO="sudo"
