@@ -15,10 +15,10 @@ import Imath
 #print(f"OpenEXR: {OpenEXR.__version__} {OpenEXR.__file__}")
 print(f"OpenEXR: {OpenEXR.__file__}")
 
-filename = "test.exr"
 filename = "multipart.exr"
 filename = "GoldenGate.exr"
 filename = "10x100.exr"
+filename = "test.exr"
 
 def test_file():
 
@@ -31,9 +31,9 @@ def test_file():
         h = p.header()
         for a in h:
             print(f"    {a}: {h[a]}")
-
-    # for c in p.channels():
-    #     pixels = c.pixels
+    for c in p.channels():
+         pixels = c.pixels
+         print(f"  channel {c.name} {pixels.shape}")
     #     for y in range(0,min(p.height,100)):
     #         s = f"{c.name}[{y}]:"
     #         for x in range(0,min(p.width,100)):
@@ -43,6 +43,22 @@ def test_file():
     print(f"writing out.exr")
     i.write("out.exr")
 
+
+    print("reading out.exr")
+    i = OpenEXR.File("out.exr")
+    print(f"parts:")
+    parts = i.parts()
+    for p in parts:
+        print(f"  part: {p.name} {p.type} {p.compression} {p.width}x{p.height}")
+        h = p.header()
+        for a in h:
+            print(f"    {a}: {h[a]}")
+    for c in p.channels():
+         pixels = c.pixels
+         print(f"  channel {c.name} {pixels.shape}")
+    
+    print(f"writing out2.exr")
+    i.write("out2.exr")
 
 def test_keycode():
     k = OpenEXR.KeyCode()

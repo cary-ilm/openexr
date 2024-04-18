@@ -20,7 +20,7 @@
 #include <ImathVec.h>
 #include <ImathBox.h>
 
-//#define DEBUGGIT 1
+#define DEBUGGIT 1
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -131,10 +131,6 @@ readScanlinePart (exr_context_t f, int part, Part& P)
     P.width = width;
     P.height = height;
     
-#if DEBUGGIT
-    std::cout << "Part " << P.name << " " << width << "x" << height << std::endl;
-#endif
-    
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
 
     int32_t lines_per_chunk;
@@ -144,21 +140,34 @@ readScanlinePart (exr_context_t f, int part, Part& P)
 
     frv = rv;
 
+#if DEBUGGIT
+    std::cout << "Part " << P.name << " " << width << "x" << height << " lines_per_chunk=" << lines_per_chunk << std::endl;
+#endif
+    
+
     for (uint64_t chunk = 0; chunk < height; chunk += lines_per_chunk)
     {
         exr_chunk_info_t cinfo = {0};
         int              y     = ((int) chunk) + datawin.min.y;
 
+        std::cout << "y=" << y << std::endl;
+        
         rv = exr_read_scanline_chunk_info (f, part, y, &cinfo);
         if (rv != EXR_ERR_SUCCESS)
+        {
+            std::cout << "error " << __LINE__ << std::endl;
             return false;
+        }
 
         if (decoder.channels == NULL)
         {
             rv = exr_decoding_initialize (f, part, &cinfo, &decoder);
             if (rv != EXR_ERR_SUCCESS)
+            {
+                std::cout << "error " << __LINE__ << std::endl;
                 return false;
-
+            }
+            
             P._channels.resize(decoder.channel_count);
 
             for (int c = 0; c < decoder.channel_count; c++)
@@ -199,6 +208,7 @@ readScanlinePart (exr_context_t f, int part, Part& P)
             rv = exr_decoding_choose_default_routines (f, part, &decoder);
             if (rv != EXR_ERR_SUCCESS)
             {
+                std::cout << "error " << __LINE__ << std::endl;
                 frv = rv;
                 break;
             }
@@ -208,6 +218,7 @@ readScanlinePart (exr_context_t f, int part, Part& P)
             rv = exr_decoding_update (f, part, &cinfo, &decoder);
             if (rv != EXR_ERR_SUCCESS)
             {
+                std::cout << "error " << __LINE__ << std::endl;
                 frv = rv;
                 break;
             }
@@ -219,6 +230,8 @@ readScanlinePart (exr_context_t f, int part, Part& P)
             {
                 exr_coding_channel_info_t& outc = decoder.channels[c];
 
+                std::cout << "  channel " << P._channels[c].name << " y=" << y << " width=" << width << std::endl;
+                
                 py::buffer_info buf = P._channels[c].pixels.request();
                 switch (outc.data_type)
                 {
@@ -239,8 +252,10 @@ readScanlinePart (exr_context_t f, int part, Part& P)
                         float* pixels = static_cast<float*>(buf.ptr);
                         outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
                     }
+                    break;
                 case EXR_PIXEL_LAST_TYPE:
                 default:
+                    std::cout << "error " << __LINE__ << std::endl;
                     return false;
                 }
                 outc.user_pixel_stride = outc.user_bytes_per_element;
@@ -253,13 +268,14 @@ readScanlinePart (exr_context_t f, int part, Part& P)
         if (rv != EXR_ERR_SUCCESS)
         {
             frv = rv;
+            std::cout << "error " << __LINE__ << std::endl;
             break;
         }
     }
 
     exr_decoding_destroy (f, &decoder);
 
-    return frv;
+    return frv == EXR_ERR_SUCCESS;
 }
 
 exr_result_t
@@ -709,13 +725,19 @@ File::File(const std::string& filename)
 
         if (store == EXR_STORAGE_SCANLINE || store == EXR_STORAGE_DEEP_SCANLINE)
         {
-            if (readScanlinePart (f, p, _parts[p]))
+            if (!readScanlinePart (f, p, _parts[p]))
+            {
+                std::cerr << "error reading " << filename << std::endl;
                 return;
+            }
         }
         else if (store == EXR_STORAGE_TILED || store == EXR_STORAGE_DEEP_TILED)
         {
-            if (readTiledPart (f, p, _parts[p]))
+            if (!readTiledPart (f, p, _parts[p]))
+            {
+                std::cerr << "error reading " << filename << std::endl;
                 return;
+            }
         }
     }
 }
