@@ -8,6 +8,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
+#include <pybind11/eval.h>
 
 #include "openexr.h"
 
@@ -19,6 +20,8 @@
 
 #include <ImathVec.h>
 #include <ImathBox.h>
+
+#include <typeinfo>
 
 #define DEBUGGIT 1
 
@@ -493,6 +496,8 @@ getAttribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
     py::object M33 = imath.attr("M33");
     py::object M44 = imath.attr("M44");
     
+    std::cout << "getAttribute " << a << ": " << name << " type=" << attr->type << std::endl;
+    
     switch (attr->type)
     {
       case EXR_ATTR_BOX2I:
@@ -708,6 +713,13 @@ File::File(const std::string& filename)
             py::object attr = getAttribute(f, p, a, name);
             h[name.c_str()] = attr;
         }
+        for (auto a = h.begin(); a != h.end(); ++a)
+        {
+            auto v = *a;
+            auto first = v.first;
+            std::string name = py::cast<std::string>(py::str(first));
+            std::cout << "header: " << name << std::endl;
+        }
 
         exr_storage_t store;
         rv = exr_get_storage (f, p, &store);
@@ -766,14 +778,16 @@ File::write(const char* filename)
         exr_lineorder_t lineOrder = EXR_LINEORDER_INCREASING_Y;
         if (P._header.contains("lineOrder"))
             lineOrder = py::cast<exr_lineorder_t>(P._header["lineOrder"]);
-        std::cout << "lineOrder=" << lineOrder << std::endl;
 
         exr_compression_t compression = EXR_COMPRESSION_NONE;
         if (P._header.contains("compression"))
             compression = py::cast<exr_compression_t>(P._header["compression"]);
-        std::cout << "compression=" << compression << std::endl;
         
-        exr_attr_box2i_t dataw = {0, 0, int32_t(P.width - 1), int32_t(P.height - 1)};
+        exr_attr_box2i_t dataw;
+        dataw.min.x = 0;
+        dataw.min.y = 0;
+        dataw.max.x = int32_t(P.width - 1);
+        dataw.max.x = int32_t(P.height - 1);
         if (P._header.contains("dataWindow"))
         {
             IMATH_NAMESPACE::Box2i box = py::cast<IMATH_NAMESPACE::Box2i>(P._header["dataWindow"]);
@@ -793,7 +807,9 @@ File::write(const char* filename)
             dispw.max.y = box.max.y;
         }
 
-        exr_attr_v2f_t   swc   = {0.5f, 0.5f}; // center of the screen window
+        exr_attr_v2f_t swc;
+        swc.x = 0.5f;
+        swc.x = 0.5f;
         if (P._header.contains("screenWindowCenter"))
         {
             IMATH_NAMESPACE::V2f v = py::cast<IMATH_NAMESPACE::V2f>(P._header["screenWindowCenter"]);
@@ -816,15 +832,35 @@ File::write(const char* filename)
         if (result != EXR_ERR_SUCCESS)
             return result;
 
+        for (auto a = P._header.begin(); a != P._header.end(); ++a)
+        {
+            auto v = *a;
+            auto first = v.first;
+            std::string name = py::cast<std::string>(py::str(first));
+            py::object second = py::cast<py::object>(v.second);
+            auto type = second.get_type();
+            if (py::isinstance<py::str>(second))
+            {
+                std::string s = py::cast<std::string>(second);
+                std::cout << "header: v=" << typeid(v).name() << " name=" << name << " second=" << typeid(second).name() << " s=" << s << std::endl;
+            }
+            else if (py::isinstance<py::enum_<exr_compression_t> >(second))
+                std::cout << "header: v=" << typeid(v).name() << " name=" << name << " second=" << typeid(second).name() << " enum" << std::endl;
+            else
+                std::cout << "header: v=" << typeid(v).name() << " name=" << name << " second=" << typeid(second).name() << " type=" << type << std::endl;
+        }
+
         for (size_t c=0; c<P._channels.size(); c++)
         {
             const Channel& C = P._channels[c];
+#if XXX
             std::cout << "exr_add_channel " << c
                       << " " << C.name.c_str()
                       << " type=" << C.type
                       << " xs=" << C.xsamples
                       << " ys=" << C.ysamples
                       << std::endl;
+#endif
             
             result = exr_add_channel(f, p, C.name.c_str(), C.type, 
                                      EXR_PERCEPTUALLY_LOGARITHMIC,
@@ -837,6 +873,7 @@ File::write(const char* filename)
         if (result != EXR_ERR_SUCCESS) 
             return result;
 
+#if XXX
         // set chromaticities to Rec. ITU-R BT.709-3
         exr_attr_chromaticities_t chroma = {
             0.6400f, 0.3300f,  // red
@@ -846,6 +883,7 @@ File::write(const char* filename)
         result = exr_attr_set_chromaticities(f, p, "chromaticities", &chroma);
         if (result != EXR_ERR_SUCCESS) 
             return result;
+#endif
     }
 
     result = exr_write_header(f);
@@ -971,6 +1009,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
 
     m.doc() = "openexr doc";
     m.attr("__version__") = OPENEXR_VERSION_STRING;
+    m.attr("OPENEXR_VERSION") = OPENEXR_VERSION_STRING;
 
     py::enum_<OPENEXR_IMF_NAMESPACE::LevelRoundingMode>(m, "LevelRoundingMode")
         .value("ROUND_UP", OPENEXR_IMF_NAMESPACE::ROUND_UP)
@@ -1108,21 +1147,41 @@ PYBIND11_MODULE(OpenEXR_new, m)
         ;
     
     py::class_<IMATH_NAMESPACE::V2i>(m, "V2i")
+        .def("__repr__", [](const IMATH_NAMESPACE::V2i& v) {
+            std::stringstream s;
+            s << v;
+            return s.str();
+        })
         .def_readwrite("x", &Imath::V2i::x)
         .def_readwrite("y", &Imath::V2i::y)
         ;
 
     py::class_<IMATH_NAMESPACE::Box2i>(m, "Box2i")
+        .def("__repr__", [](const IMATH_NAMESPACE::Box2i& b) {
+            std::stringstream s;
+            s << "(" << b.min << " " << b.max << ")";
+            return s.str();
+        })
         .def_readwrite("min", &IMATH_NAMESPACE::Box2i::min)
         .def_readwrite("max", &IMATH_NAMESPACE::Box2i::max)
         ;
     
     py::class_<IMATH_NAMESPACE::V2f>(m, "V2f")
+        .def("__repr__", [](const IMATH_NAMESPACE::V2f& v) {
+            std::stringstream s;
+            s << v;
+            return s.str();
+        })
         .def_readwrite("x", &Imath::V2f::x)
         .def_readwrite("y", &Imath::V2f::y)
         ;
 
     py::class_<IMATH_NAMESPACE::Box2f>(m, "Box2f")
+        .def("__repr__", [](const IMATH_NAMESPACE::Box2f& b) {
+            std::stringstream s;
+            s << "(" << b.min << " " << b.max << ")";
+            return s.str();
+        })
         .def_readwrite("min", &IMATH_NAMESPACE::Box2f::min)
         .def_readwrite("max", &IMATH_NAMESPACE::Box2f::max)
         ;

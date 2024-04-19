@@ -1,3 +1,4 @@
 from OpenEXR_old import *
 from OpenEXR_new import *
-import numpy
+
+__version__ = OPENEXR_VERSION
