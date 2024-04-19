@@ -19,11 +19,12 @@
 #include <ImfPreviewImage.h>
 
 #include <ImathVec.h>
+#include <ImathMatrix.h>
 #include <ImathBox.h>
 
 #include <typeinfo>
 
-#define DEBUGGIT 1
+//#define DEBUGGIT 1
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -118,7 +119,7 @@ core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
 }
 
 bool
-readScanlinePart (exr_context_t f, int part, Part& P)
+read_scanline_part (exr_context_t f, int part, Part& P)
 {
     exr_result_t     rv, frv;
     exr_attr_box2i_t datawin;
@@ -153,8 +154,6 @@ readScanlinePart (exr_context_t f, int part, Part& P)
         exr_chunk_info_t cinfo = {0};
         int              y     = ((int) chunk) + datawin.min.y;
 
-        std::cout << "y=" << y << std::endl;
-        
         rv = exr_read_scanline_chunk_info (f, part, y, &cinfo);
         if (rv != EXR_ERR_SUCCESS)
         {
@@ -233,8 +232,6 @@ readScanlinePart (exr_context_t f, int part, Part& P)
             {
                 exr_coding_channel_info_t& outc = decoder.channels[c];
 
-                std::cout << "  channel " << P._channels[c].name << " y=" << y << " width=" << width << std::endl;
-                
                 py::buffer_info buf = P._channels[c].pixels.request();
                 switch (outc.data_type)
                 {
@@ -281,8 +278,8 @@ readScanlinePart (exr_context_t f, int part, Part& P)
     return frv == EXR_ERR_SUCCESS;
 }
 
-exr_result_t
-readTiledPart (exr_context_t f, int part, Part& P)
+bool
+read_tiled_part (exr_context_t f, int part, Part& P)
 {
     exr_result_t rv, frv;
 
@@ -467,7 +464,7 @@ readTiledPart (exr_context_t f, int part, Part& P)
 }
 
 py::object
-getAttribute(exr_context_t f, int32_t p, int32_t a, std::string& name) 
+get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name) 
 {
     exr_result_t              rv;
 
@@ -496,7 +493,7 @@ getAttribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
     py::object M33 = imath.attr("M33");
     py::object M44 = imath.attr("M44");
     
-    std::cout << "getAttribute " << a << ": " << name << " type=" << attr->type << std::endl;
+    std::cout << "get_attribute " << a << ": " << name << " type=" << attr->type << std::endl;
     
     switch (attr->type)
     {
@@ -710,15 +707,8 @@ File::File(const std::string& filename)
         for (int32_t a = 0; a < attrcount; ++a)
         {
             std::string name;
-            py::object attr = getAttribute(f, p, a, name);
+            py::object attr = get_attribute(f, p, a, name);
             h[name.c_str()] = attr;
-        }
-        for (auto a = h.begin(); a != h.end(); ++a)
-        {
-            auto v = *a;
-            auto first = v.first;
-            std::string name = py::cast<std::string>(py::str(first));
-            std::cout << "header: " << name << std::endl;
         }
 
         exr_storage_t store;
@@ -737,7 +727,7 @@ File::File(const std::string& filename)
 
         if (store == EXR_STORAGE_SCANLINE || store == EXR_STORAGE_DEEP_SCANLINE)
         {
-            if (!readScanlinePart (f, p, _parts[p]))
+            if (!read_scanline_part (f, p, _parts[p]))
             {
                 std::cerr << "error reading " << filename << std::endl;
                 return;
@@ -745,13 +735,202 @@ File::File(const std::string& filename)
         }
         else if (store == EXR_STORAGE_TILED || store == EXR_STORAGE_DEEP_TILED)
         {
-            if (!readTiledPart (f, p, _parts[p]))
+            if (!read_tiled_part (f, p, _parts[p]))
             {
                 std::cerr << "error reading " << filename << std::endl;
                 return;
             }
         }
     }
+}
+
+void
+write_attribute(exr_context_t f, int p, const std::string& name, py::object object)
+{
+    if (py::isinstance<IMATH_NAMESPACE::Box2i>(object))
+    {
+        const IMATH_NAMESPACE::Box2i* box2i = py::cast<IMATH_NAMESPACE::Box2i*>(object);
+        std::cout << "write_attribute " << name
+                  << " object=" << typeid(object).name()
+                  << " box2i: " << box2i->min
+                  << ", " << box2i->max
+                  << ")"
+                  << std::endl;
+        return;
+    }
+
+    if (py::isinstance<IMATH_NAMESPACE::Box2f>(object))
+    {
+        const IMATH_NAMESPACE::Box2f* box2f = py::cast<IMATH_NAMESPACE::Box2f*>(object);
+        std::cout << "write_attribute " << name
+                  << " object=" << typeid(object).name()
+                  << " box2i: " << box2f->min
+                  << ", " << box2f->max
+                  << ")"
+                  << std::endl;
+        return;
+    }
+
+    if (py::isinstance<py::list>(object))
+    {
+#if XXX
+        std::string s = py::cast<std::string>(object);
+        std::cout << "write_attribute " << name << " s=" << s << std::endl;
+#endif
+        return;
+    }
+    
+    if (py::isinstance<const exr_attr_chromaticities_t>(object))
+    {
+        const exr_attr_chromaticities_t* c = py::cast<const exr_attr_chromaticities_t*>(object);
+        return;
+    }
+    
+    if (py::isinstance<exr_compression_t>(object))
+    {
+        const exr_compression_t* c = py::cast<exr_compression_t*>(object);
+        std::cout << "write_attribute " << name
+                  << " object=" << typeid(object).name()
+                  << " compression: " << *c
+                  << std::endl;
+        return;
+    }
+
+#if XXX
+    if (py::isinstance<py::double_>(object))
+    {
+        const double f = py::cast<py::double_>(object);
+        return;
+    }
+#endif
+    
+    if (py::isinstance<exr_envmap_t>(object))
+    {
+        const exr_envmap_t* c = py::cast<exr_envmap_t*>(object);
+    }
+    
+    if (py::isinstance<py::float_>(object))
+    {
+        const float f = py::cast<py::float_>(object);
+        std::cout << "write_attribute " << name
+                  << " object=" << typeid(object).name()
+                  << " float: " << f
+                  << std::endl;
+        return;
+    }
+
+    if (py::isinstance<py::int_>(object))
+    {
+        const int i = py::cast<py::int_>(object);
+        std::cout << "write_attribute " << name
+                  << " object=" << typeid(object).name()
+                  << " int: " << i
+                  << std::endl;
+        return;
+    }
+
+    if (py::isinstance<const exr_attr_keycode_t>(object))
+    {
+        const exr_attr_keycode_t* k = py::cast<const exr_attr_keycode_t*>(object);
+        return;
+    }
+    
+    if (py::isinstance<exr_lineorder_t>(object))
+    {
+        const exr_lineorder_t* l = py::cast<exr_lineorder_t*>(object);
+        std::cout << "write_attribute " << name
+                  << " object=" << typeid(object).name()
+                  << " lineorder: " << *l
+                  << std::endl;
+        return;
+    }
+
+    if (py::isinstance<IMATH_NAMESPACE::M33f>(object))
+    {
+        const IMATH_NAMESPACE::M33f* m33f = py::cast<IMATH_NAMESPACE::M33f*>(object);
+    }
+
+    if (py::isinstance<IMATH_NAMESPACE::M33d>(object))
+    {
+        const IMATH_NAMESPACE::M33d* m33d = py::cast<IMATH_NAMESPACE::M33d*>(object);
+    }
+    
+    if (py::isinstance<IMATH_NAMESPACE::M44f>(object))
+    {
+        const IMATH_NAMESPACE::M44f* m44f = py::cast<IMATH_NAMESPACE::M44f*>(object);
+    }
+
+    if (py::isinstance<IMATH_NAMESPACE::M44d>(object))
+    {
+        const IMATH_NAMESPACE::M44d* m44d = py::cast<IMATH_NAMESPACE::M44d*>(object);
+    }
+
+    if (py::isinstance<OPENEXR_IMF_NAMESPACE::PreviewImage>(object))
+    {
+        const OPENEXR_IMF_NAMESPACE::PreviewImage* p = py::cast<OPENEXR_IMF_NAMESPACE::PreviewImage*>(object);
+    }
+
+    if (py::isinstance<OPENEXR_IMF_NAMESPACE::Rational>(object))
+    {
+        const OPENEXR_IMF_NAMESPACE::Rational* r = py::cast<OPENEXR_IMF_NAMESPACE::Rational*>(object);
+    }
+    
+    if (py::isinstance<py::str>(object))
+    {
+        const std::string& s = py::cast<py::str>(object);
+        return;
+    }
+
+    if (py::isinstance<OPENEXR_IMF_NAMESPACE::TileDescription>(object))
+    {
+        const OPENEXR_IMF_NAMESPACE::TileDescription* t = py::cast<OPENEXR_IMF_NAMESPACE::TileDescription*>(object);
+    }
+    
+    if (py::isinstance<OPENEXR_IMF_NAMESPACE::TimeCode>(object))
+    {
+        const OPENEXR_IMF_NAMESPACE::TimeCode* t = py::cast<OPENEXR_IMF_NAMESPACE::TimeCode*>(object);
+    }
+    
+    if (py::isinstance<IMATH_NAMESPACE::V2i>(object))
+    {
+        const IMATH_NAMESPACE::V2i* v2i = py::cast<IMATH_NAMESPACE::V2i*>(object);
+        return;
+    }
+
+    if (py::isinstance<IMATH_NAMESPACE::V2f>(object))
+    {
+        const IMATH_NAMESPACE::V2f* v2f = py::cast<IMATH_NAMESPACE::V2f*>(object);
+        return;
+    }
+
+    if (py::isinstance<IMATH_NAMESPACE::V2d>(object))
+    {
+        const IMATH_NAMESPACE::V2d* v2d = py::cast<IMATH_NAMESPACE::V2d*>(object);
+        return;
+    }
+
+    if (py::isinstance<IMATH_NAMESPACE::V3i>(object))
+    {
+        const IMATH_NAMESPACE::V3i* v3i = py::cast<IMATH_NAMESPACE::V3i*>(object);
+        return;
+    }
+
+    if (py::isinstance<IMATH_NAMESPACE::V3f>(object))
+    {
+        const IMATH_NAMESPACE::V3f* v3f = py::cast<IMATH_NAMESPACE::V3f*>(object);
+        return;
+    }
+
+    if (py::isinstance<IMATH_NAMESPACE::V3d>(object))
+    {
+        const IMATH_NAMESPACE::V3d* v3d = py::cast<IMATH_NAMESPACE::V3d*>(object);
+        return;
+    }
+
+    std::cout << "write_attribute " << name
+              << " object=" << typeid(object).name()
+              << " " << object.get_type()
+              << std::endl;
 }
 
 exr_result_t
@@ -838,16 +1017,7 @@ File::write(const char* filename)
             auto first = v.first;
             std::string name = py::cast<std::string>(py::str(first));
             py::object second = py::cast<py::object>(v.second);
-            auto type = second.get_type();
-            if (py::isinstance<py::str>(second))
-            {
-                std::string s = py::cast<std::string>(second);
-                std::cout << "header: v=" << typeid(v).name() << " name=" << name << " second=" << typeid(second).name() << " s=" << s << std::endl;
-            }
-            else if (py::isinstance<py::enum_<exr_compression_t> >(second))
-                std::cout << "header: v=" << typeid(v).name() << " name=" << name << " second=" << typeid(second).name() << " enum" << std::endl;
-            else
-                std::cout << "header: v=" << typeid(v).name() << " name=" << name << " second=" << typeid(second).name() << " type=" << type << std::endl;
+            write_attribute(f, p, name, second);
         }
 
         for (size_t c=0; c<P._channels.size(); c++)

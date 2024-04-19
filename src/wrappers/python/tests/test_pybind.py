@@ -60,6 +60,11 @@ def test_file():
     print(f"writing out2.exr")
     i.write("out2.exr")
 
+def test_attributes():
+    i = OpenEXR.File(filename)
+    print(f"writing out.exr")
+    i.write("out.exr")
+
 def test_keycode():
     k = OpenEXR.KeyCode()
     print(f"filmMfcCode={k.filmMfcCode}")
@@ -76,7 +81,8 @@ def test_rational():
     print(f"r.d={r.d}")
 
 if os.path.isfile(filename):
-    test_file()
+#    test_file()
+    test_attributes()
     print("ok")
 else:    
     print(f"skipping {sys.argv[0]}: no such file: {filename}")
