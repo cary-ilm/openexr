@@ -76,28 +76,21 @@ def test_rational():
     print(f"r.n={r.n}")
     print(f"r.d={r.d}")
 
-if os.path.isfile(filename):
-#    test_file()
-    test_attributes()
-    print("ok")
-else:    
-    print(f"skipping {sys.argv[0]}: no such file: {filename}")
-
-def test_write:
+def test_write():
 
     H = {}
-    H["chromaticities"] = OpenEXR.Chromaticities(1,2,3,4,5,6)
-    H["box2i"] = OpenEXR.Box2(V2i(0,1),V2i(2,3))
-    H["box2f"] = OpenEXR.Box2f(V2f(0,1),V2f(2,3))
+    H["chromaticities"] = OpenEXR.Chromaticities(1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)
+    H["box2i"] = OpenEXR.Box2i(OpenEXR.V2i(0,1),OpenEXR.V2i(2,3))
+    H["box2f"] = OpenEXR.Box2f(OpenEXR.V2f(0,1),OpenEXR.V2f(2,3))
     H["compression"] = OpenEXR.ZIPS_COMPRESSION
     H["float"] = 4.2
     H["int"] = 42
-    H["keycode"] = OpenEXR.KeyCode(1,2,3,4,5,6,7)
+    H["keycode"] = OpenEXR.KeyCode(0,0,0,0,0,4,64)
     H["lineorer"] = OpenEXR.INCREASING_Y
-    H["m33f"] = OpenEXR.M33f()
-    H["m33d"] = OpenEXR.M33d()
-    H["m44f"] = OpenEXR.M44f()
-    H["m44d"] = OpenEXR.M44d()
+    H["m33f"] = OpenEXR.M33f(1,0,0,0,1,0,0,0,1)
+    H["m33d"] = OpenEXR.M33d(1,0,0,0,1,0,0,0,1)
+    H["m44f"] = OpenEXR.M44f(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
+    H["m44d"] = OpenEXR.M44d(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
     H["preview"] = OpenEXR.PreviewImage()
     H["rational"] = OpenEXR.Rational(1,3)
     H["string"] = "stringy"
@@ -105,9 +98,9 @@ def test_write:
     H["v2i"] = OpenEXR.V2i(1,2)
     H["v2f"] = OpenEXR.V2f(1.2,3.4)
     H["v2d"] = OpenEXR.V2d(1.2,3.4)
-    H["v3i"] = OpenEXR.V3i(1,2)
-    H["v3f"] = OpenEXR.V3f(1.2,3.4)
-    H["v3d"] = OpenEXR.V3d(1.2,3.4)
+    H["v3i"] = OpenEXR.V3i(1,2,3)
+    H["v3f"] = OpenEXR.V3f(1.2,3.4,5.6)
+    H["v3d"] = OpenEXR.V3d(1.2,3.4,5.6)
     
     width = 10
     height = 20
@@ -116,19 +109,30 @@ def test_write:
     G = np.array([i*10 for i in range(0,size)], dtype=float)
     B = np.array([i*100 for i in range(0,size)], dtype=float)
     A = np.array([i*1000 for i in range(0,size)], dtype=float)
-    channels = [ Channel("R", R), Channel("G", G), Channel("B", B), Channel("A", A) ] 
+    channels = [ OpenEXR.Channel("R", OpenEXR.FLOAT, 1, 1, R),
+                 OpenEXR.Channel("G", OpenEXR.FLOAT, 1, 1, G),
+                 OpenEXR.Channel("B", OpenEXR.FLOAT, 1, 1, B),
+                 OpenEXR.Channel("A", OpenEXR.FLOAT, 1, 1, A) ] 
     o = OpenEXR.File(H, channels)
     o.write("1part.exr")
 
-    OpenEXR.write("1part.exr", H, channels)
+    OpenEXR.write_exr_file("1part.exr", H, channels)
 
-    P1 = Part(H, "P1", channels)
-    P2 = Part(H, "P2", channels)
-    parts = [P, P1, P2]
+    P1 = OpenEXR.Part(H, channels, "P1")
+    P2 = OpenEXR.Part(H, channels, "P2")
+    parts = [P1, P2]
     o = OpenEXR.File(parts)
     o.write("3part.exr")
-    OpenEXR.write("3part.exr", [P, P1, P2])
+    OpenEXR.write_exr_file_parts("3part.exr", [P1, P2])
     
+if os.path.isfile(filename):
+#    test_file()
+#    test_attributes()
+    test_write()
+    print("ok")
+else:    
+    print(f"skipping {sys.argv[0]}: no such file: {filename}")
+
 
 
     
