@@ -487,9 +487,9 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
     py::object V3d = imath.attr("V3d");
 //    py::object Box2i = imath.attr("Box2i");
 //    py::object Box2f = imath.attr("Box2f");
-    py::object Box2d = imath.attr("Box2d");
-    py::object Box3f = imath.attr("Box3f");
-    py::object Box3d = imath.attr("Box3d");
+//    py::object Box2d = imath.attr("Box2d");
+//    py::object Box3f = imath.attr("Box3f");
+//    py::object Box3d = imath.attr("Box3d");
     py::object M33 = imath.attr("M33");
     py::object M44 = imath.attr("M44");
     
@@ -1354,6 +1354,52 @@ PYBIND11_MODULE(OpenEXR_new, m)
         })
         .def_readwrite("min", &IMATH_NAMESPACE::Box2f::min)
         .def_readwrite("max", &IMATH_NAMESPACE::Box2f::max)
+        ;
+    
+    py::class_<IMATH_NAMESPACE::M33f>(m, "M33f")
+        .def(py::init<float,float,float,float,float,float,float,float,float>())
+        .def("__repr__", [](const IMATH_NAMESPACE::M33f& m) {
+            std::stringstream s;
+            s << m;
+            return s.str();
+        })
+        .def_readwrite("x", &IMATH_NAMESPACE::M33f::x)
+        ;
+    
+    py::class_<IMATH_NAMESPACE::M33d>(m, "M33d")
+        .def(py::init<double,double,double,double,double,double,double,double,double>())
+        .def("__repr__", [](const IMATH_NAMESPACE::M33d& m) {
+            std::stringstream s;
+            s << m;
+            return s.str();
+        })
+        .def_readwrite("x", &IMATH_NAMESPACE::M33d::x)
+        ;
+    
+    py::class_<IMATH_NAMESPACE::M44f>(m, "M44f")
+        .def(py::init<float,float,float,float,
+                      float,float,float,float,
+                      float,float,float,float,
+                      float,float,float,float>())
+        .def("__repr__", [](const IMATH_NAMESPACE::M44f& m) {
+            std::stringstream s;
+            s << m;
+            return s.str();
+        })
+        .def_readwrite("x", &IMATH_NAMESPACE::M44f::x)
+        ;
+    
+    py::class_<IMATH_NAMESPACE::M44d>(m, "M44d")
+        .def(py::init<double,double,double,double,
+                      double,double,double,double,
+                      double,double,double,double,
+                      double,double,double,double>())
+        .def("__repr__", [](const IMATH_NAMESPACE::M44d& m) {
+            std::stringstream s;
+            s << m;
+            return s.str();
+        })
+        .def_readwrite("x", &IMATH_NAMESPACE::M44d::x)
         ;
     
     py::class_<Channel>(m, "Channel")
