@@ -12,7 +12,7 @@ import numpy as np
 
 import OpenEXR
 
-print(f"OpenEXR: {OpenEXR.__version__} {OpenEXR.__file__}")
+#print(f"OpenEXR: {OpenEXR.__version__} {OpenEXR.__file__}")
 
 filename = "multipart.exr"
 filename = "GoldenGate.exr"
@@ -78,57 +78,55 @@ def test_rational():
 
 def test_write():
 
-    H = {}
-    H["chromaticities"] = OpenEXR.Chromaticities(1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)
-    H["box2i"] = OpenEXR.Box2i(OpenEXR.V2i(0,1),OpenEXR.V2i(2,3))
-    H["box2f"] = OpenEXR.Box2f(OpenEXR.V2f(0,1),OpenEXR.V2f(2,3))
-    H["compression"] = OpenEXR.ZIPS_COMPRESSION
-    H["float"] = 4.2
-    H["int"] = 42
-    H["keycode"] = OpenEXR.KeyCode(0,0,0,0,0,4,64)
-    H["lineorer"] = OpenEXR.INCREASING_Y
-    H["m33f"] = OpenEXR.M33f(1,0,0,0,1,0,0,0,1)
-    H["m33d"] = OpenEXR.M33d(1,0,0,0,1,0,0,0,1)
-    H["m44f"] = OpenEXR.M44f(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
-    H["m44d"] = OpenEXR.M44d(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
-    H["preview"] = OpenEXR.PreviewImage()
-    H["rational"] = OpenEXR.Rational(1,3)
-    H["string"] = "stringy"
-    H["timecode"] = OpenEXR.TimeCode(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)
-    H["v2i"] = OpenEXR.V2i(1,2)
-    H["v2f"] = OpenEXR.V2f(1.2,3.4)
-    H["v2d"] = OpenEXR.V2d(1.2,3.4)
-    H["v3i"] = OpenEXR.V3i(1,2,3)
-    H["v3f"] = OpenEXR.V3f(1.2,3.4,5.6)
-    H["v3d"] = OpenEXR.V3d(1.2,3.4,5.6)
+    header = {}
+    header["chromaticities"] = OpenEXR.Chromaticities(1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)
+    header["box2i"] = OpenEXR.Box2i(OpenEXR.V2i(0,1),OpenEXR.V2i(2,3))
+    header["box2f"] = OpenEXR.Box2f(OpenEXR.V2f(0,1),OpenEXR.V2f(2,3))
+    header["compression"] = OpenEXR.ZIPS_COMPRESSION
+    header["float"] = 4.2
+    header["int"] = 42
+    header["keycode"] = OpenEXR.KeyCode(0,0,0,0,0,4,64)
+    header["lineorder"] = OpenEXR.INCREASING_Y
+    header["m33f"] = OpenEXR.M33f(1,0,0,0,1,0,0,0,1)
+    header["m33d"] = OpenEXR.M33d(1,0,0,0,1,0,0,0,1)
+    header["m44f"] = OpenEXR.M44f(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
+    header["m44d"] = OpenEXR.M44d(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
+    header["preview"] = OpenEXR.PreviewImage()
+    header["rational"] = OpenEXR.Rational(1,3)
+    header["string"] = "stringy"
+    header["timecode"] = OpenEXR.TimeCode(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)
+    header["v2i"] = OpenEXR.V2i(1,2)
+    header["v2f"] = OpenEXR.V2f(1.2,3.4)
+    header["v2d"] = OpenEXR.V2d(1.2,3.4)
+    header["v3i"] = OpenEXR.V3i(1,2,3)
+    header["v3f"] = OpenEXR.V3f(1.2,3.4,5.6)
+    header["v3d"] = OpenEXR.V3d(1.2,3.4,5.6)
     
     width = 10
     height = 20
-    size = width
-    R = np.array([i for i in range(0,size)], dtype=float)
-    G = np.array([i*10 for i in range(0,size)], dtype=float)
-    B = np.array([i*100 for i in range(0,size)], dtype=float)
-    A = np.array([i*1000 for i in range(0,size)], dtype=float)
+    size = width * height
+    R = np.array([i for i in range(0,size)], dtype=float).reshape((width, height))
+    G = np.array([i*10 for i in range(0,size)], dtype=float).reshape((width, height))
+    B = np.array([i*100 for i in range(0,size)], dtype=float).reshape((width, height))
+    A = np.array([i*1000 for i in range(0,size)], dtype=float).reshape((width, height))
     channels = [ OpenEXR.Channel("R", OpenEXR.FLOAT, 1, 1, R),
                  OpenEXR.Channel("G", OpenEXR.FLOAT, 1, 1, G),
                  OpenEXR.Channel("B", OpenEXR.FLOAT, 1, 1, B),
                  OpenEXR.Channel("A", OpenEXR.FLOAT, 1, 1, A) ] 
-    o = OpenEXR.File(H, channels)
+    o = OpenEXR.File(header, channels, OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
     o.write("1part.exr")
-
-    OpenEXR.write_exr_file("1part.exr", H, channels)
-
-    P1 = OpenEXR.Part(H, channels, "P1")
-    P2 = OpenEXR.Part(H, channels, "P2")
+    print("wrote 1part.exr")
+    
+    P1 = OpenEXR.Part(header, channels, OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION, "P1")
+    P2 = OpenEXR.Part(header, channels, OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION, "P2")
     parts = [P1, P2]
     o = OpenEXR.File(parts)
-    o.write("3part.exr")
-    OpenEXR.write_exr_file_parts("3part.exr", [P1, P2])
+    o.write("2part.exr")
     
 if os.path.isfile(filename):
-#    test_file()
+    test_read_write()
 #    test_attributes()
-    test_write()
+#    test_write()
     print("ok")
 else:    
     print(f"skipping {sys.argv[0]}: no such file: {filename}")

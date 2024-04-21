@@ -79,7 +79,8 @@ class Part
 {
   public:
     Part() : type(EXR_STORAGE_LAST_TYPE), compression (EXR_COMPRESSION_LAST_TYPE) {}
-    Part(const py::dict& a, const py::list& channels, const char* name);
+    Part(const py::dict& a, const py::list& channels,
+         exr_storage_t type, exr_compression_t c, const char* name);
 
     const py::dict&    header() const { return _header; }
     py::list           channels() const { return py::cast(_channels); }
@@ -98,7 +99,8 @@ class File
 {
 public:
     File(const std::string& filename);
-    File(const py::dict& attributes, const py::list& channels);
+    File(const py::dict& attributes, const py::list& channels,
+         exr_storage_t type, exr_compression_t compression);
     File(const py::list& parts);
 
     py::list        parts() const { return py::cast(_parts); }
@@ -110,21 +112,65 @@ public:
     std::vector<Part>  _parts;
 };
     
-Part::Part(const py::dict& a, const py::list& channels, const char* name)
+Part::Part(const py::dict& a, const py::list& channels,
+           exr_storage_t t, exr_compression_t c, const char* n)
+    : name(n), type(t), width(0), height(0), compression(c), _header(a)
 {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    
+    for (auto c : channels)
+    {
+        auto o = *c;
+        auto C = py::cast<Channel>(*o);
+        _channels.push_back(C);
+
+        if (C.pixels.ndim() == 2)
+        {
+            uint32_t w = C.pixels.shape(0);
+            uint32_t h = C.pixels.shape(1);
+
+            std::cout << "channel " << C.name << " " << w << " x " << h << std::endl;
+
+            if (width == 0)
+                width = w;
+            if (height == 0)
+                height = h;
+            
+            if (w != width)
+                std::cout << "ERROR: bad width " << w << ", expected " << width << std::endl;
+            if (h != height)
+                std::cout << "ERROR: bad height " << h << ", expected " << height << std::endl;
+        }
+        else
+        {
+            std::cout << "ERROR: expected 2D array" << std::endl;
+        }
+    }
+
+    if (!_header.contains("dataWindow"))
+    {
+        _header["dataWindow"] = IMATH_NAMESPACE::Box2i(IMATH_NAMESPACE::V2i(0,0),
+                                                       IMATH_NAMESPACE::V2i(width-1,height-1));
+    }
+
+    if (!_header.contains("displayWindow"))
+    {
+        _header["displayWindow"] = IMATH_NAMESPACE::Box2i(IMATH_NAMESPACE::V2i(0,0),
+                                                          IMATH_NAMESPACE::V2i(width-1,height-1));
+    }
+
 }
     
 static void
 core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
 {
+#if XXX
     const char* fn;
-    if (EXR_ERR_SUCCESS != exr_get_file_name (f, &fn)) fn = "<error>";
-    fprintf (
-        stderr,
-        "ERROR '%s' (%s): %s\n",
-        fn,
-        exr_get_error_code_as_string (code),
-        msg);
+    if (EXR_ERR_SUCCESS != exr_get_file_name (f, &fn))
+        fn = "<error>";
+    std::cout << "ERROR " << fn << " " << exr_get_error_code_as_string (code) << " " << msg << std::endl;
+#endif
+    std::cout << "ERROR " << exr_get_error_code_as_string (code) << " " << msg << std::endl;
 }
 
 bool
@@ -487,23 +533,6 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
     
     name = attr->name;
     
-#if XXX
-    py::module_ imath = py::module_::import("Imath");
-//    py::object V2i = imath.attr("V2i");
-//    py::object V2f = imath.attr("V2f");
-    py::object V2d = imath.attr("V2d");
-    py::object V3i = imath.attr("V3i");
-    py::object V3f = imath.attr("V3f");
-    py::object V3d = imath.attr("V3d");
-//    py::object Box2i = imath.attr("Box2i");
-//    py::object Box2f = imath.attr("Box2f");
-//    py::object Box2d = imath.attr("Box2d");
-//    py::object Box3f = imath.attr("Box3f");
-//    py::object Box3d = imath.attr("Box3d");
-    py::object M33 = imath.attr("M33");
-    py::object M44 = imath.attr("M44");
-#endif
-    
     std::cout << "get_attribute " << a << ": " << name << " type=" << attr->type << std::endl;
     
     switch (attr->type)
@@ -682,10 +711,21 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
 
 File::File(const py::list& parts)
 {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+
+    for (auto p : parts)
+    {
+        auto P = py::cast<Part>(*p);
+        _parts.push_back(P);
+    }
 }
 
-File::File(const py::dict& attributes, const py::list& channels)
+File::File(const py::dict& attributes, const py::list& channels,
+           exr_storage_t type, exr_compression_t compression)
 {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+
+    _parts.push_back(Part(attributes, channels, type, compression, "Part0"));
 }
 
 File::File(const std::string& filename)
@@ -757,232 +797,140 @@ File::File(const std::string& filename)
     }
 }
 
+template <class T>
+const T*
+py_cast(const py::object& object)
+{
+    if (py::isinstance<T>(object))
+        return py::cast<T*>(object);
+
+    return nullptr;
+}
+
+template <class T, class S>
+const T*
+py_cast(const py::object& object)
+{
+    if (py::isinstance<S>(object))
+    {
+        auto o = py::cast<S*>(object);
+        return reinterpret_cast<const T*>(o);
+    }
+
+    return nullptr;
+}
+
 void
 write_attribute(exr_context_t f, int p, const std::string& name, py::object object)
 {
-    if (py::isinstance<IMATH_NAMESPACE::Box2i>(object))
-    {
-        const IMATH_NAMESPACE::Box2i* box2i = py::cast<IMATH_NAMESPACE::Box2i*>(object);
-        std::cout << "write_attribute " << name
-                  << " object=" << typeid(object).name()
-                  << " box2i: " << box2i->min
-                  << ", " << box2i->max
-                  << ")"
-                  << std::endl;
-        return;
-    }
-
-    if (py::isinstance<IMATH_NAMESPACE::Box2f>(object))
-    {
-        const IMATH_NAMESPACE::Box2f* box2f = py::cast<IMATH_NAMESPACE::Box2f*>(object);
-        std::cout << "write_attribute " << name
-                  << " object=" << typeid(object).name()
-                  << " box2i: " << box2f->min
-                  << ", " << box2f->max
-                  << ")"
-                  << std::endl;
-        return;
-    }
-
-    if (py::isinstance<py::list>(object))
+    std::cout << "write_attribute " << name << std::endl;
+    
+    if (auto v = py_cast<exr_attr_box2i_t,IMATH_NAMESPACE::Box2i>(object))
+        exr_attr_set_box2i(f, p, name.c_str(), v);
+    else if (auto v = py_cast<exr_attr_box2f_t,IMATH_NAMESPACE::Box2f>(object))
+        exr_attr_set_box2f(f, p, name.c_str(), v);
+    else if (py::isinstance<py::list>(object))
     {
 #if XXX
         std::string s = py::cast<std::string>(object);
         std::cout << "write_attribute " << name << " s=" << s << std::endl;
 #endif
-        return;
     }
-    
-    if (py::isinstance<const exr_attr_chromaticities_t>(object))
-    {
+    else if (auto o = py_cast<exr_attr_chromaticities_t>(object))
+        exr_attr_set_chromaticities(f, p, name.c_str(), o);
+    else if (auto o = py_cast<exr_compression_t>(object))
+        exr_attr_set_compression(f, p, name.c_str(), *o);
 #if XXX
-        const exr_attr_chromaticities_t* c = py::cast<const exr_attr_chromaticities_t*>(object);
-#endif
-        return;
-    }
-    
-    if (py::isinstance<exr_compression_t>(object))
-    {
-        const exr_compression_t* c = py::cast<exr_compression_t*>(object);
-        std::cout << "write_attribute " << name
-                  << " object=" << typeid(object).name()
-                  << " compression: " << *c
-                  << std::endl;
-        return;
-    }
-
-#if XXX
-    if (py::isinstance<py::double_>(object))
+    else if (py::isinstance<py::double_>(object))
     {
         const double f = py::cast<py::double_>(object);
         return;
     }
 #endif
-    
-    if (py::isinstance<exr_envmap_t>(object))
+    else if (auto o = py_cast<exr_envmap_t>(object))
+        exr_attr_set_envmap(f, p, name.c_str(), *o);
+    else if (py::isinstance<py::float_>(object))
     {
-#if XXX
-        const exr_envmap_t* c = py::cast<exr_envmap_t*>(object);
-#endif
+        const float o = py::cast<py::float_>(object);
+        exr_attr_set_float(f, p, name.c_str(), o);
     }
-    
-    if (py::isinstance<py::float_>(object))
+    else if (py::isinstance<py::int_>(object))
     {
-        const float f = py::cast<py::float_>(object);
-        std::cout << "write_attribute " << name
-                  << " object=" << typeid(object).name()
-                  << " float: " << f
-                  << std::endl;
+        const int o = py::cast<py::int_>(object);
+        exr_attr_set_int(f, p, name.c_str(), o);
         return;
     }
-
-    if (py::isinstance<py::int_>(object))
+    else if (auto o = py_cast<exr_attr_keycode_t,OPENEXR_IMF_NAMESPACE::KeyCode>(object))
+        exr_attr_set_keycode(f, p, name.c_str(), o);
+    else if (auto o = py_cast<exr_lineorder_t>(object))
+        exr_attr_set_lineorder(f, p, name.c_str(), *o);
+    else if (auto v = py_cast<exr_attr_m33f_t,IMATH_NAMESPACE::M33f>(object))
+        exr_attr_set_m33f(f, p, name.c_str(), v);
+    else if (auto v = py_cast<exr_attr_m33d_t,IMATH_NAMESPACE::M33d>(object))
+        exr_attr_set_m33d(f, p, name.c_str(), v);
+    else if (auto v = py_cast<exr_attr_m44f_t,IMATH_NAMESPACE::M44f>(object))
+        exr_attr_set_m44f(f, p, name.c_str(), v);
+    else if (auto v = py_cast<exr_attr_m44d_t,IMATH_NAMESPACE::M44d>(object))
+        exr_attr_set_m44d(f, p, name.c_str(), v);
+    else if (auto v = py_cast<OPENEXR_IMF_NAMESPACE::PreviewImage>(object))
     {
-        const int i = py::cast<py::int_>(object);
-        std::cout << "write_attribute " << name
-                  << " object=" << typeid(object).name()
-                  << " int: " << i
-                  << std::endl;
-        return;
+        exr_attr_preview_t o;
+        o.width = v->width();
+        o.height = v->height();
+        o.alloc_size = 0;
+        o.rgba = nullptr;
+        exr_attr_set_preview(f, p, name.c_str(), &o);
     }
-
-    if (py::isinstance<const exr_attr_keycode_t>(object))
-    {
-#if XXX
-        const exr_attr_keycode_t* k = py::cast<const exr_attr_keycode_t*>(object);
-#endif
-        return;
-    }
-    
-    if (py::isinstance<exr_lineorder_t>(object))
-    {
-        const exr_lineorder_t* l = py::cast<exr_lineorder_t*>(object);
-        std::cout << "write_attribute " << name
-                  << " object=" << typeid(object).name()
-                  << " lineorder: " << *l
-                  << std::endl;
-        return;
-    }
-
-    if (py::isinstance<IMATH_NAMESPACE::M33f>(object))
-    {
-#if XXX
-        const IMATH_NAMESPACE::M33f* m33f = py::cast<IMATH_NAMESPACE::M33f*>(object);
-#endif
-    }
-
-    if (py::isinstance<IMATH_NAMESPACE::M33d>(object))
-    {
-#if XXX
-        const IMATH_NAMESPACE::M33d* m33d = py::cast<IMATH_NAMESPACE::M33d*>(object);
-#endif
-    }
-    
-    if (py::isinstance<IMATH_NAMESPACE::M44f>(object))
-    {
-#if XXX
-        const IMATH_NAMESPACE::M44f* m44f = py::cast<IMATH_NAMESPACE::M44f*>(object);
-#endif
-    }
-
-    if (py::isinstance<IMATH_NAMESPACE::M44d>(object))
-    {
-#if XXX
-        const IMATH_NAMESPACE::M44d* m44d = py::cast<IMATH_NAMESPACE::M44d*>(object);
-#endif
-    }
-
-    if (py::isinstance<OPENEXR_IMF_NAMESPACE::PreviewImage>(object))
-    {
-#if XXX
-        const OPENEXR_IMF_NAMESPACE::PreviewImage* p = py::cast<OPENEXR_IMF_NAMESPACE::PreviewImage*>(object);
-#endif
-    }
-
-    if (py::isinstance<OPENEXR_IMF_NAMESPACE::Rational>(object))
-    {
-#if XXX
-        const OPENEXR_IMF_NAMESPACE::Rational* r = py::cast<OPENEXR_IMF_NAMESPACE::Rational*>(object);
-#endif
-    }
-    
-    if (py::isinstance<py::str>(object))
+    else if (auto o = py_cast<exr_attr_rational_t,OPENEXR_IMF_NAMESPACE::Rational>(object))
+        exr_attr_set_rational(f, p, name.c_str(), o);
+    else if (py::isinstance<py::str>(object))
     {
         const std::string& s = py::cast<py::str>(object);
-        return;
+        exr_attr_set_string(f, p, name.c_str(), s.c_str());
     }
-
-    if (py::isinstance<OPENEXR_IMF_NAMESPACE::TileDescription>(object))
+    else if (auto v = py_cast<OPENEXR_IMF_NAMESPACE::TileDescription>(object))
     {
-#if XXX
-        const OPENEXR_IMF_NAMESPACE::TileDescription* t = py::cast<OPENEXR_IMF_NAMESPACE::TileDescription*>(object);
-#endif
+        exr_attr_tiledesc_t t;
+        t.x_size = v->xSize;
+        t.y_size = v->ySize;
+        t.level_and_round = EXR_PACK_TILE_LEVEL_ROUND (v->mode, v->roundingMode);
+        exr_attr_set_tiledesc(f, p, name.c_str(), &t);
     }
-    
-    if (py::isinstance<OPENEXR_IMF_NAMESPACE::TimeCode>(object))
+    else if (auto v = py_cast<OPENEXR_IMF_NAMESPACE::TimeCode>(object))
     {
-#if XXX
-        const OPENEXR_IMF_NAMESPACE::TimeCode* t = py::cast<OPENEXR_IMF_NAMESPACE::TimeCode*>(object);
-#endif
+        exr_attr_timecode_t t;
+        t.time_and_flags = v->timeAndFlags();
+        t.user_data = v->userData();
+        exr_attr_set_timecode(f, p, name.c_str(), &t);
     }
-    
-    if (py::isinstance<IMATH_NAMESPACE::V2i>(object))
+    else if (auto v = py_cast<exr_attr_v2i_t,IMATH_NAMESPACE::V2i>(object))
+        exr_attr_set_v2i(f, p, name.c_str(), v);
+    else if (auto v = py_cast<exr_attr_v2f_t,IMATH_NAMESPACE::V2f>(object))
+        exr_attr_set_v2f(f, p, name.c_str(), v);
+    else if (auto v = py_cast<exr_attr_v2d_t,IMATH_NAMESPACE::V2d>(object))
+        exr_attr_set_v2d(f, p, name.c_str(), v);
+    else if (auto v = py_cast<exr_attr_v3i_t,IMATH_NAMESPACE::V3i>(object))
+        exr_attr_set_v3i(f, p, name.c_str(), v);
+    else if (auto v = py_cast<exr_attr_v3f_t,IMATH_NAMESPACE::V3f>(object))
+        exr_attr_set_v3f(f, p, name.c_str(), v);
+    else if (auto v = py_cast<exr_attr_v3d_t,IMATH_NAMESPACE::V3d>(object))
+        exr_attr_set_v3d(f, p, name.c_str(), v);
+    else
     {
-#if XXX
-        const IMATH_NAMESPACE::V2i* v2i = py::cast<IMATH_NAMESPACE::V2i*>(object);
-#endif
-        return;
+        std::cout << "ERROR: write_attribute " << name
+                  << " object=" << typeid(object).name()
+                  << " " << object.get_type()
+                  << std::endl;
     }
-
-    if (py::isinstance<IMATH_NAMESPACE::V2f>(object))
-    {
-#if XXX
-        const IMATH_NAMESPACE::V2f* v2f = py::cast<IMATH_NAMESPACE::V2f*>(object);
-#endif
-        return;
-    }
-
-    if (py::isinstance<IMATH_NAMESPACE::V2d>(object))
-    {
-#if XXX
-        const IMATH_NAMESPACE::V2d* v2d = py::cast<IMATH_NAMESPACE::V2d*>(object);
-#endif
-        return;
-    }
-
-    if (py::isinstance<IMATH_NAMESPACE::V3i>(object))
-    {
-#if XXX
-        const IMATH_NAMESPACE::V3i* v3i = py::cast<IMATH_NAMESPACE::V3i*>(object);
-#endif
-        return;
-    }
-
-    if (py::isinstance<IMATH_NAMESPACE::V3f>(object))
-    {
-#if XXX
-        const IMATH_NAMESPACE::V3f* v3f = py::cast<IMATH_NAMESPACE::V3f*>(object);
-#endif
-        return;
-    }
-
-    if (py::isinstance<IMATH_NAMESPACE::V3d>(object))
-    {
-#if XXX
-        const IMATH_NAMESPACE::V3d* v3d = py::cast<IMATH_NAMESPACE::V3d*>(object);
-#endif
-        return;
-    }
-
-    std::cout << "write_attribute " << name
-              << " object=" << typeid(object).name()
-              << " " << object.get_type()
-              << std::endl;
 }
 
 exr_result_t
 File::write(const char* filename)
 {
+    std::cout << __PRETTY_FUNCTION__ << " " << filename
+              << " parts=" << _parts.size()
+              << std::endl;
+
     exr_context_t f;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
 
@@ -1024,6 +972,7 @@ File::write(const char* filename)
             dataw.min.y = box.min.y;
             dataw.max.x = box.max.x;
             dataw.max.y = box.max.y;
+            std::cout << "dataWindow from header: " << box.min << " " << box.max << std::endl;
         }
 
         exr_attr_box2i_t dispw = dataw;
@@ -1034,6 +983,7 @@ File::write(const char* filename)
             dispw.min.y = box.min.y;
             dispw.max.x = box.max.x;
             dispw.max.y = box.max.y;
+            std::cout << "displayWindow from header: " << box.min << " " << box.max << std::endl;
         }
 
         exr_attr_v2f_t swc;
@@ -1073,14 +1023,13 @@ File::write(const char* filename)
         for (size_t c=0; c<P._channels.size(); c++)
         {
             const Channel& C = P._channels[c];
-#if XXX
+
             std::cout << "exr_add_channel " << c
                       << " " << C.name.c_str()
                       << " type=" << C.type
                       << " xs=" << C.xsamples
                       << " ys=" << C.ysamples
                       << std::endl;
-#endif
             
             result = exr_add_channel(f, p, C.name.c_str(), C.type, 
                                      EXR_PERCEPTUALLY_LOGARITHMIC,
@@ -1116,6 +1065,8 @@ File::write(const char* filename)
     {
         const Part& P = _parts[p];
             
+        std::cout << "writing part " << p << " " << P.name << std::endl;
+        
         exr_chunk_info_t cinfo;
 
         int32_t scansperchunk = 0;
@@ -1137,7 +1088,7 @@ File::write(const char* filename)
 
         for (int16_t y = dataw.min.y; y <= dataw.max.y; y += scansperchunk)
         {
-            std::cout << "Part " << p << " y=" << y << std::endl;
+            std::cout << "Part " << p << " width=" << P.width << " y=" << y << std::endl;
 
             result = exr_write_scanline_chunk_info(f, p, y, &cinfo);
             if (result != EXR_ERR_SUCCESS) 
@@ -1155,6 +1106,8 @@ File::write(const char* filename)
             for (size_t c=0; c<P._channels.size(); c++)
             {
                 const auto& C = P._channels[c];
+                
+                std::cout << "channel " << c << " " << C.name << " array: " << C.pixels.shape(0) << std::endl;
                 
                 encoder.channel_count = channelCount;
                 py::buffer_info buf = C.pixels.request();
@@ -1392,7 +1345,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
     py::class_<IMATH_NAMESPACE::V2i>(m, "V2i")
         .def(py::init())
         .def(py::init<int,int>())
-        .def("__repr__", [](const IMATH_NAMESPACE::V2i& v) { repr(v); })
+        .def("__repr__", [](const IMATH_NAMESPACE::V2i& v) { return repr(v); })
         .def_readwrite("x", &Imath::V2i::x)
         .def_readwrite("y", &Imath::V2i::y)
         ;
@@ -1400,7 +1353,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
     py::class_<IMATH_NAMESPACE::V2f>(m, "V2f")
         .def(py::init())
         .def(py::init<float,float>())
-        .def("__repr__", [](const IMATH_NAMESPACE::V2f& v) { repr(v); })
+        .def("__repr__", [](const IMATH_NAMESPACE::V2f& v) { return repr(v); })
         .def_readwrite("x", &Imath::V2f::x)
         .def_readwrite("y", &Imath::V2f::y)
         ;
@@ -1408,7 +1361,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
     py::class_<IMATH_NAMESPACE::V2d>(m, "V2d")
         .def(py::init())
         .def(py::init<double,double>())
-        .def("__repr__", [](const IMATH_NAMESPACE::V2d& v) { repr(v); })
+        .def("__repr__", [](const IMATH_NAMESPACE::V2d& v) { return repr(v); })
         .def_readwrite("x", &Imath::V2d::x)
         .def_readwrite("y", &Imath::V2d::y)
         ;
@@ -1416,7 +1369,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
     py::class_<IMATH_NAMESPACE::V3i>(m, "V3i")
         .def(py::init())
         .def(py::init<int,int,int>())
-        .def("__repr__", [](const IMATH_NAMESPACE::V3i& v) { repr(v); })
+        .def("__repr__", [](const IMATH_NAMESPACE::V3i& v) { return repr(v); })
         .def_readwrite("x", &Imath::V3i::x)
         .def_readwrite("y", &Imath::V3i::y)
         .def_readwrite("z", &Imath::V3i::z)
@@ -1425,7 +1378,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
     py::class_<IMATH_NAMESPACE::V3f>(m, "V3f")
         .def(py::init())
         .def(py::init<float,float,float>())
-        .def("__repr__", [](const IMATH_NAMESPACE::V3f& v) { repr(v); })
+        .def("__repr__", [](const IMATH_NAMESPACE::V3f& v) { return repr(v); })
         .def_readwrite("x", &Imath::V3f::x)
         .def_readwrite("y", &Imath::V3f::y)
         .def_readwrite("z", &Imath::V3f::z)
@@ -1434,7 +1387,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
     py::class_<IMATH_NAMESPACE::V3d>(m, "V3d")
         .def(py::init())
         .def(py::init<double,double,double>())
-        .def("__repr__", [](const IMATH_NAMESPACE::V3d& v) { repr(v); })
+        .def("__repr__", [](const IMATH_NAMESPACE::V3d& v) { return repr(v); })
         .def_readwrite("x", &Imath::V3d::x)
         .def_readwrite("y", &Imath::V3d::y)
         .def_readwrite("z", &Imath::V3d::z)
@@ -1467,11 +1420,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
     py::class_<IMATH_NAMESPACE::M33f>(m, "M33f")
         .def(py::init())
         .def(py::init<float,float,float,float,float,float,float,float,float>())
-        .def("__repr__", [](const IMATH_NAMESPACE::M33f& m) {
-            std::stringstream s;
-            s << m;
-            return s.str();
-        })
+        .def("__repr__", [](const IMATH_NAMESPACE::M33f& m) { return repr(m); })
 #if XXX
         .def_readwrite("x", &IMATH_NAMESPACE::M33f::x)
 #endif
@@ -1480,11 +1429,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
     py::class_<IMATH_NAMESPACE::M33d>(m, "M33d")
         .def(py::init())
         .def(py::init<double,double,double,double,double,double,double,double,double>())
-        .def("__repr__", [](const IMATH_NAMESPACE::M33d& m) {
-            std::stringstream s;
-            s << m;
-            return s.str();
-        })
+        .def("__repr__", [](const IMATH_NAMESPACE::M33d& m) { return repr(m); })
 #if XXX
         .def_readwrite("x", &IMATH_NAMESPACE::M33d::x)
 #endif
@@ -1495,14 +1440,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
                       float,float,float,float,
                       float,float,float,float,
                       float,float,float,float>())
-        .def("__repr__", [](const IMATH_NAMESPACE::M44f& m) {
-            std::stringstream s;
-            s << m;
-            return s.str();
-        })
-#if XXX
-        .def_readwrite("x", &IMATH_NAMESPACE::M44f::x)
-#endif
+        .def("__repr__", [](const IMATH_NAMESPACE::M44f& m) { return repr(m); })
         ;
     
     py::class_<IMATH_NAMESPACE::M44d>(m, "M44d")
@@ -1510,14 +1448,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
                       double,double,double,double,
                       double,double,double,double,
                       double,double,double,double>())
-        .def("__repr__", [](const IMATH_NAMESPACE::M44d& m) {
-            std::stringstream s;
-            s << m;
-            return s.str();
-        })
-#if XXX
-        .def_readwrite("x", &IMATH_NAMESPACE::M44d::x)
-#endif
+        .def("__repr__", [](const IMATH_NAMESPACE::M44d& m) { return repr(m); })
         ;
     
     py::class_<Channel>(m, "Channel")
@@ -1541,7 +1472,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
     
     py::class_<Part>(m, "Part")
         .def(py::init())
-        .def(py::init<py::dict,py::list,const char*>())
+        .def(py::init<py::dict,py::list,exr_storage_t,exr_compression_t,const char*>())
         .def_readwrite("name", &Part::name)
         .def_readwrite("type", &Part::type)
         .def_readwrite("width", &Part::width)
@@ -1553,7 +1484,7 @@ PYBIND11_MODULE(OpenEXR_new, m)
 
     py::class_<File>(m, "File")
         .def(py::init<std::string>())
-        .def(py::init<py::dict,py::list>())
+        .def(py::init<py::dict,py::list,exr_storage_t,exr_compression_t>())
         .def(py::init<py::list>())
         .def("parts", &File::parts)
         .def("header", &File::header)
