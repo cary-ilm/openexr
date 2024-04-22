@@ -27,6 +27,7 @@
 #include <ImfRationalAttribute.h>
 #include <ImfStringAttribute.h>
 #include <ImfStringVectorAttribute.h>
+#include <ImfFloatVectorAttribute.h>
 #include <ImfTileDescriptionAttribute.h>
 #include <ImfTimeCodeAttribute.h>
 #include <ImfVecAttribute.h>
@@ -371,6 +372,19 @@ printInfo (const char fileName[])
                 cout << ":";
 
                 for (StringVector::const_iterator i = ta->value ().begin ();
+                     i != ta->value ().end ();
+                     ++i)
+                {
+                    cout << "\n    \"" << *i << "\"";
+                }
+            }
+            else if (
+                const FloatVectorAttribute* ta =
+                    dynamic_cast<const FloatVectorAttribute*> (a))
+            {
+                cout << ":";
+
+                for (FloatVector::const_iterator i = ta->value ().begin ();
                      i != ta->value ().end ();
                      ++i)
                 {

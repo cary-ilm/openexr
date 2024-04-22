@@ -78,11 +78,26 @@ def test_rational():
 
 def test_write():
 
+    width = 10
+    height = 20
+    size = width * height
+    R = np.array([i for i in range(0,size)], dtype=float).reshape((width, height))
+    G = np.array([i*10 for i in range(0,size)], dtype=float).reshape((width, height))
+    B = np.array([i*100 for i in range(0,size)], dtype=float).reshape((width, height))
+    A = np.array([i*1000 for i in range(0,size)], dtype=float).reshape((width, height))
+    channels = [ OpenEXR.Channel("R", OpenEXR.FLOAT, 1, 1, R),
+                 OpenEXR.Channel("G", OpenEXR.FLOAT, 1, 1, G),
+                 OpenEXR.Channel("B", OpenEXR.FLOAT, 1, 1, B),
+                 OpenEXR.Channel("A", OpenEXR.FLOAT, 1, 1, A) ] 
+
     header = {}
+    header["floatvector"] = [1.0, 2.0, 3.0]
+    header["stringvector"] = ["do", "re", "me"]
     header["chromaticities"] = OpenEXR.Chromaticities(1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)
     header["box2i"] = OpenEXR.Box2i(OpenEXR.V2i(0,1),OpenEXR.V2i(2,3))
     header["box2f"] = OpenEXR.Box2f(OpenEXR.V2f(0,1),OpenEXR.V2f(2,3))
     header["compression"] = OpenEXR.ZIPS_COMPRESSION
+    header["double"] = OpenEXR.Double(42000)
     header["float"] = 4.2
     header["int"] = 42
     header["keycode"] = OpenEXR.KeyCode(0,0,0,0,0,4,64)
@@ -102,17 +117,6 @@ def test_write():
     header["v3f"] = OpenEXR.V3f(1.2,3.4,5.6)
     header["v3d"] = OpenEXR.V3d(1.2,3.4,5.6)
     
-    width = 10
-    height = 20
-    size = width * height
-    R = np.array([i for i in range(0,size)], dtype=float).reshape((width, height))
-    G = np.array([i*10 for i in range(0,size)], dtype=float).reshape((width, height))
-    B = np.array([i*100 for i in range(0,size)], dtype=float).reshape((width, height))
-    A = np.array([i*1000 for i in range(0,size)], dtype=float).reshape((width, height))
-    channels = [ OpenEXR.Channel("R", OpenEXR.FLOAT, 1, 1, R),
-                 OpenEXR.Channel("G", OpenEXR.FLOAT, 1, 1, G),
-                 OpenEXR.Channel("B", OpenEXR.FLOAT, 1, 1, B),
-                 OpenEXR.Channel("A", OpenEXR.FLOAT, 1, 1, A) ] 
     o = OpenEXR.File(header, channels, OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
     o.write("1part.exr")
     print("wrote 1part.exr")
@@ -124,9 +128,9 @@ def test_write():
     o.write("2part.exr")
     
 if os.path.isfile(filename):
-    test_read_write()
+#    test_read_write()
 #    test_attributes()
-#    test_write()
+    test_write()
     print("ok")
 else:    
     print(f"skipping {sys.argv[0]}: no such file: {filename}")

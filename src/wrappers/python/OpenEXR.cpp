@@ -63,6 +63,14 @@ namespace detail {
 
 namespace {
 
+class PyDouble
+{
+public:
+    PyDouble(double x) : d(x)  {}
+
+    double d;
+};
+                         
 class PyChannel 
 {
 public:
@@ -591,7 +599,7 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
       case EXR_ATTR_COMPRESSION: 
           return py::cast(exr_compression_t(attr->uc));
       case EXR_ATTR_DOUBLE:
-          return py::float_(attr->d);
+          return py::cast(PyDouble(attr->d));
       case EXR_ATTR_ENVMAP:
           return py::cast(exr_envmap_t(attr->uc));
       case EXR_ATTR_FLOAT:
@@ -841,28 +849,71 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
         exr_attr_set_box2f(f, p, name.c_str(), v);
     else if (py::isinstance<py::list>(object))
     {
-#if XXX
-        std::string s = py::cast<std::string>(object);
-        std::cout << "write_attribute " << name << " s=" << s << std::endl;
-#endif
+        auto list = py::cast<py::list>(object);
+        std::cout << "list: ";
+        py::print(object);
+        std::cout << "list: " << list.attr("__repr__")() << std::endl;
+        auto size = list.size();
+        if (size == 0)
+        {
+            std::cout << "ERROR: list is empty" << std::endl;
+        }
+        else if (py::isinstance<py::float_>(list[0]))
+        {
+            std::vector<float> v = list.cast<std::vector<float>>();
+            exr_attr_set_float_vector(f, p, name.c_str(), v.size(), &v[0]);
+        }
+        else if (py::isinstance<py::str>(list[0]))
+        {
+            std::vector<std::string> strings = list.cast<std::vector<std::string>>();
+            std::vector<const char*> v;
+            for (size_t i=0; i<strings.size(); i++)
+                v.push_back(strings[i].c_str());
+            exr_attr_set_string_vector(f, p, name.c_str(), v.size(), &v[0]);
+            std::cout << ">> write_attribute string vector " << name << " [";
+            for (auto e : v)
+                std::cout << " " << e;
+            std::cout << " ]" << std::endl;
+        }
+        else if (py::isinstance<PyChannel>(list[0]))
+        {
+            std::vector<PyChannel> C = list.cast<std::vector<PyChannel>>();
+            std::vector<exr_attr_chlist_entry_t> v(C.size());
+            for (size_t i = 0; i<C.size(); i++)
+            {
+                v[i].name.length = C[i].name.size();
+                v[i].name.alloc_size = C[i].name.size();
+                v[i].name.str = C[i].name.c_str();
+                v[i].pixel_type = C[i].type;
+                v[i].p_linear = 0;
+                v[i].reserved[0] = 0;
+                v[i].reserved[1] = 0;
+                v[i].reserved[2] = 0;
+                v[i].x_sampling = C[i].xsamples;
+                v[i].y_sampling = C[i].ysamples;
+            }
+            exr_attr_chlist_t channels;
+            channels.num_channels = v.size();
+            channels.num_alloced = v.size();
+            channels.entries = &v[0];
+            exr_attr_set_channels(f, p, name.c_str(), &channels);
+        }
     }
     else if (auto o = py_cast<exr_attr_chromaticities_t>(object))
         exr_attr_set_chromaticities(f, p, name.c_str(), o);
     else if (auto o = py_cast<exr_compression_t>(object))
         exr_attr_set_compression(f, p, name.c_str(), *o);
-#if XXX
-    else if (py::isinstance<py::double_>(object))
-    {
-        const double f = py::cast<py::double_>(object);
-        return;
-    }
-#endif
     else if (auto o = py_cast<exr_envmap_t>(object))
         exr_attr_set_envmap(f, p, name.c_str(), *o);
     else if (py::isinstance<py::float_>(object))
     {
         const float o = py::cast<py::float_>(object);
         exr_attr_set_float(f, p, name.c_str(), o);
+    }
+    else if (py::isinstance<PyDouble>(object))
+    {
+        const PyDouble d = py::cast<PyDouble>(object);
+        exr_attr_set_double(f, p, name.c_str(), d.d);
     }
     else if (py::isinstance<py::int_>(object))
     {
@@ -1457,8 +1508,14 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("__repr__", [](const M44d& m) { return repr(m); })
         ;
     
+    py::class_<PyDouble>(m, "Double")
+        .def(py::init<double>())
+        .def("__repr__", [](const PyDouble& d) { return repr(d.d); })
+        ;
+
     py::class_<PyChannel>(m, "Channel")
         .def(py::init())
+        .def(py::init<const char*,exr_pixel_type_t,int,int>())
         .def(py::init<const char*,exr_pixel_type_t,int,int,py::array>())
         .def("__repr__", [](const PyChannel& c) { return repr(c); })
         .def_readwrite("name", &PyChannel::name)
