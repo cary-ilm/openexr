@@ -9,6 +9,9 @@
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 #include <pybind11/eval.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/stl_bind.h>
+#include <pybind11/operators.h>
 
 #include "openexr.h"
 
@@ -34,28 +37,34 @@ using namespace IMATH_NAMESPACE;
 
 extern bool init_OpenEXR_old(PyObject* module);
 
-#if XXX
-namespace pybind11 { namespace detail {
+namespace pybind11 {
+namespace detail {
 
-    // This half casting support for numpy was all derived from
-    // discussions here:
-    // https://github.com/pybind/pybind11/issues/1776
+    // From https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/src/python/py_oiio.h
+    //
+    // This half casting support for numpy was all derived from discussions
+    // here: https://github.com/pybind/pybind11/issues/1776
 
     // Similar to enums in `pybind11/numpy.h`. Determined by doing:
-    // python3 -c 'import numpy as np;
-    // print(np.dtype(np.float16).num)' constexpr int NPY_FLOAT16 =
-    // 23;
+    // python3 -c 'import numpy as np; print(np.dtype(np.float16).num)'
+    constexpr int NPY_FLOAT16 = 23;
 
-    template<> struct npy_format_descriptor<half> { static
-        pybind11::dtype dtype() { handle ptr =
-        npy_api::get().PyArray_DescrFromType_(NPY_FLOAT16); return
-        reinterpret_borrow<pybind11::dtype>(ptr); } static std::string
-        format() { // following:
-        https://docs.python.org/3/library/struct.html#format-characters
-        return "e"; } static constexpr auto name = _("float16"); };
+    template<> struct npy_format_descriptor<half> {
+        static pybind11::dtype dtype()
+        {
+            handle ptr = npy_api::get().PyArray_DescrFromType_(NPY_FLOAT16);
+            return reinterpret_borrow<pybind11::dtype>(ptr);
+        }
+        static std::string format()
+        {
+            // following: https://docs.python.org/3/library/struct.html#format-characters
+            return "e";
+        }
+        static constexpr auto name = _("float16");
+    };
 
-}// namespace detail } // namespace pybind11
-#endif
+}  // namespace detail
+}  // namespace pybind11
 
 namespace {
 
@@ -91,6 +100,15 @@ public:
     PyChannel(const char* n, exr_pixel_type_t t, int x, int y, const py::array& p)
         : name(n), type(t), xSampling(x), ySampling(y), pixels(p) {}
     
+    bool operator==(const PyChannel& other) const
+    {
+        return (name == other.name &&
+                type == other.type &&
+                xSampling == other.xSampling &&
+                ySampling == other.ySampling &&
+                pixels.equal(other.pixels));
+    }
+
     std::string           name;
     exr_pixel_type_t      type;
     int                   xSampling;
@@ -115,10 +133,17 @@ class PyPart
     void read_tiled_part (exr_context_t f, int part);
 
     const py::dict&    header() const { return attributes; }
-#if XXX
-    py::list           channels() const { return py::cast(_channels); }
-#endif
     
+    bool operator==(const PyPart& other) const
+    {
+        return (name == other.name &&
+                type == other.type &&
+                width == other.width &&
+                height == other.height &&
+                attributes.equal(other.attributes) &&
+                channels.equal(other.channels));
+    }
+
     std::string           name;
     exr_storage_t         type;
     uint64_t              width;
@@ -127,9 +152,6 @@ class PyPart
 
     py::dict              attributes;
     py::list              channels;
-#if XXX
-    std::vector<PyChannel>  _channels;
-#endif
 };
 
 //
@@ -145,26 +167,31 @@ public:
          exr_storage_t type, exr_compression_t compression);
     PyFile(const py::list& parts);
 
+
     py::list        parts() const { return py::cast(_parts); }
     const py::dict& header() const { return _parts[0].header(); }
     py::list        channels() const { return _parts[0].channels(); }
     
     void            write(const char* filename);
     
+    bool operator==(const PyFile& other) const
+    {
+        return _parts == other._parts;
+    }
+
+    std::string          _filename;
     std::vector<PyPart>  _parts;
 };
     
 PyPart::PyPart(const py::dict& attributes_arg, const py::list& channels_arg,
                exr_storage_t type_arg, exr_compression_t compression_arg, const char* name_arg)
-    : name(name_arg), type(type_arg), width(0), height(0), compression(compression_arg), attributes(attributes_arg), channels(channels_arg)
+    : name(name_arg), type(type_arg), width(0), height(0), compression(compression_arg),
+      attributes(attributes_arg), channels(channels_arg)
 {
     for (auto c : channels)
     {
         auto o = *c;
         auto C = py::cast<PyChannel>(*o);
-#if XXX
-        _channels.push_back(C);
-#endif
         if (C.pixels.ndim() == 2)
         {
             uint32_t w = C.pixels.shape(0);
@@ -184,7 +211,7 @@ PyPart::PyPart(const py::dict& attributes_arg, const py::list& channels_arg,
             if (h != height)
             {
                 std::stringstream s;
-                std::cout << "error: bad height " << h << ", expected " << height;
+                s << "error: bad height " << h << ", expected " << height;
                 throw std::runtime_error(s.str());
             }                
         }
@@ -204,9 +231,11 @@ PyPart::PyPart(const py::dict& attributes_arg, const py::list& channels_arg,
 static void
 core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
 {
-    const char* fn;
+    const char* fn = "";
+#if XXX
     if (EXR_ERR_SUCCESS != exr_get_file_name (f, &fn))
         fn = "<error>";
+#endif
     std::stringstream s;
     s << "error " << fn << " " << exr_get_error_code_as_string (code) << " " << msg;
     throw std::runtime_error(s.str());
@@ -270,9 +299,6 @@ PyPart::read_scanline_part (exr_context_t f, int part)
             if (rv != EXR_ERR_SUCCESS)
                 throw std::runtime_error ("error initializing decoder");
             
-#if XXX
-            _channels.resize(decoder.channel_count);
-#endif
             channels = py::list();
             for (int c = 0; c < decoder.channel_count; c++)
                 channels.append(PyChannel());
@@ -461,9 +487,6 @@ PyPart::read_tiled_part (exr_context_t f, int part)
                         if (rv != EXR_ERR_SUCCESS)
                             throw std::runtime_error("error initializing decoder");
 
-#if XXX
-                        _channels.resize(decoder.channel_count);
-#endif
                         channels = py::list();
                         for (int c = 0; c < decoder.channel_count; c++)
                             channels.append(PyChannel());
@@ -786,6 +809,7 @@ PyFile::PyFile(const py::dict& attributes, const py::list& channels,
 //
 
 PyFile::PyFile(const std::string& filename)
+    : _filename (filename)
 {
     exr_result_t              rv;
     exr_context_t             f;
@@ -904,7 +928,9 @@ py_cast(const py::object& object)
 void
 write_attribute(exr_context_t f, int p, const std::string& name, py::object object)
 {
+#if DEBUGGIT
     std::cout << "write attribute " << name << std::endl;
+#endif
     
     if (auto v = py_cast<exr_attr_box2i_t,Box2i>(object))
         exr_attr_set_box2i(f, p, name.c_str(), v);
@@ -935,6 +961,7 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
         }
         else if (py::isinstance<PyChannel>(list[0]))
         {
+#if XXX
             // channel list
             std::vector<PyChannel> C = list.cast<std::vector<PyChannel>>();
             std::vector<exr_attr_chlist_entry_t> v(C.size());
@@ -956,6 +983,7 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
             channels.num_alloced = v.size();
             channels.entries = &v[0];
             exr_attr_set_channels(f, p, name.c_str(), &channels);
+#endif
         }
     }
     else if (auto o = py_cast<exr_attr_chromaticities_t>(object))
@@ -1071,8 +1099,9 @@ PyFile::write(const char* filename)
     
     for (size_t p=0; p<_parts.size(); p++)
     {
+#if DEBUGGIT
         std::cout << "write part " << p << std::endl;
-        
+#endif
         const PyPart& P = _parts[p];
             
         int part_index;
@@ -1156,11 +1185,9 @@ PyFile::write(const char* filename)
         for (auto c_iterator : P.channels)
         {
             PyChannel& C = py::cast<PyChannel&>(*c_iterator);
-            std::cout << "add channel " << C.name << std::endl;
             result = exr_add_channel(f, p, C.name.c_str(), C.type, 
                                      EXR_PERCEPTUALLY_LOGARITHMIC,
                                      C.xSampling, C.ySampling);
-            std::cout << "> added." << std::endl;
             if (result != EXR_ERR_SUCCESS) 
                 throw std::runtime_error("error writing channels");
         }
@@ -1170,8 +1197,6 @@ PyFile::write(const char* filename)
             throw std::runtime_error("error writing version");
     }
 
-    std::cout << "writing header" << std::endl;
-        
     //
     // Write the header
     //
@@ -1188,8 +1213,6 @@ PyFile::write(const char* filename)
     
     for (size_t p=0; p<_parts.size(); p++)
     {
-        std::cout << "write part " << p << std::endl;
-        
         const PyPart& P = _parts[p];
             
         exr_chunk_info_t cinfo;
@@ -1228,9 +1251,6 @@ PyFile::write(const char* filename)
             if (result != EXR_ERR_SUCCESS) 
                 throw std::runtime_error("error updating encoder");
         
-#if XXX
-            int channelCount = P._channels.size();
-#endif
             int channelCount = P.channels.size();
             
             //
@@ -1238,12 +1258,10 @@ PyFile::write(const char* filename)
             //
             
             auto c_iterator = P.channels.begin();
-            for (size_t c=0; c<channelCount; c++, c_iterator++)
+            for (int c=0; c<channelCount; c++, c_iterator++)
             {
                 const PyChannel& C = py::cast<PyChannel&>(*c_iterator);
 
-                std::cout << "updating channel " << C.name << std::endl;
-                
                 encoder.channel_count = channelCount;
                 py::buffer_info buf = C.pixels.request();
                 switch (C.type)
@@ -1301,7 +1319,7 @@ PyFile::write(const char* filename)
 
     result = exr_finish(&f);
 
-    std::cout << "write done." << std::endl;
+    _filename = filename;
 }
 
 bool
@@ -1619,6 +1637,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init<const char*,exr_pixel_type_t,int,int>())
         .def(py::init<const char*,exr_pixel_type_t,int,int,py::array>())
         .def("__repr__", [](const PyChannel& c) { return repr(c); })
+        .def(py::self == py::self)
         .def_readwrite("name", &PyChannel::name)
         .def_readwrite("type", &PyChannel::type)
         .def_readwrite("xSampling", &PyChannel::xSampling)
@@ -1630,12 +1649,14 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<py::dict,py::list,exr_storage_t,exr_compression_t,const char*>())
         .def("__repr__", [](const PyPart& p) { return repr(p); })
+        .def(py::self == py::self)
         .def_readwrite("name", &PyPart::name)
         .def_readwrite("type", &PyPart::type)
         .def_readwrite("width", &PyPart::width)
         .def_readwrite("height", &PyPart::height)
         .def_readwrite("compression", &PyPart::compression)
         .def("header", &PyPart::header)
+        .def_readwrite("attributes", &PyPart::attributes)
         .def_readwrite("channels", &PyPart::channels)
         ;
 
@@ -1643,10 +1664,12 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init<std::string>())
         .def(py::init<py::dict,py::list,exr_storage_t,exr_compression_t>())
         .def(py::init<py::list>())
+        .def(py::self == py::self)
         .def("parts", &PyFile::parts)
         .def("header", &PyFile::header)
         .def("channels", &PyFile::channels)
         .def("write", &PyFile::write)
+        .def_readwrite("filename", &PyFile::_filename)
         ;
 
     m.def("write_exr_file", &write_exr_file);

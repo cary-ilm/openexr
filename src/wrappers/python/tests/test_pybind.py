@@ -19,15 +19,14 @@ filename = "GoldenGate.exr"
 filename = "10x100.exr"
 filename = "test.exr"
 
-def test_read_write():
-
-    i = OpenEXR.File(filename)
-
+def print_file(f):
+    
+    print(f"file {f.filename}")
     print(f"parts:")
-    parts = i.parts()
+    parts = f.parts()
     for p in parts:
         print(f"  part: {p.name} {p.type} {p.compression} {p.width}x{p.height}")
-        h = p.header()
+        h = p.attributes
         for a in h:
             print(f"    {a}: {h[a]}")
         for c in p.channels:
@@ -39,22 +38,24 @@ def test_read_write():
     #             s += f" {pixels[x][y]}"
     #         print(s)
     
+def test_read_write():
+
+    i = OpenEXR.File(filename)
+    print_file(i)
+
+    outfile = "test_read_write.exr"
     print(f"writing write.exr")
-    i.write("write.exr")
+    i.write(outfile)
 
-
-    print("reading write.exr")
-    i = OpenEXR.File("write.exr")
-    print(f"parts:")
-    parts = i.parts()
-    for p in parts:
-        print(f"  part: {p.name} {p.type} {p.compression} {p.width}x{p.height}")
-        h = p.header()
-        for a in h:
-            print(f"    {a}: {h[a]}")
-        for c in p.channels:
-             pixels = c.pixels
-             print(f"  channel {c.name} {pixels.shape}")
+    print(f"reading {outfile}")
+    o = OpenEXR.File(outfile)
+    print_file(o)
+    
+    if o == i:
+        print("same.")
+    else:
+        print("not same.")
+#    o.write("out2.exr")
     
 def test_attributes():
     i = OpenEXR.File(filename)
@@ -129,8 +130,8 @@ def test_write():
     
 if os.path.isfile(filename):
     test_read_write()
-    test_attributes()
-    test_write()
+#    test_attributes()
+#    test_write()
     print("ok")
 else:    
     print(f"skipping {sys.argv[0]}: no such file: {filename}")
