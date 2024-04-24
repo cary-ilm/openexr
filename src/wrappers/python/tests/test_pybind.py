@@ -30,7 +30,7 @@ def test_read_write():
         h = p.header()
         for a in h:
             print(f"    {a}: {h[a]}")
-        for c in p.channels():
+        for c in p.channels:
              pixels = c.pixels
              print(f"  channel {c.name} {pixels.shape}")
     #     for y in range(0,min(p.height,100)):
@@ -52,7 +52,7 @@ def test_read_write():
         h = p.header()
         for a in h:
             print(f"    {a}: {h[a]}")
-        for c in p.channels():
+        for c in p.channels:
              pixels = c.pixels
              print(f"  channel {c.name} {pixels.shape}")
     
@@ -128,8 +128,8 @@ def test_write():
     o.write("2part.exr")
     
 if os.path.isfile(filename):
-#    test_read_write()
-#    test_attributes()
+    test_read_write()
+    test_attributes()
     test_write()
     print("ok")
 else:    

@@ -34,34 +34,39 @@ using namespace IMATH_NAMESPACE;
 
 extern bool init_OpenEXR_old(PyObject* module);
 
-namespace pybind11 {
-namespace detail {
+#if XXX
+namespace pybind11 { namespace detail {
 
-    // This half casting support for numpy was all derived from discussions
-    // here: https://github.com/pybind/pybind11/issues/1776
+    // This half casting support for numpy was all derived from
+    // discussions here:
+    // https://github.com/pybind/pybind11/issues/1776
 
     // Similar to enums in `pybind11/numpy.h`. Determined by doing:
-    // python3 -c 'import numpy as np; print(np.dtype(np.float16).num)'
-    constexpr int NPY_FLOAT16 = 23;
+    // python3 -c 'import numpy as np;
+    // print(np.dtype(np.float16).num)' constexpr int NPY_FLOAT16 =
+    // 23;
 
-    template<> struct npy_format_descriptor<half> {
-        static pybind11::dtype dtype()
-        {
-            handle ptr = npy_api::get().PyArray_DescrFromType_(NPY_FLOAT16);
-            return reinterpret_borrow<pybind11::dtype>(ptr);
-        }
-        static std::string format()
-        {
-            // following: https://docs.python.org/3/library/struct.html#format-characters
-            return "e";
-        }
-        static constexpr auto name = _("float16");
-    };
+    template<> struct npy_format_descriptor<half> { static
+        pybind11::dtype dtype() { handle ptr =
+        npy_api::get().PyArray_DescrFromType_(NPY_FLOAT16); return
+        reinterpret_borrow<pybind11::dtype>(ptr); } static std::string
+        format() { // following:
+        https://docs.python.org/3/library/struct.html#format-characters
+        return "e"; } static constexpr auto name = _("float16"); };
 
-}  // namespace detail
-}  // namespace pybind11
+}// namespace detail } // namespace pybind11
+#endif
 
 namespace {
+
+//
+// PyDouble supports the "double" attribute.
+//
+// When reading an attribute of type "double", a python object of type
+// PyDouble is created, so that when the header is written, it will be
+// of type double, since python makes no distinction between float and
+// double numerical types.
+//
 
 class PyDouble
 {
@@ -71,32 +76,33 @@ public:
     double d;
 };
                          
+//
+// PyChannel holds information for a channel of a PyPart: name, type, x/y
+// sampling, and the array of pixel data.
+//
+  
 class PyChannel 
 {
 public:
 
-    PyChannel() : type(EXR_PIXEL_LAST_TYPE), xsamples(0), ysamples(0) {}
+    PyChannel() : type(EXR_PIXEL_LAST_TYPE), xSampling(0), ySampling(0) {}
     PyChannel(const char* n, exr_pixel_type_t t, int x, int y)
-        : name(n), type(t), xsamples(x), ysamples(y) {}
+        : name(n), type(t), xSampling(x), ySampling(y) {}
     PyChannel(const char* n, exr_pixel_type_t t, int x, int y, const py::array& p)
-        : name(n), type(t), xsamples(x), ysamples(y), pixels(p) {}
+        : name(n), type(t), xSampling(x), ySampling(y), pixels(p) {}
     
     std::string           name;
     exr_pixel_type_t      type;
-    int                   xsamples;
-    int                   ysamples;
+    int                   xSampling;
+    int                   ySampling;
     py::array             pixels;
 };
     
-std::ostream&
-operator<< (std::ostream& s, const PyChannel& C)
-{
-    return s << "Channel(\"" << C.name 
-             << "\", type=" << py::cast(C.type) 
-             << ", xsamples=" << C.xsamples 
-             << ", ysamples=" << C.ysamples
-             << ")";
-}
+//
+// PyPart holds the information for a part of an exr file: name, type,
+// dimension, compression, the list of attributes (e.g. "header") and the
+// list of channels.
+//
 
 class PyPart
 {
@@ -105,29 +111,31 @@ class PyPart
     PyPart(const py::dict& a, const py::list& channels,
          exr_storage_t type, exr_compression_t c, const char* name);
 
-    const py::dict&    header() const { return _header; }
-    py::list           channels() const { return py::cast(_channels); }
+    void read_scanline_part (exr_context_t f, int part);
+    void read_tiled_part (exr_context_t f, int part);
 
+    const py::dict&    header() const { return attributes; }
+#if XXX
+    py::list           channels() const { return py::cast(_channels); }
+#endif
+    
     std::string           name;
     exr_storage_t         type;
     uint64_t              width;
     uint64_t              height;
     exr_compression_t     compression;
 
-    py::dict              _header;
+    py::dict              attributes;
+    py::list              channels;
+#if XXX
     std::vector<PyChannel>  _channels;
+#endif
 };
 
-std::ostream&
-operator<< (std::ostream& s, const PyPart& P)
-{
-    return s << "Part(\"" << P.name 
-             << "\", type=" << py::cast(P.type) 
-             << ", width=" << P.width
-             << ", height=" << P.height
-             << ", compression=" << P.compression
-             << ")";
-}
+//
+// PyFile is the object that corresponds to an exr file, either for reading
+// or writing, consisting of a simple list of parts.
+//
 
 class PyFile 
 {
@@ -141,29 +149,26 @@ public:
     const py::dict& header() const { return _parts[0].header(); }
     py::list        channels() const { return _parts[0].channels(); }
     
-    exr_result_t    write(const char* filename);
+    void            write(const char* filename);
     
     std::vector<PyPart>  _parts;
 };
     
-PyPart::PyPart(const py::dict& a, const py::list& channels,
-           exr_storage_t t, exr_compression_t c, const char* n)
-    : name(n), type(t), width(0), height(0), compression(c), _header(a)
+PyPart::PyPart(const py::dict& attributes_arg, const py::list& channels_arg,
+               exr_storage_t type_arg, exr_compression_t compression_arg, const char* name_arg)
+    : name(name_arg), type(type_arg), width(0), height(0), compression(compression_arg), attributes(attributes_arg), channels(channels_arg)
 {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-    
     for (auto c : channels)
     {
         auto o = *c;
         auto C = py::cast<PyChannel>(*o);
+#if XXX
         _channels.push_back(C);
-
+#endif
         if (C.pixels.ndim() == 2)
         {
             uint32_t w = C.pixels.shape(0);
             uint32_t h = C.pixels.shape(1);
-
-            std::cout << "channel " << C.name << " " << w << " x " << h << std::endl;
 
             if (width == 0)
                 width = w;
@@ -171,70 +176,80 @@ PyPart::PyPart(const py::dict& a, const py::list& channels,
                 height = h;
             
             if (w != width)
-                std::cout << "ERROR: bad width " << w << ", expected " << width << std::endl;
+            {
+                std::stringstream s;
+                s << "error: bad width " << w << ", expected " << width;
+                throw std::runtime_error(s.str());
+            }
             if (h != height)
-                std::cout << "ERROR: bad height " << h << ", expected " << height << std::endl;
+            {
+                std::stringstream s;
+                std::cout << "error: bad height " << h << ", expected " << height;
+                throw std::runtime_error(s.str());
+            }                
         }
         else
         {
-            std::cout << "ERROR: expected 2D array" << std::endl;
+            throw std::runtime_error("error: channel must have a 2D array");
         }
     }
+    
+    if (!attributes.contains("dataWindow"))
+        attributes["dataWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
 
-    if (!_header.contains("dataWindow"))
-    {
-        _header["dataWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
-    }
-
-    if (!_header.contains("displayWindow"))
-    {
-        _header["displayWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
-    }
+    if (!attributes.contains("displayWindow"))
+        attributes["displayWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
 }
     
 static void
 core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
 {
-#if XXX
     const char* fn;
     if (EXR_ERR_SUCCESS != exr_get_file_name (f, &fn))
         fn = "<error>";
-    std::cout << "ERROR " << fn << " " << exr_get_error_code_as_string (code) << " " << msg << std::endl;
-#endif
-    std::cout << "ERROR " << exr_get_error_code_as_string (code) << " " << msg << std::endl;
+    std::stringstream s;
+    s << "error " << fn << " " << exr_get_error_code_as_string (code) << " " << msg;
+    throw std::runtime_error(s.str());
 }
 
-bool
-read_scanline_part (exr_context_t f, int part, PyPart& P)
+//
+// Read scanline data from a file
+//
+
+void
+PyPart::read_scanline_part (exr_context_t f, int part)
 {
-    exr_result_t     rv, frv;
+    exr_result_t     rv;
+
+    //
+    // Get the width,height from the data window
+    //
+
     exr_attr_box2i_t datawin;
     rv = exr_get_data_window (f, part, &datawin);
     if (rv != EXR_ERR_SUCCESS)
-        return false;
+        throw std::runtime_error("bad data window");
 
-    uint64_t width =
-        (uint64_t) ((int64_t) datawin.max.x - (int64_t) datawin.min.x + 1);
-    uint64_t height =
-        (uint64_t) ((int64_t) datawin.max.y - (int64_t) datawin.min.y + 1);
+    width = (uint64_t) ((int64_t) datawin.max.x - (int64_t) datawin.min.x + 1);
+    height = (uint64_t) ((int64_t) datawin.max.y - (int64_t) datawin.min.y + 1);
 
-    P.width = width;
-    P.height = height;
-    
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
 
     int32_t lines_per_chunk;
     rv = exr_get_scanlines_per_chunk (f, part, &lines_per_chunk);
     if (rv != EXR_ERR_SUCCESS)
-        return false;
-
-    frv = rv;
+        throw std::runtime_error("bad scanlines per chunk");
 
 #if DEBUGGIT
-    std::cout << "Part " << P.name << " " << width << "x" << height << " lines_per_chunk=" << lines_per_chunk << std::endl;
+    std::cout << "Part " << name << " " << width << "x" << height << " lines_per_chunk=" << lines_per_chunk << std::endl;
 #endif
     
+    //
+    // Read the chunks
+    //
 
+    std::vector<py::array*> channel_pixels;
+    
     for (uint64_t chunk = 0; chunk < height; chunk += lines_per_chunk)
     {
         exr_chunk_info_t cinfo = {0};
@@ -242,23 +257,33 @@ read_scanline_part (exr_context_t f, int part, PyPart& P)
 
         rv = exr_read_scanline_chunk_info (f, part, y, &cinfo);
         if (rv != EXR_ERR_SUCCESS)
-        {
-            std::cout << "error " << __LINE__ << std::endl;
-            return false;
-        }
+            throw std::runtime_error("error reading scanline chunk");
 
+        //
+        // Initialze the decoder if not already done. This happens only on
+        // the first chunk.
+        //
+        
         if (decoder.channels == NULL)
         {
             rv = exr_decoding_initialize (f, part, &cinfo, &decoder);
             if (rv != EXR_ERR_SUCCESS)
-            {
-                std::cout << "error " << __LINE__ << std::endl;
-                return false;
-            }
+                throw std::runtime_error ("error initializing decoder");
             
-            P._channels.resize(decoder.channel_count);
-
+#if XXX
+            _channels.resize(decoder.channel_count);
+#endif
+            channels = py::list();
             for (int c = 0; c < decoder.channel_count; c++)
+                channels.append(PyChannel());
+            
+            //
+            // Build the channel list for the decoder and allocate each
+            // channel's pixel data arrays
+            //
+            
+            auto c_iterator = channels.begin();
+            for (int c = 0; c < decoder.channel_count; c++, c_iterator++)
             {
                 exr_coding_channel_info_t& outc = decoder.channels[c];
 
@@ -266,83 +291,88 @@ read_scanline_part (exr_context_t f, int part, PyPart& P)
                 outc.user_pixel_stride = outc.user_bytes_per_element;
                 outc.user_line_stride  = outc.user_pixel_stride * width;
 
-                P._channels[c].name = outc.channel_name;
-                P._channels[c].type = exr_pixel_type_t(outc.data_type);
-                P._channels[c].xsamples  = outc.x_samples;
-                P._channels[c].ysamples  = outc.y_samples;
-
+                PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+                C.name = outc.channel_name;
+                C.type = exr_pixel_type_t(outc.data_type);
+                C.xSampling  = outc.x_samples;
+                C.ySampling  = outc.y_samples;
+                
                 std::vector<size_t> shape, strides;
                 shape.assign({ width, height });
 
                 const auto style = py::array::c_style | py::array::forcecast;
                 
+                py::array pixels;
                 switch (outc.data_type)
                 {
-                case EXR_PIXEL_UINT:
+                  case EXR_PIXEL_UINT:
                     strides.assign({ sizeof(uint8_t), sizeof(uint8_t) });
-                    P._channels[c].pixels = py::array_t<uint8_t,style>(shape, strides);
+                    C.pixels = py::array_t<uint8_t,style>(shape, strides);
                     break;
-                case EXR_PIXEL_HALF:
+                  case EXR_PIXEL_HALF:
                     strides.assign({ sizeof(half), sizeof(half) });
-                    P._channels[c].pixels = py::array_t<half,style>(shape, strides);
+                    C.pixels = py::array_t<half,style>(shape, strides);
                     break;
-                case EXR_PIXEL_FLOAT:
+                  case EXR_PIXEL_FLOAT:
                     strides.assign({ sizeof(float), sizeof(float) });
-                    P._channels[c].pixels = py::array_t<float,style>(shape, strides);
+                    C.pixels = py::array_t<float,style>(shape, strides);
                     break;
+                  case EXR_PIXEL_LAST_TYPE:
+                  default:
+                      throw std::domain_error("invalid pixel type");
+                      break;
                 }
             }
 
             rv = exr_decoding_choose_default_routines (f, part, &decoder);
             if (rv != EXR_ERR_SUCCESS)
-            {
-                std::cout << "error " << __LINE__ << std::endl;
-                frv = rv;
-                break;
-            }
+                throw std::runtime_error("error initialing decoder");
         }
         else
         {
             rv = exr_decoding_update (f, part, &cinfo, &decoder);
             if (rv != EXR_ERR_SUCCESS)
-            {
-                std::cout << "error " << __LINE__ << std::endl;
-                frv = rv;
-                break;
-            }
+                throw std::runtime_error("error updating decoder");
         }
 
         if (cinfo.type != EXR_STORAGE_DEEP_SCANLINE)
         {
-            for (int16_t c = 0; c < decoder.channel_count; c++)
+            auto c_iterator = channels.begin();
+            for (int16_t c = 0; c < decoder.channel_count; c++, c_iterator++)
             {
                 exr_coding_channel_info_t& outc = decoder.channels[c];
 
-                py::buffer_info buf = P._channels[c].pixels.request();
+                //
+                // Set the decoder data pointer to the appropriate offset
+                // into the pixel arrays
+                //
+                
+                PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+                py::buffer_info buf = C.pixels.request();
                 switch (outc.data_type)
                 {
-                case EXR_PIXEL_UINT:
-                    {
-                        uint8_t* pixels = static_cast<uint8_t*>(buf.ptr);
-                        outc.decode_to_ptr = &pixels[y*width];
-                    }
-                    break;
-                case EXR_PIXEL_HALF:
-                    {
-                        half* pixels = static_cast<half*>(buf.ptr);
-                        outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
-                    }
-                    break;
-                case EXR_PIXEL_FLOAT:
-                    {
-                        float* pixels = static_cast<float*>(buf.ptr);
-                        outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
-                    }
-                    break;
-                case EXR_PIXEL_LAST_TYPE:
-                default:
-                    std::cout << "error " << __LINE__ << std::endl;
-                    return false;
+                  case EXR_PIXEL_UINT:
+                      {
+                          uint8_t* pixels = static_cast<uint8_t*>(buf.ptr);
+                          outc.decode_to_ptr = &pixels[y*width];
+                      }
+                      break;
+                  case EXR_PIXEL_HALF:
+                      {
+                          half* pixels = static_cast<half*>(buf.ptr);
+                          outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
+                      }
+                      break;
+                  case EXR_PIXEL_FLOAT:
+                      {
+                          float* pixels = static_cast<float*>(buf.ptr);
+                          outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
+                      }
+                      break;
+                  case EXR_PIXEL_LAST_TYPE:
+                  default:
+                      throw std::domain_error("invalid pixel type");
+                      break;
                 }
                 outc.user_pixel_stride = outc.user_bytes_per_element;
                 outc.user_line_stride  = outc.user_pixel_stride * width;
@@ -352,43 +382,46 @@ read_scanline_part (exr_context_t f, int part, PyPart& P)
         
         rv = exr_decoding_run (f, part, &decoder);
         if (rv != EXR_ERR_SUCCESS)
-        {
-            frv = rv;
-            std::cout << "error " << __LINE__ << std::endl;
-            break;
-        }
+            throw std::runtime_error("error in decoder");
     }
 
     exr_decoding_destroy (f, &decoder);
-
-    return frv == EXR_ERR_SUCCESS;
 }
 
-bool
-read_tiled_part (exr_context_t f, int part, PyPart& P)
+void
+PyPart::read_tiled_part (exr_context_t f, int part)
 {
-    exr_result_t rv, frv;
+    exr_result_t rv;
+
+    //
+    // Get the width,height from the data window
+    //
 
     exr_attr_box2i_t datawin;
     rv = exr_get_data_window (f, part, &datawin);
-    if (rv != EXR_ERR_SUCCESS) return true;
+    if (rv != EXR_ERR_SUCCESS)
+        throw std::runtime_error("bad data window");
 
-    P.width = datawin.max.x - datawin.min.x + 1;
-    P.height = datawin.max.y - datawin.min.y + 1;
+    width = datawin.max.x - datawin.min.x + 1;
+    height = datawin.max.y - datawin.min.y + 1;
 
     uint32_t              txsz, tysz;
     exr_tile_level_mode_t levelmode;
     exr_tile_round_mode_t roundingmode;
 
-    rv = exr_get_tile_descriptor (
-        f, part, &txsz, &tysz, &levelmode, &roundingmode);
-    if (rv != EXR_ERR_SUCCESS) return true;
+    rv = exr_get_tile_descriptor (f, part, &txsz, &tysz, &levelmode, &roundingmode);
+    if (rv != EXR_ERR_SUCCESS)
+        throw std::runtime_error("bad tile descriptor");
 
     int32_t levelsx, levelsy;
     rv = exr_get_tile_levels (f, part, &levelsx, &levelsy);
-    if (rv != EXR_ERR_SUCCESS) return true;
+    if (rv != EXR_ERR_SUCCESS)
+        throw std::runtime_error("bad tile levels");
 
-    frv            = rv;
+    //
+    // Read the tiles
+    //
+    
     for (int32_t ylevel = 0; ylevel < levelsy; ++ylevel)
     {
         for (int32_t xlevel = 0; xlevel < levelsx; ++xlevel)
@@ -396,158 +429,159 @@ read_tiled_part (exr_context_t f, int part, PyPart& P)
             int32_t levw, levh;
             rv = exr_get_level_sizes (f, part, xlevel, ylevel, &levw, &levh);
             if (rv != EXR_ERR_SUCCESS)
-            {
-                frv = rv;
-                break;
-            }
+                throw std::runtime_error("bad level sizes");
 
             int32_t curtw, curth;
             rv = exr_get_tile_sizes (f, part, xlevel, ylevel, &curtw, &curth);
             if (rv != EXR_ERR_SUCCESS)
-            {
-                frv = rv;
-                break;
-            }
-
-            // we could make this over all levels but then would have to
-            // re-check the allocation size, let's leave it here to check when
-            // tile size is < full / top level tile size
+                throw std::runtime_error("bad tile sizes");
+            //
+            // Initialze the decoder if not already done. This happens only on
+            // the first chunk.
+            //
+        
             exr_chunk_info_t      cinfo;
             exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
 
-            int tx, ty;
+            int tx = 0;
+            int ty = 0;
             ty = 0;
             for (int64_t cury = 0; cury < levh; cury += curth, ++ty)
             {
                 tx = 0;
                 for (int64_t curx = 0; curx < levw; curx += curtw, ++tx)
                 {
-                    rv = exr_read_tile_chunk_info (
-                        f, part, tx, ty, xlevel, ylevel, &cinfo);
+                    rv = exr_read_tile_chunk_info (f, part, tx, ty, xlevel, ylevel, &cinfo);
                     if (rv != EXR_ERR_SUCCESS)
-                    {
-                        frv = rv;
-                        break;
-                    }
+                        throw std::runtime_error("error reading tile chunk");
 
                     if (decoder.channels == NULL)
                     {
                         rv = exr_decoding_initialize (f, part, &cinfo, &decoder);
                         if (rv != EXR_ERR_SUCCESS)
-                        {
-                            frv       = rv;
-                            break;
-                        }
+                            throw std::runtime_error("error initializing decoder");
 
-                        P._channels.resize(decoder.channel_count);
-
-                        uint64_t bytes = 0;
+#if XXX
+                        _channels.resize(decoder.channel_count);
+#endif
+                        channels = py::list();
                         for (int c = 0; c < decoder.channel_count; c++)
+                            channels.append(PyChannel());
+
+                        //
+                        // Build the channel list for the decoder and allocate each
+                        // channel's pixel data arrays
+                        //
+            
+                        auto c_iterator = channels.begin();
+                        for (int c = 0; c < decoder.channel_count; c++, c_iterator++)
                         {
-                            exr_coding_channel_info_t& outc =
-                                decoder.channels[c];
+                            exr_coding_channel_info_t& outc = decoder.channels[c];
                             // fake addr for default routines
-                            outc.decode_to_ptr = (uint8_t*) 0x1000 + bytes;
-                            outc.user_pixel_stride =
-                                outc.user_bytes_per_element;
-                            outc.user_line_stride =
-                                outc.user_pixel_stride * curtw;
-                            bytes += (uint64_t) curtw *
-                                     (uint64_t) outc.user_bytes_per_element *
-                                     (uint64_t) curth;
+                            outc.decode_to_ptr = (uint8_t*) 0x1000;
+                            outc.user_pixel_stride = outc.user_bytes_per_element;
+                            outc.user_line_stride = outc.user_pixel_stride * curtw;
 
-
-                            P._channels[c].name = outc.channel_name;
-                            P._channels[c].type = exr_pixel_type_t(outc.data_type);
+                            PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+                            C.name = outc.channel_name;
+                            C.type = exr_pixel_type_t(outc.data_type);
 
                             std::vector<size_t> shape, strides;
-                            shape.assign({ P.width, P.height });
+                            shape.assign({ width, height });
 
                             const auto style = py::array::c_style | py::array::forcecast;
                 
                             switch (outc.data_type)
                             {
-                            case EXR_PIXEL_UINT:
-                                strides.assign({ sizeof(uint8_t), sizeof(uint8_t) });
-                                P._channels[c].pixels = py::array_t<uint8_t,style>(shape, strides);
-                                break;
-                            case EXR_PIXEL_HALF:
-                                strides.assign({ sizeof(half), sizeof(half) });
-                                P._channels[c].pixels = py::array_t<half,style>(shape, strides);
-                                break;
-                            case EXR_PIXEL_FLOAT:
-                                strides.assign({ sizeof(float), sizeof(float) });
-                                P._channels[c].pixels = py::array_t<float,style>(shape, strides);
-                                break;
+                              case EXR_PIXEL_UINT:
+                                  strides.assign({ sizeof(uint8_t), sizeof(uint8_t) });
+                                  C.pixels = py::array_t<uint8_t,style>(shape, strides);
+                                  break;
+                              case EXR_PIXEL_HALF:
+                                  strides.assign({ sizeof(half), sizeof(half) });
+                                  C.pixels = py::array_t<half,style>(shape, strides);
+                                  break;
+                              case EXR_PIXEL_FLOAT:
+                                  strides.assign({ sizeof(float), sizeof(float) });
+                                  C.pixels = py::array_t<float,style>(shape, strides);
+                                  break;
+                              case EXR_PIXEL_LAST_TYPE:
+                              default:      
+                                  throw std::domain_error("invalid pixel type");
+                                  break;
                             }
                         }
 
-                        rv = exr_decoding_choose_default_routines (
-                            f, part, &decoder);
+                        rv = exr_decoding_choose_default_routines (f, part, &decoder);
                         if (rv != EXR_ERR_SUCCESS)
-                        {
-                            frv       = rv;
-                            break;
-                        }
+                            throw std::runtime_error("error initializing decoder");
                     }
                     else
                     {
                         rv = exr_decoding_update (f, part, &cinfo, &decoder);
                         if (rv != EXR_ERR_SUCCESS)
-                        {
-                            frv = rv;
-                            break;
-                        }
+                            throw std::runtime_error("error updating decoder");
                     }
 
                     if (cinfo.type != EXR_STORAGE_DEEP_TILED)
                     {
-                        for (int c = 0; c < decoder.channel_count; c++)
+                        auto c_iterator = channels.begin();
+                        for (int c = 0; c < decoder.channel_count; c++, c_iterator++)
                         {
                             exr_coding_channel_info_t& outc = decoder.channels[c];
                             outc.user_pixel_stride = outc.user_bytes_per_element;
                             outc.user_line_stride = outc.user_pixel_stride * curtw;
 
-                            py::buffer_info buf = P._channels[c].pixels.request();
+                            //
+                            // Set the decoder data pointer to the appropriate offset
+                            // into the pixel arrays
+                            //
+                
+                            PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+                            py::buffer_info buf = C.pixels.request();
                             switch (outc.data_type)
                             {
-                            case EXR_PIXEL_UINT:
-                                {
-                                    uint8_t* pixels = static_cast<uint8_t*>(buf.ptr);
-                                    outc.decode_to_ptr = &pixels[cury*P.width];
-                                }
-                                break;
-                            case EXR_PIXEL_HALF:
-                                {
-                                    half* pixels = static_cast<half*>(buf.ptr);
-                                    outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[cury*P.width]);
-                                }
-                                break;
-                            case EXR_PIXEL_FLOAT:
-                                {
-                                    float* pixels = static_cast<float*>(buf.ptr);
-                                    outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[cury*P.width]);
-                                }
-                                break;
+                              case EXR_PIXEL_UINT:
+                                  {
+                                      uint8_t* pixels = static_cast<uint8_t*>(buf.ptr);
+                                      outc.decode_to_ptr = &pixels[cury*width];
+                                  }
+                                  break;
+                              case EXR_PIXEL_HALF:
+                                  {
+                                      half* pixels = static_cast<half*>(buf.ptr);
+                                      outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[cury*width]);
+                                  }
+                                  break;
+                              case EXR_PIXEL_FLOAT:
+                                  {
+                                      float* pixels = static_cast<float*>(buf.ptr);
+                                      outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[cury*width]);
+                                  }
+                                  break;
+                              case EXR_PIXEL_LAST_TYPE:
+                              default:
+                                  throw std::domain_error("invalid pixel type");
+                                  break;
                             }
                         }
                     }
 
                     rv = exr_decoding_run (f, part, &decoder);
                     if (rv != EXR_ERR_SUCCESS)
-                    {
-                        frv = rv;
-                        break;
-                    }
+                        throw std::runtime_error("error in decoder");
                 }
             }
 
             exr_decoding_destroy (f, &decoder);
         }
     }
-
-    return (frv != EXR_ERR_SUCCESS);
 }
+
+//
+// Read an attribute from the file at the given index and create a
+// corresponding python object.
+//
 
 py::object
 get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name) 
@@ -563,8 +597,6 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
     }
     
     name = attr->name;
-    
-    std::cout << "get_attribute " << a << ": " << name << " type=" << attr->type << std::endl;
     
     switch (attr->type)
     {
@@ -616,69 +648,69 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
           return py::int_(attr->i);
       case EXR_ATTR_KEYCODE:
           return py::cast(KeyCode(attr->keycode->film_mfc_code,
-                                                         attr->keycode->film_type,
-                                                         attr->keycode->prefix,   
-                                                         attr->keycode->count,            
-                                                         attr->keycode->perf_offset,      
-                                                         attr->keycode->perfs_per_frame,
-                                                         attr->keycode->perfs_per_count));
+                                  attr->keycode->film_type,
+                                  attr->keycode->prefix,   
+                                  attr->keycode->count,            
+                                  attr->keycode->perf_offset,      
+                                  attr->keycode->perfs_per_frame,
+                                  attr->keycode->perfs_per_count));
       case EXR_ATTR_LINEORDER:
           return py::cast(exr_lineorder_t(attr->uc));
-    case EXR_ATTR_M33F:
-        return py::cast(M33f(attr->m33f->m[0],
-                             attr->m33f->m[1],
-                             attr->m33f->m[2],
-                             attr->m33f->m[3],
-                             attr->m33f->m[4],
-                             attr->m33f->m[5],
-                             attr->m33f->m[6],
-                             attr->m33f->m[7],
-                             attr->m33f->m[8]));
-    case EXR_ATTR_M33D:
-        return py::cast(M33d(attr->m33d->m[0],
-                             attr->m33d->m[1],
-                             attr->m33d->m[2],
-                             attr->m33d->m[3],
-                             attr->m33d->m[4],
-                             attr->m33d->m[5],
-                             attr->m33d->m[6],
-                             attr->m33d->m[7],
-                             attr->m33d->m[8]));
-    case EXR_ATTR_M44F:
-        return py::cast(M44f(attr->m44f->m[0],
-                             attr->m44f->m[1],
-                             attr->m44f->m[2],
-                             attr->m44f->m[3],
-                             attr->m44f->m[4],
-                             attr->m44f->m[5],
-                             attr->m44f->m[6],
-                             attr->m44f->m[7],
-                             attr->m44f->m[8],
-                             attr->m44f->m[9],
-                             attr->m44f->m[10],
-                             attr->m44f->m[11],
-                             attr->m44f->m[12],
-                             attr->m44f->m[13],
-                             attr->m44f->m[14],
-                             attr->m44f->m[15]));
-    case EXR_ATTR_M44D:
-        return py::cast(M44d(attr->m44d->m[0],
-                             attr->m44d->m[1],
-                             attr->m44d->m[2],
-                             attr->m44d->m[3],
-                             attr->m44d->m[4],
-                             attr->m44d->m[5],
-                             attr->m44d->m[6],
-                             attr->m44d->m[7],
-                             attr->m44d->m[8],
-                             attr->m44d->m[9],
-                             attr->m44d->m[10],
-                             attr->m44d->m[11],
-                             attr->m44d->m[12],
-                             attr->m44d->m[13],
-                             attr->m44d->m[14],
-                             attr->m44d->m[15]));
-    case EXR_ATTR_PREVIEW:
+      case EXR_ATTR_M33F:
+          return py::cast(M33f(attr->m33f->m[0],
+                               attr->m33f->m[1],
+                               attr->m33f->m[2],
+                               attr->m33f->m[3],
+                               attr->m33f->m[4],
+                               attr->m33f->m[5],
+                               attr->m33f->m[6],
+                               attr->m33f->m[7],
+                               attr->m33f->m[8]));
+      case EXR_ATTR_M33D:
+          return py::cast(M33d(attr->m33d->m[0],
+                               attr->m33d->m[1],
+                               attr->m33d->m[2],
+                               attr->m33d->m[3],
+                               attr->m33d->m[4],
+                               attr->m33d->m[5],
+                               attr->m33d->m[6],
+                               attr->m33d->m[7],
+                               attr->m33d->m[8]));
+      case EXR_ATTR_M44F:
+          return py::cast(M44f(attr->m44f->m[0],
+                               attr->m44f->m[1],
+                               attr->m44f->m[2],
+                               attr->m44f->m[3],
+                               attr->m44f->m[4],
+                               attr->m44f->m[5],
+                               attr->m44f->m[6],
+                               attr->m44f->m[7],
+                               attr->m44f->m[8],
+                               attr->m44f->m[9],
+                               attr->m44f->m[10],
+                               attr->m44f->m[11],
+                               attr->m44f->m[12],
+                               attr->m44f->m[13],
+                               attr->m44f->m[14],
+                               attr->m44f->m[15]));
+      case EXR_ATTR_M44D:
+          return py::cast(M44d(attr->m44d->m[0],
+                               attr->m44d->m[1],
+                               attr->m44d->m[2],
+                               attr->m44d->m[3],
+                               attr->m44d->m[4],
+                               attr->m44d->m[5],
+                               attr->m44d->m[6],
+                               attr->m44d->m[7],
+                               attr->m44d->m[8],
+                               attr->m44d->m[9],
+                               attr->m44d->m[10],
+                               attr->m44d->m[11],
+                               attr->m44d->m[12],
+                               attr->m44d->m[13],
+                               attr->m44d->m[14],
+                               attr->m44d->m[15]));
+      case EXR_ATTR_PREVIEW:
           return py::cast(PreviewImage(attr->preview->width, attr->preview->height));
       case EXR_ATTR_RATIONAL:
           return py::cast(Rational(attr->rational->num, attr->rational->denom));
@@ -702,7 +734,7 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
                                               attr->tiledesc->y_size,
                                               lm, lrm));
           }
-    case EXR_ATTR_TIMECODE:
+      case EXR_ATTR_TIMECODE:
           return py::cast( TimeCode(attr->timecode->time_and_flags,
                                     attr->timecode->user_data));
       case EXR_ATTR_V2I:
@@ -721,30 +753,37 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
           return py::none();
       case EXR_ATTR_UNKNOWN:
       case EXR_ATTR_LAST_KNOWN_TYPE:
-      default: printf ("<ERROR Unknown type '%s'>", attr->type_name);
+      default:
+          throw std::invalid_argument("unknown attribute type");
           break;
     }
     return py::none();
 }
 
+//
+// Create a PyFile out of a list of parts (i.e. a multi-part file)
+//
+
 PyFile::PyFile(const py::list& parts)
 {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-
     for (auto p : parts)
-    {
-        auto P = py::cast<PyPart>(*p);
-        _parts.push_back(P);
-    }
+        _parts.push_back(py::cast<PyPart>(*p));
 }
+
+//
+// Create a PyFile out of a single part: attributes (i.e. header), channels,
+// type, and compression (i.e. a single-part file)
+//
 
 PyFile::PyFile(const py::dict& attributes, const py::list& channels,
-           exr_storage_t type, exr_compression_t compression)
+               exr_storage_t type, exr_compression_t compression)
 {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-
     _parts.push_back(PyPart(attributes, channels, type, compression, "Part0"));
 }
+
+//
+// Read a PyFile from the given filename
+//
 
 PyFile::PyFile(const std::string& filename)
 {
@@ -756,24 +795,37 @@ PyFile::PyFile(const std::string& filename)
 
     rv = exr_start_read (&f, filename.c_str(), &cinit);
     if (rv != EXR_ERR_SUCCESS)
-        return;
+    {
+        std::stringstream s;
+        s << "can't open " << filename << " for reading";
+        throw std::runtime_error(s.str());
+    }
     
+
+    //
+    // Read the parts
+    //
+        
     int numparts;
         
     rv = exr_get_count (f, &numparts);
     if (rv != EXR_ERR_SUCCESS)
-        return;
+        throw std::runtime_error ("read error");
 
     _parts.resize(numparts);
     
     for (int p = 0; p < numparts; ++p)
     {
-        py::dict& h = _parts[p]._header;
+        //
+        // Reach the attributes into the header
+        //
+        
+        py::dict& h = _parts[p].attributes;
 
         int32_t attrcount;
         rv = exr_get_attribute_count(f, p, &attrcount);
         if (rv != EXR_ERR_SUCCESS)
-            return;
+            throw std::runtime_error ("read error");
 
         for (int32_t a = 0; a < attrcount; ++a)
         {
@@ -782,6 +834,10 @@ PyFile::PyFile(const std::string& filename)
             h[name.c_str()] = attr;
         }
 
+        //
+        // Read the type (i.e. scanline, tiled, deep, etc)
+        //
+        
         exr_storage_t store;
         rv = exr_get_storage (f, p, &store);
         if (rv != EXR_ERR_SUCCESS)
@@ -789,6 +845,10 @@ PyFile::PyFile(const std::string& filename)
 
         _parts[p].type = store;
             
+        //
+        // Read the compression type
+        //
+        
         exr_compression_t compression;
         rv = exr_get_compression(f, p, &compression);
         if (rv != EXR_ERR_SUCCESS)
@@ -796,24 +856,21 @@ PyFile::PyFile(const std::string& filename)
         
         _parts[p].compression = compression;
 
+        //
+        // Read the part
+        //
+        
         if (store == EXR_STORAGE_SCANLINE || store == EXR_STORAGE_DEEP_SCANLINE)
-        {
-            if (!read_scanline_part (f, p, _parts[p]))
-            {
-                std::cerr << "error reading " << filename << std::endl;
-                return;
-            }
-        }
+            _parts[p].read_scanline_part (f, p);
         else if (store == EXR_STORAGE_TILED || store == EXR_STORAGE_DEEP_TILED)
-        {
-            if (!read_tiled_part (f, p, _parts[p]))
-            {
-                std::cerr << "error reading " << filename << std::endl;
-                return;
-            }
-        }
+             _parts[p].read_tiled_part (f, p);
     }
 }
+
+//
+// Helper routine to cast an objec to a type only if it's actually that type,
+// since py::cast throws an runtime_error on unexpected type.
+//
 
 template <class T>
 const T*
@@ -824,6 +881,12 @@ py_cast(const py::object& object)
 
     return nullptr;
 }
+
+//
+// Helper routine to cast an objec to a type only if it's actually that type,
+// since py::cast throws an runtime_error on unexpected type. This further cast
+// the resulting pointer to a second type.
+//
 
 template <class T, class S>
 const T*
@@ -841,7 +904,7 @@ py_cast(const py::object& object)
 void
 write_attribute(exr_context_t f, int p, const std::string& name, py::object object)
 {
-    std::cout << "write_attribute " << name << std::endl;
+    std::cout << "write attribute " << name << std::endl;
     
     if (auto v = py_cast<exr_attr_box2i_t,Box2i>(object))
         exr_attr_set_box2i(f, p, name.c_str(), v);
@@ -850,33 +913,29 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
     else if (py::isinstance<py::list>(object))
     {
         auto list = py::cast<py::list>(object);
-        std::cout << "list: ";
-        py::print(object);
-        std::cout << "list: " << list.attr("__repr__")() << std::endl;
         auto size = list.size();
         if (size == 0)
         {
-            std::cout << "ERROR: list is empty" << std::endl;
+            throw std::runtime_error("invalid empty list is header: can't deduce attribute type");
         }
         else if (py::isinstance<py::float_>(list[0]))
         {
+            // float vector
             std::vector<float> v = list.cast<std::vector<float>>();
             exr_attr_set_float_vector(f, p, name.c_str(), v.size(), &v[0]);
         }
         else if (py::isinstance<py::str>(list[0]))
         {
+            // string vector
             std::vector<std::string> strings = list.cast<std::vector<std::string>>();
             std::vector<const char*> v;
             for (size_t i=0; i<strings.size(); i++)
                 v.push_back(strings[i].c_str());
             exr_attr_set_string_vector(f, p, name.c_str(), v.size(), &v[0]);
-            std::cout << ">> write_attribute string vector " << name << " [";
-            for (auto e : v)
-                std::cout << " " << e;
-            std::cout << " ]" << std::endl;
         }
         else if (py::isinstance<PyChannel>(list[0]))
         {
+            // channel list
             std::vector<PyChannel> C = list.cast<std::vector<PyChannel>>();
             std::vector<exr_attr_chlist_entry_t> v(C.size());
             for (size_t i = 0; i<C.size(); i++)
@@ -889,8 +948,8 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
                 v[i].reserved[0] = 0;
                 v[i].reserved[1] = 0;
                 v[i].reserved[2] = 0;
-                v[i].x_sampling = C[i].xsamples;
-                v[i].y_sampling = C[i].ysamples;
+                v[i].x_sampling = C[i].xSampling;
+                v[i].y_sampling = C[i].ySampling;
             }
             exr_attr_chlist_t channels;
             channels.num_channels = v.size();
@@ -977,102 +1036,115 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
     else if (auto v = py_cast<exr_attr_v3d_t,V3d>(object))
         exr_attr_set_v3d(f, p, name.c_str(), v);
     else
-    {
-        std::cout << "ERROR: write_attribute " << name
-                  << " object=" << typeid(object).name()
-                  << " " << object.get_type()
-                  << std::endl;
-    }
+        throw std::runtime_error("unknown attribute type");
 }
 
-exr_result_t
+//
+// Write the PyFile to the given filename
+//
+
+void
 PyFile::write(const char* filename)
 {
-    std::cout << __PRETTY_FUNCTION__ << " " << filename
-              << " parts=" << _parts.size()
-              << std::endl;
+    //
+    // Open the file for writing
+    //
 
     exr_context_t f;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
 
     cinit.error_handler_fn = &core_error_handler_cb;
 
-    exr_result_t result = exr_start_write(&f, filename,
-                                          EXR_WRITE_FILE_DIRECTLY, &cinit);
+    exr_result_t result = exr_start_write(&f, filename, EXR_WRITE_FILE_DIRECTLY, &cinit);
     if (result != EXR_ERR_SUCCESS)
-        return result;
+    {
+        std::stringstream s;
+        s << "can't open " << filename << " for write";
+        throw std::runtime_error(s.str());
+    }
 
     exr_set_longname_support(f, 1);
 
+    //
+    // Write the parts
+    //
+    
     for (size_t p=0; p<_parts.size(); p++)
     {
+        std::cout << "write part " << p << std::endl;
+        
         const PyPart& P = _parts[p];
             
         int part_index;
         result = exr_add_part(f, P.name.c_str(), P.type, &part_index);
         if (result != EXR_ERR_SUCCESS) 
-            return result;
+            throw std::runtime_error("error writing part");
 
+        //
+        // Extract the necessary information from the required header attributes
+        //
+        
         exr_lineorder_t lineOrder = EXR_LINEORDER_INCREASING_Y;
-        if (P._header.contains("lineOrder"))
-            lineOrder = py::cast<exr_lineorder_t>(P._header["lineOrder"]);
+        if (P.attributes.contains("lineOrder"))
+            lineOrder = py::cast<exr_lineorder_t>(P.attributes["lineOrder"]);
 
         exr_compression_t compression = EXR_COMPRESSION_NONE;
-        if (P._header.contains("compression"))
-            compression = py::cast<exr_compression_t>(P._header["compression"]);
+        if (P.attributes.contains("compression"))
+            compression = py::cast<exr_compression_t>(P.attributes["compression"]);
         
         exr_attr_box2i_t dataw;
         dataw.min.x = 0;
         dataw.min.y = 0;
         dataw.max.x = int32_t(P.width - 1);
         dataw.max.x = int32_t(P.height - 1);
-        if (P._header.contains("dataWindow"))
+        if (P.attributes.contains("dataWindow"))
         {
-            Box2i box = py::cast<Box2i>(P._header["dataWindow"]);
+            Box2i box = py::cast<Box2i>(P.attributes["dataWindow"]);
             dataw.min.x = box.min.x;
             dataw.min.y = box.min.y;
             dataw.max.x = box.max.x;
             dataw.max.y = box.max.y;
-            std::cout << "dataWindow from header: " << box.min << " " << box.max << std::endl;
         }
 
         exr_attr_box2i_t dispw = dataw;
-        if (P._header.contains("displayWindow"))
+        if (P.attributes.contains("displayWindow"))
         {
-            Box2i box = py::cast<Box2i>(P._header["displayWindow"]);
+            Box2i box = py::cast<Box2i>(P.attributes["displayWindow"]);
             dispw.min.x = box.min.x;
             dispw.min.y = box.min.y;
             dispw.max.x = box.max.x;
             dispw.max.y = box.max.y;
-            std::cout << "displayWindow from header: " << box.min << " " << box.max << std::endl;
         }
 
         exr_attr_v2f_t swc;
         swc.x = 0.5f;
         swc.x = 0.5f;
-        if (P._header.contains("screenWindowCenter"))
+        if (P.attributes.contains("screenWindowCenter"))
         {
-            V2f v = py::cast<V2f>(P._header["screenWindowCenter"]);
+            V2f v = py::cast<V2f>(P.attributes["screenWindowCenter"]);
             swc.x = v.x;
             swc.y = v.y;
         }
 
         float sww = 1.0f;
-        if (P._header.contains("screenWindowWidth"))
-            sww = py::cast<float>(P._header["screenWindowWidth"]);
+        if (P.attributes.contains("screenWindowWidth"))
+            sww = py::cast<float>(P.attributes["screenWindowWidth"]);
 
         float pixelAspectRatio = 1.0f;
-        if (P._header.contains("pixelAspectRatio"))
-            sww = py::cast<float>(P._header["pixelAspectRatio"]);
+        if (P.attributes.contains("pixelAspectRatio"))
+            sww = py::cast<float>(P.attributes["pixelAspectRatio"]);
         
         result = exr_initialize_required_attr (f, p, &dataw, &dispw, 
                                                pixelAspectRatio, &swc, sww,
                                                lineOrder, compression);
-        
         if (result != EXR_ERR_SUCCESS)
-            return result;
+            throw std::runtime_error("error writing header");
 
-        for (auto a = P._header.begin(); a != P._header.end(); ++a)
+        //
+        // Add the attributes
+        //
+        
+        for (auto a = P.attributes.begin(); a != P.attributes.end(); ++a)
         {
             auto v = *a;
             auto first = v.first;
@@ -1081,66 +1153,62 @@ PyFile::write(const char* filename)
             write_attribute(f, p, name, second);
         }
 
-        for (size_t c=0; c<P._channels.size(); c++)
+        for (auto c_iterator : P.channels)
         {
-            const PyChannel& C = P._channels[c];
-
-            std::cout << "exr_add_channel " << c
-                      << " " << C.name.c_str()
-                      << " type=" << C.type
-                      << " xs=" << C.xsamples
-                      << " ys=" << C.ysamples
-                      << std::endl;
-            
+            PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+            std::cout << "add channel " << C.name << std::endl;
             result = exr_add_channel(f, p, C.name.c_str(), C.type, 
                                      EXR_PERCEPTUALLY_LOGARITHMIC,
-                                     C.xsamples, C.ysamples);
+                                     C.xSampling, C.ySampling);
+            std::cout << "> added." << std::endl;
             if (result != EXR_ERR_SUCCESS) 
-                return result;
+                throw std::runtime_error("error writing channels");
         }
 
         result = exr_set_version(f, p, 1); // 1 is the latest version
         if (result != EXR_ERR_SUCCESS) 
-            return result;
-
-#if XXX
-        // set chromaticities to Rec. ITU-R BT.709-3
-        exr_attr_chromaticities_t chroma = {
-            0.6400f, 0.3300f,  // red
-            0.3000f, 0.6000f,  // green
-            0.1500f, 0.0600f,  // blue
-            0.3127f, 0.3290f}; // white
-        result = exr_attr_set_chromaticities(f, p, "chromaticities", &chroma);
-        if (result != EXR_ERR_SUCCESS) 
-            return result;
-#endif
+            throw std::runtime_error("error writing version");
     }
 
+    std::cout << "writing header" << std::endl;
+        
+    //
+    // Write the header
+    //
+    
     result = exr_write_header(f);
     if (result != EXR_ERR_SUCCESS)
-        return result;
+        throw std::runtime_error("error writing header");
 
     exr_encode_pipeline_t encoder;
 
+    //
+    // Write the parts
+    //
+    
     for (size_t p=0; p<_parts.size(); p++)
     {
+        std::cout << "write part " << p << std::endl;
+        
         const PyPart& P = _parts[p];
             
-        std::cout << "writing part " << p << " " << P.name << std::endl;
-        
         exr_chunk_info_t cinfo;
 
         int32_t scansperchunk = 0;
         exr_get_scanlines_per_chunk(f, p, &scansperchunk);
         if (result != EXR_ERR_SUCCESS)
-            return result;
+            throw std::runtime_error("error writing scanlines per chunk");
 
         bool first = true;
 
+        //
+        // Get the data window
+        //
+        
         exr_attr_box2i_t dataw = {0, 0, int32_t(P.width - 1), int32_t(P.height - 1)};
-        if (P._header.contains("dataWindow"))
+        if (P.attributes.contains("dataWindow"))
         {
-            Box2i box = py::cast<Box2i>(P._header["dataWindow"]);
+            Box2i box = py::cast<Box2i>(P.attributes["dataWindow"]);
             dataw.min.x = box.min.x;
             dataw.min.y = box.min.y;
             dataw.max.x = box.max.x;
@@ -1149,89 +1217,91 @@ PyFile::write(const char* filename)
 
         for (int16_t y = dataw.min.y; y <= dataw.max.y; y += scansperchunk)
         {
-            std::cout << "Part " << p << " width=" << P.width << " y=" << y << std::endl;
-
             result = exr_write_scanline_chunk_info(f, p, y, &cinfo);
             if (result != EXR_ERR_SUCCESS) 
-                return result;
+                throw std::runtime_error("error writing scanline chunk info");
 
             if (first)
                 result = exr_encoding_initialize(f, p, &cinfo, &encoder);
             else
                 result = exr_encoding_update(f, p, &cinfo, &encoder);
             if (result != EXR_ERR_SUCCESS) 
-                return result;
+                throw std::runtime_error("error updating encoder");
         
+#if XXX
             int channelCount = P._channels.size();
+#endif
+            int channelCount = P.channels.size();
             
-            for (size_t c=0; c<P._channels.size(); c++)
+            //
+            // Write the channel data
+            //
+            
+            auto c_iterator = P.channels.begin();
+            for (size_t c=0; c<channelCount; c++, c_iterator++)
             {
-                const auto& C = P._channels[c];
-                
-                std::cout << "channel " << c << " " << C.name << " array: " << C.pixels.shape(0) << std::endl;
+                const PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+
+                std::cout << "updating channel " << C.name << std::endl;
                 
                 encoder.channel_count = channelCount;
                 py::buffer_info buf = C.pixels.request();
                 switch (C.type)
                 {
-                case EXR_PIXEL_UINT:
-                    {
-                        const uint8_t* pixels = static_cast<const uint8_t*>(buf.ptr);
-                        encoder.channels[c].encode_from_ptr = &pixels[y*P.width];
-                        encoder.channels[c].user_pixel_stride = sizeof(uint8_t);
-                    }
-                    break;
-                case EXR_PIXEL_HALF:
-                    {
-                        const half* pixels = static_cast<const half*>(buf.ptr);
-                        encoder.channels[c].encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[y*P.width]);
-                        encoder.channels[c].user_pixel_stride = sizeof(half);
-                    }
-                    break;
-                case EXR_PIXEL_FLOAT:
-                    {
-                        const float* pixels = static_cast<const float*>(buf.ptr);
-                        encoder.channels[c].encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[y*P.width]);
-                        encoder.channels[c].user_pixel_stride = sizeof(float);
-                    }
-                    break;
-                case EXR_PIXEL_LAST_TYPE:
-                default:
-                    return false;
+                  case EXR_PIXEL_UINT:
+                      {
+                          const uint8_t* pixels = static_cast<const uint8_t*>(buf.ptr);
+                          encoder.channels[c].encode_from_ptr = &pixels[y*P.width];
+                          encoder.channels[c].user_pixel_stride = sizeof(uint8_t);
+                      }
+                      break;
+                  case EXR_PIXEL_HALF:
+                      {
+                          const half* pixels = static_cast<const half*>(buf.ptr);
+                          encoder.channels[c].encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[y*P.width]);
+                          encoder.channels[c].user_pixel_stride = sizeof(half);
+                      }
+                      break;
+                  case EXR_PIXEL_FLOAT:
+                      {
+                          const float* pixels = static_cast<const float*>(buf.ptr);
+                          encoder.channels[c].encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[y*P.width]);
+                          encoder.channels[c].user_pixel_stride = sizeof(float);
+                      }
+                      break;
+                  case EXR_PIXEL_LAST_TYPE:
+                  default:
+                      throw std::runtime_error("invalid pixel type");
+                      break;
                 }
                 
                 encoder.channels[c].user_line_stride  = encoder.channels[c].user_pixel_stride * P.width;
                 encoder.channels[c].height            = scansperchunk; // chunk height
                 encoder.channels[c].width             = dataw.max.x - dataw.min.y + 1;
-
-                std::cout << " channel " << C.name
-                          << " " << encoder.channels[c].width
-                          << " x " << encoder.channels[c].height
-                          << std::endl;
             }
 
             if (first)
             {
                 result = exr_encoding_choose_default_routines(f, p, &encoder);
                 if (result != EXR_ERR_SUCCESS) 
-                    return result;
+                    throw std::runtime_error("error initializing encoder");
             }
             
             result = exr_encoding_run(f, p, &encoder);
             if (result != EXR_ERR_SUCCESS)
-                return result;
-
+                throw std::runtime_error("encoder error");
+            
             first = false;
         }
     }
 
     result = exr_encoding_destroy(f, &encoder);
     if (result != EXR_ERR_SUCCESS)
-        return result;
+        throw std::runtime_error("error with encoder");
 
     result = exr_finish(&f);
 
-    return EXR_ERR_SUCCESS;
+    std::cout << "write done." << std::endl;
 }
 
 bool
@@ -1246,6 +1316,39 @@ write_exr_file(const char* filename, const py::dict& attributes, const py::list&
     return true;
 }
 
+std::ostream&
+operator<< (std::ostream& s, const PyChannel& C)
+{
+    return s << "Channel(\"" << C.name 
+             << "\", type=" << py::cast(C.type) 
+             << ", xSampling=" << C.xSampling 
+             << ", ySampling=" << C.ySampling
+             << ")";
+}
+
+std::ostream&
+operator<< (std::ostream& s, const PyPart& P)
+{
+    return s << "Part(\"" << P.name 
+             << "\", type=" << py::cast(P.type) 
+             << ", width=" << P.width
+             << ", height=" << P.height
+             << ", compression=" << P.compression
+             << ")";
+}
+
+std::ostream&
+operator<< (std::ostream& s, const TileDescription& v)
+{
+    s << "TileDescription(" << v.xSize
+      << ", " << v.ySize
+      << ", " << py::cast(v.mode)
+      << ", " << py::cast(v.roundingMode)
+      << ")";
+
+    return s;
+}
+
 template <class T>
 std::string
 repr(const T& v)
@@ -1254,6 +1357,7 @@ repr(const T& v)
     s << v;
     return s.str();
 }
+
 
 } // namespace
 
@@ -1265,6 +1369,11 @@ PYBIND11_MODULE(OpenEXR, m)
     m.attr("__version__") = OPENEXR_VERSION_STRING;
     m.attr("OPENEXR_VERSION") = OPENEXR_VERSION_STRING;
 
+    //
+    // Add symbols from the legacy implementation of the bindings for
+    // backwards compatibility
+    //
+    
     init_OpenEXR_old(m.ptr());
 
     py::enum_<LevelRoundingMode>(m, "LevelRoundingMode")
@@ -1282,15 +1391,7 @@ PYBIND11_MODULE(OpenEXR, m)
 
     py::class_<TileDescription>(m, "TileDescription")
         .def(py::init())
-        .def("__repr__", [](TileDescription& v) {
-            std::stringstream stream;
-            stream << "TileDescription(" << v.xSize
-                   << ", " << v.ySize
-                   << ", " << py::cast(v.mode)
-                   << ", " << py::cast(v.roundingMode)
-                   << ")";
-            return stream.str();
-        })
+        .def("__repr__", [](TileDescription& v) { return repr(v); })
         .def_readwrite("xSize", &TileDescription::xSize)
         .def_readwrite("ySize", &TileDescription::ySize)
         .def_readwrite("mode", &TileDescription::mode)
@@ -1520,8 +1621,8 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("__repr__", [](const PyChannel& c) { return repr(c); })
         .def_readwrite("name", &PyChannel::name)
         .def_readwrite("type", &PyChannel::type)
-        .def_readwrite("xsamples", &PyChannel::xsamples)
-        .def_readwrite("ysamples", &PyChannel::ysamples)
+        .def_readwrite("xSampling", &PyChannel::xSampling)
+        .def_readwrite("ySampling", &PyChannel::ySampling)
         .def_readwrite("pixels", &PyChannel::pixels)
         ;
     
@@ -1535,7 +1636,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def_readwrite("height", &PyPart::height)
         .def_readwrite("compression", &PyPart::compression)
         .def("header", &PyPart::header)
-        .def("channels", &PyPart::channels)
+        .def_readwrite("channels", &PyPart::channels)
         ;
 
     py::class_<PyFile>(m, "File")
