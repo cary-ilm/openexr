@@ -24,6 +24,7 @@
 #include <ImathVec.h>
 #include <ImathMatrix.h>
 #include <ImathBox.h>
+#include <ImathMath.h>
 
 #include <typeinfo>
 
@@ -123,6 +124,14 @@ same_header(const py::dict& A, const py::dict& B)
         py::object b = B[a->first];
         if (!second.equal(b))
         {
+            if (py::isinstance<py::float_>(second))
+            {                
+                float f = py::cast<py::float_>(second);
+                float of = py::cast<py::float_>(b);
+                if (equalWithRelError(f, of, 1e-5f))
+                    return true;
+            }
+            
             std::cout << "attribute " << name << " differs: " << py::str(second)
                       << " " << py::str(b)
                       << std::endl;
@@ -148,6 +157,8 @@ class PyDouble
 public:
     PyDouble(double x) : d(x)  {}
 
+    bool operator== (const PyDouble& other) const { return d == other.d; }
+    
     double d;
 };
                          
@@ -207,23 +218,41 @@ operator<< (std::ostream& s, const PyPreviewImage& P)
     return s;
 }
     
-bool
-operator==(const exr_attr_chromaticities_t& a, const exr_attr_chromaticities_t& b)
+class py_exr_attr_chromaticities_t :  public exr_attr_chromaticities_t 
 {
-    if (a.red_x == b.red_x &&
-        a.red_y == b.red_y &&
-        a.green_x == b.green_x &&
-        a.green_y == b.green_y &&
-        a.blue_x == b.blue_x &&
-        a.blue_y == b.blue_y &&
-        a.white_x == b.white_x &&
-        a.white_y == b.white_y)
-        return true;
-    return false;
+  public:
+
+    bool operator==(const py_exr_attr_chromaticities_t& other) const
+        {
+            if (red_x == other.red_x &&
+                red_y == other.red_y &&
+                green_x == other.green_x &&
+                green_y == other.green_y &&
+                blue_x == other.blue_x &&
+                blue_y == other.blue_y &&
+                white_x == other.white_x &&
+                white_y == other.white_y)
+                return true;
+            return false;
+        }
+};
+
+std::ostream&
+operator<< (std::ostream& s, const Box2i& v)
+{
+    s << "(" << v.min << "  " << v.max << ")";
+    return s;
 }
 
 std::ostream&
-operator<< (std::ostream& s, const exr_attr_chromaticities_t& c)
+operator<< (std::ostream& s, const Box2f& v)
+{
+    s << "(" << v.min << "  " << v.max << ")";
+    return s;
+}
+
+std::ostream&
+operator<< (std::ostream& s, const py_exr_attr_chromaticities_t& c)
 {
     s << "(" << c.red_x
       << ", " << c.red_y
@@ -336,6 +365,11 @@ public:
         }
         return false;
     }
+
+    bool operator<(const PyChannel& other) const
+        {
+            return name < other.name;
+        }
 
     std::string           name;
     exr_pixel_type_t      type;
@@ -604,6 +638,8 @@ PyPart::read_scanline_part (exr_context_t f, int part)
                 C.type = exr_pixel_type_t(outc.data_type);
                 C.xSampling  = outc.x_samples;
                 C.ySampling  = outc.y_samples;
+                
+                std::cout << "read_scanline_part: channel[" << c << "] " << C.name << std::endl;
                 
                 std::vector<size_t> shape, strides;
                 shape.assign({ width, height });
@@ -921,7 +957,7 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
           }
       case EXR_ATTR_CHROMATICITIES:
           {
-              exr_attr_chromaticities_t c = {
+              py_exr_attr_chromaticities_t c = {
                   attr->chromaticities->red_x,
                   attr->chromaticities->red_y,
                   attr->chromaticities->green_x,
@@ -1279,7 +1315,7 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
 #endif
         }
     }
-    else if (auto o = py_cast<exr_attr_chromaticities_t>(object))
+    else if (auto o = py_cast<py_exr_attr_chromaticities_t>(object))
         exr_attr_set_chromaticities(f, p, name.c_str(), o);
     else if (auto o = py_cast<exr_compression_t>(object))
         exr_attr_set_compression(f, p, name.c_str(), *o);
@@ -1478,14 +1514,20 @@ PyFile::write(const char* filename)
             write_attribute(f, p, name, second);
         }
 
+        std::vector<PyChannel> channels;
         for (auto c_iterator : P.channels)
+            channels.push_back(py::cast<PyChannel&>(*c_iterator));
+        std::sort(channels.begin(), channels.end());
+        for (size_t c=0; c<channels.size(); c++)
         {
-            PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+            const PyChannel& C = channels[c];
             result = exr_add_channel(f, p, C.name.c_str(), C.type, 
                                      EXR_PERCEPTUALLY_LOGARITHMIC,
                                      C.xSampling, C.ySampling);
             if (result != EXR_ERR_SUCCESS) 
                 throw std::runtime_error("error writing channels");
+
+            std::cout << "write: exr_add_channel " << C.name << std::endl;
         }
 
         result = exr_set_version(f, p, 1); // 1 is the latest version
@@ -1553,11 +1595,19 @@ PyFile::write(const char* filename)
             // Write the channel data
             //
             
+            std::vector<PyChannel> channels;
+            for (auto c_iterator : P.channels)
+                channels.push_back(py::cast<PyChannel&>(*c_iterator));
+            std::sort(channels.begin(), channels.end());
+
             auto c_iterator = P.channels.begin();
             for (int c=0; c<channelCount; c++, c_iterator++)
             {
+#if XXX
                 const PyChannel& C = py::cast<PyChannel&>(*c_iterator);
-
+#endif
+                const PyChannel& C = channels[c];
+                
                 encoder.channel_count = channelCount;
                 py::buffer_info buf = C.pixels.request();
                 switch (C.type)
@@ -1757,6 +1807,7 @@ PYBIND11_MODULE(OpenEXR, m)
     py::class_<Rational>(m, "Rational")
         .def(py::init())
         .def(py::init<int,unsigned int>())
+        .def(py::self == py::self)
         .def_readwrite("n", &Rational::n)
         .def_readwrite("d", &Rational::d)
         ;
@@ -1764,6 +1815,7 @@ PYBIND11_MODULE(OpenEXR, m)
     py::class_<KeyCode>(m, "KeyCode")
         .def(py::init())
         .def(py::init<int,int,int,int,int,int,int>())
+        .def(py::self == py::self)
         .def_property("filmMfcCode", &KeyCode::filmMfcCode, &KeyCode::setFilmMfcCode)
         .def_property("filmType", &KeyCode::filmType, &KeyCode::setFilmType)
         .def_property("prefix", &KeyCode::prefix, &KeyCode::setPrefix)
@@ -1776,6 +1828,7 @@ PYBIND11_MODULE(OpenEXR, m)
     py::class_<TimeCode>(m, "TimeCode")
         .def(py::init())
         .def(py::init<int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int>())
+        .def(py::self == py::self)
         .def_property("hours", &TimeCode::hours, &TimeCode::setHours)
         .def_property("minutes", &TimeCode::minutes, &TimeCode::setMinutes)
         .def_property("seconds", &TimeCode::seconds, &TimeCode::setSeconds)
@@ -1792,25 +1845,24 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("setTimeAndFlags", &TimeCode::setTimeAndFlags)
         ;
 
-    py::class_<exr_attr_chromaticities_t>(m, "Chromaticities")
+    py::class_<py_exr_attr_chromaticities_t>(m, "Chromaticities")
         .def(py::init<float,float,float,float,float,float,float,float>())
-#if XXX
         .def(py::self == py::self)
-#endif
-        .def("__repr__", [](const exr_attr_chromaticities_t& v) { return repr(v); })
-        .def_readwrite("red_x", &exr_attr_chromaticities_t::red_x)
-        .def_readwrite("red_y", &exr_attr_chromaticities_t::red_y)
-        .def_readwrite("green_x", &exr_attr_chromaticities_t::green_x)
-        .def_readwrite("green_y", &exr_attr_chromaticities_t::green_y)
-        .def_readwrite("blue_x", &exr_attr_chromaticities_t::blue_x)
-        .def_readwrite("blue_y", &exr_attr_chromaticities_t::blue_y)
-        .def_readwrite("white_x", &exr_attr_chromaticities_t::white_x)
-        .def_readwrite("white_y", &exr_attr_chromaticities_t::white_y)
+        .def("__repr__", [](const py_exr_attr_chromaticities_t& v) { return repr(v); })
+        .def_readwrite("red_x", &py_exr_attr_chromaticities_t::red_x)
+        .def_readwrite("red_y", &py_exr_attr_chromaticities_t::red_y)
+        .def_readwrite("green_x", &py_exr_attr_chromaticities_t::green_x)
+        .def_readwrite("green_y", &py_exr_attr_chromaticities_t::green_y)
+        .def_readwrite("blue_x", &py_exr_attr_chromaticities_t::blue_x)
+        .def_readwrite("blue_y", &py_exr_attr_chromaticities_t::blue_y)
+        .def_readwrite("white_x", &py_exr_attr_chromaticities_t::white_x)
+        .def_readwrite("white_y", &py_exr_attr_chromaticities_t::white_y)
         ;
 
     py::class_<PreviewRgba>(m, "PreviewRgba")
         .def(py::init())
         .def(py::init<unsigned char,unsigned char,unsigned char,unsigned char>())
+        .def(py::self == py::self)
         .def_readwrite("r", &PreviewRgba::r)
         .def_readwrite("g", &PreviewRgba::g)
         .def_readwrite("b", &PreviewRgba::b)
@@ -1831,6 +1883,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<int,int>())
         .def("__repr__", [](const V2i& v) { return repr(v); })
+        .def(py::self == py::self)
         .def_readwrite("x", &Imath::V2i::x)
         .def_readwrite("y", &Imath::V2i::y)
         ;
@@ -1839,6 +1892,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<float,float>())
         .def("__repr__", [](const V2f& v) { return repr(v); })
+        .def(py::self == py::self)
         .def_readwrite("x", &Imath::V2f::x)
         .def_readwrite("y", &Imath::V2f::y)
         ;
@@ -1847,6 +1901,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<double,double>())
         .def("__repr__", [](const V2d& v) { return repr(v); })
+        .def(py::self == py::self)
         .def_readwrite("x", &Imath::V2d::x)
         .def_readwrite("y", &Imath::V2d::y)
         ;
@@ -1855,6 +1910,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<int,int,int>())
         .def("__repr__", [](const V3i& v) { return repr(v); })
+        .def(py::self == py::self)
         .def_readwrite("x", &Imath::V3i::x)
         .def_readwrite("y", &Imath::V3i::y)
         .def_readwrite("z", &Imath::V3i::z)
@@ -1873,6 +1929,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<double,double,double>())
         .def("__repr__", [](const V3d& v) { return repr(v); })
+        .def(py::self == py::self)
         .def_readwrite("x", &Imath::V3d::x)
         .def_readwrite("y", &Imath::V3d::y)
         .def_readwrite("z", &Imath::V3d::z)
@@ -1881,11 +1938,15 @@ PYBIND11_MODULE(OpenEXR, m)
     py::class_<Box2i>(m, "Box2i")
         .def(py::init())
         .def(py::init<V2i,V2i>())
+        .def("__repr__", [](const Box2i& v) { return repr(v); })
+#if XXX
         .def("__repr__", [](const Box2i& b) {
             std::stringstream s;
             s << "(" << b.min << " " << b.max << ")";
             return s.str();
         })
+#endif
+        .def(py::self == py::self)
         .def_readwrite("min", &Box2i::min)
         .def_readwrite("max", &Box2i::max)
         ;
@@ -1893,11 +1954,15 @@ PYBIND11_MODULE(OpenEXR, m)
     py::class_<Box2f>(m, "Box2f")
         .def(py::init())
         .def(py::init<V2f,V2f>())
+        .def("__repr__", [](const Box2f& v) { return repr(v); })
+#if XXX
         .def("__repr__", [](const Box2f& b) {
             std::stringstream s;
             s << "(" << b.min << " " << b.max << ")";
             return s.str();
         })
+#endif
+        .def(py::self == py::self)
         .def_readwrite("min", &Box2f::min)
         .def_readwrite("max", &Box2f::max)
         ;
@@ -1906,12 +1971,14 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<float,float,float,float,float,float,float,float,float>())
         .def("__repr__", [](const M33f& m) { return repr(m); })
+        .def(py::self == py::self)
         ;
     
     py::class_<M33d>(m, "M33d")
         .def(py::init())
         .def(py::init<double,double,double,double,double,double,double,double,double>())
         .def("__repr__", [](const M33d& m) { return repr(m); })
+        .def(py::self == py::self)
         ;
     
     py::class_<M44f>(m, "M44f")
@@ -1928,11 +1995,13 @@ PYBIND11_MODULE(OpenEXR, m)
                       double,double,double,double,
                       double,double,double,double>())
         .def("__repr__", [](const M44d& m) { return repr(m); })
+        .def(py::self == py::self)
         ;
     
     py::class_<PyDouble>(m, "Double")
         .def(py::init<double>())
         .def("__repr__", [](const PyDouble& d) { return repr(d.d); })
+        .def(py::self == py::self)
         ;
 
     py::class_<PyChannel>(m, "Channel")

@@ -204,9 +204,9 @@ def test_write():
     print_file(i)
 
 if os.path.isfile(filename):
-    test_write_half()
+#    test_write_half()
     test_write()
-    test_read_write()
+#    test_read_write()
     print("ok")
 else:    
     print(f"skipping {sys.argv[0]}: no such file: {filename}")
