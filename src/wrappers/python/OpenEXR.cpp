@@ -28,8 +28,6 @@
 
 #include <typeinfo>
 
-//#define DEBUGGIT 1
-
 namespace py = pybind11;
 using namespace py::literals;
 
@@ -172,18 +170,10 @@ public:
     static constexpr uint32_t style = py::array::c_style | py::array::forcecast;
     
     PyPreviewImage(unsigned int width, unsigned int height, const PreviewRgba* data = nullptr)
-#if XXX
-        : pixels(py::array_t<PreviewRgba,style>(std::vector<size_t>(width, height),
-                                                std::vector<size_t>(sizeof(PreviewRgba),
-                                                                    sizeof(PreviewRgba)),
+        : pixels(py::array_t<PreviewRgba,style>(std::vector<size_t>({width, height}),
+                                                std::vector<size_t>({sizeof(PreviewRgba),sizeof(PreviewRgba)}),
                                                 data))
-#endif
     {
-        std::cout << "preview image: " << width << "x" << height << std::endl;
-        std::vector<size_t> shape, strides;
-        shape.assign({ width, height });
-        strides.assign({ sizeof(PreviewRgba), sizeof(PreviewRgba) });
-        pixels = py::array_t<PreviewRgba,style>(shape, strides, data);
     }
     
     PyPreviewImage(const py::array_t<PreviewRgba>& p)
@@ -193,30 +183,6 @@ public:
     
     py::array_t<PreviewRgba> pixels;
 };
-    
-std::ostream&
-operator<< (std::ostream& s, const PyPreviewImage& P)
-{
-    auto width = P.pixels.shape()[0];
-    auto height = P.pixels.shape()[1];
-    py::buffer_info buf = P.pixels.request();
-    const PreviewRgba* rgba = static_cast<PreviewRgba*>(buf.ptr);
-    s << "PreviewImage(" << width << ", " << height << "," << std::endl;
-    for (ssize_t y=0; y<height; y++)
-    {
-        for (ssize_t x=0; x<width; x++)
-        {
-            auto p = rgba[y*width+x];
-            s << " (" << int(p.r)
-              << "," << int(p.g)
-              << "," << int(p.b)
-              << "," << int(p.a)
-              << ")";
-        }
-        s << std::endl;
-    }
-    return s;
-}
     
 class py_exr_attr_chromaticities_t :  public exr_attr_chromaticities_t 
 {
@@ -237,35 +203,6 @@ class py_exr_attr_chromaticities_t :  public exr_attr_chromaticities_t
         }
 };
 
-std::ostream&
-operator<< (std::ostream& s, const Box2i& v)
-{
-    s << "(" << v.min << "  " << v.max << ")";
-    return s;
-}
-
-std::ostream&
-operator<< (std::ostream& s, const Box2f& v)
-{
-    s << "(" << v.min << "  " << v.max << ")";
-    return s;
-}
-
-std::ostream&
-operator<< (std::ostream& s, const py_exr_attr_chromaticities_t& c)
-{
-    s << "(" << c.red_x
-      << ", " << c.red_y
-      << ", " << c.green_x 
-      << ", " << c.green_y
-      << ", " << c.blue_x
-      << ", " << c.blue_y
-      << ", " << c.white_x
-      << ", " << c.white_y
-      << ")";
-    return s;
-}
-    
 //
 // PyChannel holds information for a channel of a PyPart: name, type, x/y
 // sampling, and the array of pixel data.
@@ -435,9 +372,11 @@ class PyPart
             return false;
         }
         
-        if (!channels.equal(other.channels))
+        auto channels_v = py::cast<std::vector<PyChannel>>(channels);
+        auto other_channels_v = py::cast<std::vector<PyChannel>>(other.channels);
+        if (channels_v.size() != other_channels_v.size())
         {
-            std::cout << "part channels differ: [";
+            std::cout << "part channel counts differ: [";
             for (auto c : channels)
             {
                 auto C = py::cast<PyChannel&>(*c);
@@ -453,6 +392,29 @@ class PyPart
 
             return false;
         }
+
+        std::sort(channels_v.begin(), channels_v.end());
+        std::sort(other_channels_v.begin(), other_channels_v.end());
+        
+        for (size_t c = 0; c<channels_v.size(); c++)
+            if (!(channels_v[c] == other_channels_v[c]))
+            {
+                std::cout << "part channels differ: [";
+                for (auto c : channels)
+                {
+                    auto C = py::cast<PyChannel&>(*c);
+                    std::cout << " " << C.name;
+                }
+                std::cout << " ] [";
+                for (auto c : other.channels)
+                {
+                    auto C = py::cast<PyChannel&>(*c);
+                    std::cout << " " << C.name;
+                }
+                std::cout << "]" << std::endl;
+
+                return false;
+            }
 
         return true;
     }
@@ -477,7 +439,7 @@ class PyFile
 public:
     PyFile(const std::string& filename);
     PyFile(const py::dict& attributes, const py::list& channels,
-         exr_storage_t type, exr_compression_t compression);
+           exr_storage_t type, exr_compression_t compression);
     PyFile(const py::list& parts);
 
 
@@ -506,6 +468,10 @@ PyPart::PyPart(const py::dict& attributes_arg, const py::list& channels_arg,
     : name(name_arg), type(type_arg), width(0), height(0), compression(compression_arg),
       attributes(attributes_arg), channels(channels_arg)
 {
+    //
+    // Confirm all the channels have 2 dimensions and the same size
+    //
+    
     for (auto c : channels)
     {
         auto o = *c;
@@ -587,10 +553,6 @@ PyPart::read_scanline_part (exr_context_t f, int part)
     if (rv != EXR_ERR_SUCCESS)
         throw std::runtime_error("bad scanlines per chunk");
 
-#if DEBUGGIT
-    std::cout << "Part " << name << " " << width << "x" << height << " lines_per_chunk=" << lines_per_chunk << std::endl;
-#endif
-    
     //
     // Read the chunks
     //
@@ -615,13 +577,19 @@ PyPart::read_scanline_part (exr_context_t f, int part)
             if (rv != EXR_ERR_SUCCESS)
                 throw std::runtime_error ("error initializing decoder");
             
+            //
+            // Initialize the channel list with empty data, to be filled in below.
+            //
+            
             channels = py::list();
             for (int c = 0; c < decoder.channel_count; c++)
                 channels.append(PyChannel());
             
             //
             // Build the channel list for the decoder and allocate each
-            // channel's pixel data arrays
+            // channel's pixel data arrays. The decoder's array of
+            // channels parallels the channels py::list, so
+            // iterate through both in lock step.
             //
             
             auto c_iterator = channels.begin();
@@ -638,8 +606,6 @@ PyPart::read_scanline_part (exr_context_t f, int part)
                 C.type = exr_pixel_type_t(outc.data_type);
                 C.xSampling  = outc.x_samples;
                 C.ySampling  = outc.y_samples;
-                
-                std::cout << "read_scanline_part: channel[" << c << "] " << C.name << std::endl;
                 
                 std::vector<size_t> shape, strides;
                 shape.assign({ width, height });
@@ -789,7 +755,7 @@ PyPart::read_tiled_part (exr_context_t f, int part)
 
             int tx = 0;
             int ty = 0;
-            ty = 0;
+
             for (int64_t cury = 0; cury < levh; cury += curth, ++ty)
             {
                 tx = 0;
@@ -805,13 +771,19 @@ PyPart::read_tiled_part (exr_context_t f, int part)
                         if (rv != EXR_ERR_SUCCESS)
                             throw std::runtime_error("error initializing decoder");
 
+                        //
+                        // Initialize the channel list with empty data, to be filled in below.
+                        //
+            
                         channels = py::list();
                         for (int c = 0; c < decoder.channel_count; c++)
                             channels.append(PyChannel());
 
                         //
                         // Build the channel list for the decoder and allocate each
-                        // channel's pixel data arrays
+                        // channel's pixel data arrays. The decoder's array of
+                        // channels parallels the channels py::list, so
+                        // iterate through both in lock step.
                         //
             
                         auto c_iterator = channels.begin();
@@ -1180,11 +1152,7 @@ PyFile::PyFile(const std::string& filename)
             py::object attr = get_attribute(f, p, a, name);
             h[name.c_str()] = attr;
             if (name == "name")
-            {
                 _parts[p].name = py::str(attr);
-            }
-                
-            std::cout << "File::File header[" << name << "]" << std::endl;
         }
 
         //
@@ -1257,10 +1225,6 @@ py_cast(const py::object& object)
 void
 write_attribute(exr_context_t f, int p, const std::string& name, py::object object)
 {
-#if DEBUGGIT
-    std::cout << "write attribute " << name << std::endl;
-#endif
-    
     if (auto v = py_cast<exr_attr_box2i_t,Box2i>(object))
         exr_attr_set_box2i(f, p, name.c_str(), v);
     else if (auto v = py_cast<exr_attr_box2f_t,Box2f>(object))
@@ -1290,29 +1254,9 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
         }
         else if (py::isinstance<PyChannel>(list[0]))
         {
-#if XXX
-            // channel list
-            std::vector<PyChannel> C = list.cast<std::vector<PyChannel>>();
-            std::vector<exr_attr_chlist_entry_t> v(C.size());
-            for (size_t i = 0; i<C.size(); i++)
-            {
-                v[i].name.length = C[i].name.size();
-                v[i].name.alloc_size = C[i].name.size();
-                v[i].name.str = C[i].name.c_str();
-                v[i].pixel_type = C[i].type;
-                v[i].p_linear = 0;
-                v[i].reserved[0] = 0;
-                v[i].reserved[1] = 0;
-                v[i].reserved[2] = 0;
-                v[i].x_sampling = C[i].xSampling;
-                v[i].y_sampling = C[i].ySampling;
-            }
-            exr_attr_chlist_t channels;
-            channels.num_channels = v.size();
-            channels.num_alloced = v.size();
-            channels.entries = &v[0];
-            exr_attr_set_channels(f, p, name.c_str(), &channels);
-#endif
+            //
+            // Channel list: don't create an explicit chlist attribute here,
+            // since the channels get created elswhere.
         }
     }
     else if (auto o = py_cast<py_exr_attr_chromaticities_t>(object))
@@ -1431,9 +1375,6 @@ PyFile::write(const char* filename)
     
     for (size_t p=0; p<_parts.size(); p++)
     {
-#if DEBUGGIT
-        std::cout << "write part " << p << std::endl;
-#endif
         const PyPart& P = _parts[p];
             
         int part_index;
@@ -1526,8 +1467,6 @@ PyFile::write(const char* filename)
                                      C.xSampling, C.ySampling);
             if (result != EXR_ERR_SUCCESS) 
                 throw std::runtime_error("error writing channels");
-
-            std::cout << "write: exr_add_channel " << C.name << std::endl;
         }
 
         result = exr_set_version(f, p, 1); // 1 is the latest version
@@ -1592,7 +1531,10 @@ PyFile::write(const char* filename)
             int channelCount = P.channels.size();
             
             //
-            // Write the channel data
+            // Write the channel data.  Sort the channel list here, since the
+            // channels are required to be sorted by name, although there's
+            // no guarantee that the list of channels provided to the
+            // constructor are in sorted order.
             //
             
             std::vector<PyChannel> channels;
@@ -1600,12 +1542,8 @@ PyFile::write(const char* filename)
                 channels.push_back(py::cast<PyChannel&>(*c_iterator));
             std::sort(channels.begin(), channels.end());
 
-            auto c_iterator = P.channels.begin();
-            for (int c=0; c<channelCount; c++, c_iterator++)
+            for (int c=0; c<channelCount; c++)
             {
-#if XXX
-                const PyChannel& C = py::cast<PyChannel&>(*c_iterator);
-#endif
                 const PyChannel& C = channels[c];
                 
                 encoder.channel_count = channelCount;
@@ -1668,18 +1606,68 @@ PyFile::write(const char* filename)
     _filename = filename;
 }
 
-bool
-write_exr_file_parts(const char* filename, const py::list& parts)
+std::ostream&
+operator<< (std::ostream& s, const Rational& v)
 {
-    return true;
+    s << v.n << "/" << v.d;
+    return s;
 }
 
-bool
-write_exr_file(const char* filename, const py::dict& attributes, const py::list& channels)
+std::ostream&
+operator<< (std::ostream& s, const KeyCode& v)
 {
-    return true;
+    s << "(" << v.filmMfcCode()
+      << ", " << v.filmType()
+      << ", " << v.prefix()
+      << ", " << v.count()
+      << ", " << v.perfOffset()
+      << ", " << v.perfsPerFrame()
+      << ", " << v.perfsPerCount()
+      << ")";
+    return s;
 }
 
+std::ostream&
+operator<< (std::ostream& s, const TimeCode& v)
+{
+    s << "(" << v.hours()
+      << ", " << v.minutes()
+      << ", " << v.seconds()
+      << ", " << v.frame()
+      << ", " << v.dropFrame()
+      << ", " << v.colorFrame()
+      << ", " << v.fieldPhase()
+      << ", " << v.bgf0()
+      << ", " << v.bgf1()
+      << ", " << v.bgf2()
+      << ")";
+    return s;
+}
+
+std::ostream&
+operator<< (std::ostream& s, const PyPreviewImage& P)
+{
+    auto width = P.pixels.shape()[0];
+    auto height = P.pixels.shape()[1];
+    py::buffer_info buf = P.pixels.request();
+    const PreviewRgba* rgba = static_cast<PreviewRgba*>(buf.ptr);
+    s << "PreviewImage(" << width << ", " << height << "," << std::endl;
+    for (ssize_t y=0; y<height; y++)
+    {
+        for (ssize_t x=0; x<width; x++)
+        {
+            auto p = rgba[y*width+x];
+            s << " (" << int(p.r)
+              << "," << int(p.g)
+              << "," << int(p.b)
+              << "," << int(p.a)
+              << ")";
+        }
+        s << std::endl;
+    }
+    return s;
+}
+    
 std::ostream&
 operator<< (std::ostream& s, const PyChannel& C)
 {
@@ -1713,6 +1701,35 @@ operator<< (std::ostream& s, const TileDescription& v)
     return s;
 }
 
+std::ostream&
+operator<< (std::ostream& s, const Box2i& v)
+{
+    s << "(" << v.min << "  " << v.max << ")";
+    return s;
+}
+
+std::ostream&
+operator<< (std::ostream& s, const Box2f& v)
+{
+    s << "(" << v.min << "  " << v.max << ")";
+    return s;
+}
+
+std::ostream&
+operator<< (std::ostream& s, const py_exr_attr_chromaticities_t& c)
+{
+    s << "(" << c.red_x
+      << ", " << c.red_y
+      << ", " << c.green_x 
+      << ", " << c.green_y
+      << ", " << c.blue_x
+      << ", " << c.blue_y
+      << ", " << c.white_x
+      << ", " << c.white_y
+      << ")";
+    return s;
+}
+    
 template <class T>
 std::string
 repr(const T& v)
@@ -1740,6 +1757,10 @@ PYBIND11_MODULE(OpenEXR, m)
     
     init_OpenEXR_old(m.ptr());
 
+    //
+    // Enums
+    //
+    
     py::enum_<LevelRoundingMode>(m, "LevelRoundingMode")
         .value("ROUND_UP", ROUND_UP)
         .value("ROUND_DOWN", ROUND_DOWN)
@@ -1752,15 +1773,6 @@ PYBIND11_MODULE(OpenEXR, m)
         .value("RIPMAP_LEVELS", RIPMAP_LEVELS)
         .value("NUM_LEVELMODES", NUM_LEVELMODES)
         .export_values();
-
-    py::class_<TileDescription>(m, "TileDescription")
-        .def(py::init())
-        .def("__repr__", [](TileDescription& v) { return repr(v); })
-        .def_readwrite("xSize", &TileDescription::xSize)
-        .def_readwrite("ySize", &TileDescription::ySize)
-        .def_readwrite("mode", &TileDescription::mode)
-        .def_readwrite("roundingMode", &TileDescription::roundingMode)
-        ;       
 
     py::enum_<exr_lineorder_t>(m, "LineOrder")
         .value("INCREASING_Y", EXR_LINEORDER_INCREASING_Y)
@@ -1804,9 +1816,24 @@ PYBIND11_MODULE(OpenEXR, m)
         .value("NUM_STORAGE_TYPES", EXR_STORAGE_LAST_TYPE)
         .export_values();
 
+    //
+    // Classes for attribute types
+    //
+    
+    py::class_<TileDescription>(m, "TileDescription")
+        .def(py::init())
+        .def("__repr__", [](TileDescription& v) { return repr(v); })
+        .def(py::self == py::self)
+        .def_readwrite("xSize", &TileDescription::xSize)
+        .def_readwrite("ySize", &TileDescription::ySize)
+        .def_readwrite("mode", &TileDescription::mode)
+        .def_readwrite("roundingMode", &TileDescription::roundingMode)
+        ;       
+
     py::class_<Rational>(m, "Rational")
         .def(py::init())
         .def(py::init<int,unsigned int>())
+        .def("__repr__", [](const Rational& v) { return repr(v); })
         .def(py::self == py::self)
         .def_readwrite("n", &Rational::n)
         .def_readwrite("d", &Rational::d)
@@ -1816,6 +1843,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<int,int,int,int,int,int,int>())
         .def(py::self == py::self)
+        .def("__repr__", [](const KeyCode& v) { return repr(v); })
         .def_property("filmMfcCode", &KeyCode::filmMfcCode, &KeyCode::setFilmMfcCode)
         .def_property("filmType", &KeyCode::filmType, &KeyCode::setFilmType)
         .def_property("prefix", &KeyCode::prefix, &KeyCode::setPrefix)
@@ -1828,6 +1856,7 @@ PYBIND11_MODULE(OpenEXR, m)
     py::class_<TimeCode>(m, "TimeCode")
         .def(py::init())
         .def(py::init<int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int>())
+        .def("__repr__", [](const TimeCode& v) { return repr(v); })
         .def(py::self == py::self)
         .def_property("hours", &TimeCode::hours, &TimeCode::setHours)
         .def_property("minutes", &TimeCode::minutes, &TimeCode::setMinutes)
@@ -1878,6 +1907,16 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("__repr__", [](const PyPreviewImage& v) { return repr(v); })
         .def_readwrite("pixels", &PyPreviewImage::pixels)
         ;
+    
+    py::class_<PyDouble>(m, "Double")
+        .def(py::init<double>())
+        .def("__repr__", [](const PyDouble& d) { return repr(d.d); })
+        .def(py::self == py::self)
+        ;
+
+    //
+    // Stand-in Imath classes - these should really come from the Imath module.
+    //
     
     py::class_<V2i>(m, "V2i")
         .def(py::init())
@@ -1939,13 +1978,6 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<V2i,V2i>())
         .def("__repr__", [](const Box2i& v) { return repr(v); })
-#if XXX
-        .def("__repr__", [](const Box2i& b) {
-            std::stringstream s;
-            s << "(" << b.min << " " << b.max << ")";
-            return s.str();
-        })
-#endif
         .def(py::self == py::self)
         .def_readwrite("min", &Box2i::min)
         .def_readwrite("max", &Box2i::max)
@@ -1955,13 +1987,6 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<V2f,V2f>())
         .def("__repr__", [](const Box2f& v) { return repr(v); })
-#if XXX
-        .def("__repr__", [](const Box2f& b) {
-            std::stringstream s;
-            s << "(" << b.min << " " << b.max << ")";
-            return s.str();
-        })
-#endif
         .def(py::self == py::self)
         .def_readwrite("min", &Box2f::min)
         .def_readwrite("max", &Box2f::max)
@@ -1998,12 +2023,10 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::self == py::self)
         ;
     
-    py::class_<PyDouble>(m, "Double")
-        .def(py::init<double>())
-        .def("__repr__", [](const PyDouble& d) { return repr(d.d); })
-        .def(py::self == py::self)
-        ;
-
+    //
+    // The File API: Channel, Part, and File
+    //
+    
     py::class_<PyChannel>(m, "Channel")
         .def(py::init())
         .def(py::init<const char*,exr_pixel_type_t,int,int>())
@@ -2043,8 +2066,5 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("write", &PyFile::write)
         .def_readwrite("filename", &PyFile::_filename)
         ;
-
-    m.def("write_exr_file", &write_exr_file);
-    m.def("write_exr_file_parts", &write_exr_file_parts);
 }
 
