@@ -19,7 +19,7 @@ filename = "GoldenGate.exr"
 filename = "10x100.exr"
 filename = "test.exr"
 
-def print_file(f):
+def print_file(f, print_pixels = False):
     
     print(f"file {f.filename}")
     print(f"parts:")
@@ -28,40 +28,40 @@ def print_file(f):
         print(f"  part: {p.name} {p.type} {p.compression} {p.width}x{p.height}")
         h = p.attributes
         for a in h:
-            print(f"    {a}: {h[a]}")
+            print(f"  header[{a}] {h[a]}")
         for c in p.channels:
-             pixels = c.pixels
-             print(f"  channel {c.name} {pixels.shape}")
-    #     for y in range(0,min(p.height,100)):
-    #         s = f"{c.name}[{y}]:"
-    #         for x in range(0,min(p.width,100)):
-    #             s += f" {pixels[x][y]}"
-    #         print(s)
+            pixels = c.pixels
+            print(f"  channel[{c.name}] {pixels.shape} {pixels.dtype}")
+            if print_pixels:
+                for y in range(0,p.height):
+                    s = f"    {c.name}[{y}]:"
+                    for x in range(0,p.width):
+                        s += f" {pixels[x][y]}"
+                    print(s)
     
 def test_read_write():
 
-    i = OpenEXR.File(filename)
-    print_file(i)
-
-    outfile = "test_read_write.exr"
-    print(f"writing write.exr")
-    i.write(outfile)
-
-    print(f"reading {outfile}")
-    o = OpenEXR.File(outfile)
-    print_file(o)
+    #
+    # Read a file and write it back out, then read the freshly-written
+    # file to validate it's the same.
+    #
     
-    if o == i:
-        print("same.")
-    else:
-        print("not same.")
-#    o.write("out2.exr")
-    
-def test_attributes():
-    i = OpenEXR.File(filename)
-    print(f"writing out.exr")
-    i.write("out.exr")
+    infilename = "test.exr"
+    infile = OpenEXR.File(infilename)
 
+    outfilename = "test_read_write.exr"
+    print(f"writing {outfilename}")
+    infile.write(outfilename)
+    print(f"writing {outfilename} done.")
+
+    print(f"reading {outfilename}")
+    outfile = OpenEXR.File(outfilename)
+    print(f"reading {outfilename} done")
+    
+    assert outfile == infile
+
+    print("ok")
+    
 def test_keycode():
     k = OpenEXR.KeyCode()
     print(f"filmMfcCode={k.filmMfcCode}")
@@ -77,8 +77,44 @@ def test_rational():
     print(f"r.n={r.n}")
     print(f"r.d={r.d}")
 
+def test_write_half():
+
+    # Construct a file from scratch and write it.
+    
+    width = 10
+    height = 20
+    size = width * height
+    R = np.array([i for i in range(0,size)], dtype='e').reshape((width, height))
+    G = np.array([i*10 for i in range(0,size)], dtype='e').reshape((width, height))
+    B = np.array([i*100 for i in range(0,size)], dtype='e').reshape((width, height))
+    A = np.array([-i*100 for i in range(0,size)], dtype='e').reshape((width, height))
+    channels = [ OpenEXR.Channel("A", OpenEXR.HALF, 1, 1, A), 
+                 OpenEXR.Channel("B", OpenEXR.HALF, 1, 1, B),
+                 OpenEXR.Channel("G", OpenEXR.HALF, 1, 1, G),
+                 OpenEXR.Channel("R", OpenEXR.HALF, 1, 1, R) ]
+
+    header = {}
+
+    outfilename = "test_write_half.exr"
+    outfile = OpenEXR.File(header, channels,
+                           OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
+    print(f"writing {outfilename}")
+    outfile.write(outfilename)
+    print(f"writing {outfilename} done.")
+    
+    print_file(outfile, True)
+    
+    # Verify reading it back gives the same data
+    print(f"reading {outfilename}")
+    i = OpenEXR.File(outfilename)
+    print(f"reading {outfilename} done.")
+
+    assert i == outfile
+
 def test_write():
 
+    # Construct a file from scratch and write it.
+    
     width = 10
     height = 20
     size = width * height
@@ -90,6 +126,18 @@ def test_write():
                  OpenEXR.Channel("G", OpenEXR.FLOAT, 1, 1, G),
                  OpenEXR.Channel("B", OpenEXR.FLOAT, 1, 1, B),
                  OpenEXR.Channel("A", OpenEXR.FLOAT, 1, 1, A) ] 
+
+    pwidth = 3
+    pheight = 3
+    psize = pwidth * pheight
+
+    dt = np.dtype({
+            "names": ["r", "g", "b", "a"],
+            "formats": ["u4", "u4", "u4", "u4"],
+            "offsets": [0, 4, 8, 12],
+        })
+    P = np.array([(i,i,i,i) for i in range(0,psize)], dtype=dt).reshape((pwidth,pheight))
+    print(f"P: {P}")
 
     header = {}
     header["floatvector"] = [1.0, 2.0, 3.0]
@@ -107,7 +155,7 @@ def test_write():
     header["m33d"] = OpenEXR.M33d(1,0,0,0,1,0,0,0,1)
     header["m44f"] = OpenEXR.M44f(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
     header["m44d"] = OpenEXR.M44d(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
-    header["preview"] = OpenEXR.PreviewImage()
+    header["preview"] = OpenEXR.PreviewImage(P)
     header["rational"] = OpenEXR.Rational(1,3)
     header["string"] = "stringy"
     header["timecode"] = OpenEXR.TimeCode(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)
@@ -118,20 +166,47 @@ def test_write():
     header["v3f"] = OpenEXR.V3f(1.2,3.4,5.6)
     header["v3d"] = OpenEXR.V3d(1.2,3.4,5.6)
     
-    o = OpenEXR.File(header, channels, OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
-    o.write("1part.exr")
-    print("wrote 1part.exr")
+    outfilename = "test_write.exr"
+    outfile = OpenEXR.File(header, channels,
+                           OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
+    print(f"writing {outfilename}")
+    outfile.write(outfilename)
+    print(f"writing {outfilename} done.")
     
-    P1 = OpenEXR.Part(header, channels, OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION, "P1")
-    P2 = OpenEXR.Part(header, channels, OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION, "P2")
+    print_file(outfile)
+    
+    # Verify reading it back gives the same data
+    print(f"reading {outfilename}")
+    i = OpenEXR.File(outfilename)
+    print(f"reading {outfilename} done.")
+
+    assert i == outfile
+    
+    print_file(i)
+    
+    #
+    # Construct a 2-part file by replicating the header and channels
+    #
+    
+    P1 = OpenEXR.Part(header, channels,
+                      OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION, "P1")
+    P2 = OpenEXR.Part(header, channels,
+                      OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION, "P2")
     parts = [P1, P2]
-    o = OpenEXR.File(parts)
-    o.write("2part.exr")
+    outfilename2 = "test_write2.exr"
+    outfile2 = OpenEXR.File(parts)
+    outfile2.write(outfilename2)
     
+    # Verify reading it back gives the same data
+    i = OpenEXR.File(outfilename2)
+    assert i == outfile2
+
+    print_file(i)
+
 if os.path.isfile(filename):
+    test_write_half()
+    test_write()
     test_read_write()
-#    test_attributes()
-#    test_write()
     print("ok")
 else:    
     print(f"skipping {sys.argv[0]}: no such file: {filename}")

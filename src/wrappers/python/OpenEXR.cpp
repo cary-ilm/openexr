@@ -68,6 +68,72 @@ namespace detail {
 
 namespace {
 
+bool
+required_attribute(const std::string& name)
+{
+    return (name == "channels" ||
+            name == "compression" ||
+            name == "dataWindow" ||
+            name == "displayWindow" ||
+            name == "lineOrder" || 
+            name == "pixelAspectRatio" ||
+            name == "screenWindowCenter" ||
+            name == "screenWindowWidth" ||
+            name == "tiles" ||
+            name == "type" ||
+            name == "name" ||
+            name == "version" ||
+            name == "chunkCount");
+}
+            
+bool
+same_header(const py::dict& A, const py::dict& B)
+{
+    int num_attributes_a = 0;
+    for (auto a = A.begin(); a != A.end(); ++a)
+    {
+        std::string name = py::cast<std::string>(py::str(a->first));
+        if (!required_attribute(name))
+            num_attributes_a++;
+    }            
+
+    int num_attributes_b = 0;
+    for (auto a = B.begin(); a != B.end(); ++a)
+    {
+        std::string name = py::cast<std::string>(py::str(a->first));
+        if (!required_attribute(name))
+            num_attributes_b++;
+    }
+
+    if (num_attributes_a != num_attributes_b)
+    {
+        std::cout << "different number of attributes: " << num_attributes_a
+                  << " " << num_attributes_b
+                  << std::endl;
+        return false;
+    }
+    
+    for (auto a = A.begin(); a != A.end(); ++a)
+    {
+        std::string name = py::cast<std::string>(py::str(a->first));
+        if (required_attribute(name))
+            continue;
+        
+        py::object second = py::cast<py::object>(a->second);
+        py::object b = B[a->first];
+        if (!second.equal(b))
+        {
+            std::cout << "attribute " << name << " differs: " << py::str(second)
+                      << " " << py::str(b)
+                      << std::endl;
+            return false;
+        }
+    }
+
+    return true;
+}
+    
+
 //
 // PyDouble supports the "double" attribute.
 //
@@ -85,11 +151,116 @@ public:
     double d;
 };
                          
+class PyPreviewImage
+{
+public:
+    PyPreviewImage() 
+    {
+    }
+    
+    static constexpr uint32_t style = py::array::c_style | py::array::forcecast;
+    
+    PyPreviewImage(unsigned int width, unsigned int height, const PreviewRgba* data = nullptr)
+#if XXX
+        : pixels(py::array_t<PreviewRgba,style>(std::vector<size_t>(width, height),
+                                                std::vector<size_t>(sizeof(PreviewRgba),
+                                                                    sizeof(PreviewRgba)),
+                                                data))
+#endif
+    {
+        std::cout << "preview image: " << width << "x" << height << std::endl;
+        std::vector<size_t> shape, strides;
+        shape.assign({ width, height });
+        strides.assign({ sizeof(PreviewRgba), sizeof(PreviewRgba) });
+        pixels = py::array_t<PreviewRgba,style>(shape, strides, data);
+    }
+    
+    PyPreviewImage(const py::array_t<PreviewRgba>& p)
+        : pixels(p)
+    {
+    }
+    
+    py::array_t<PreviewRgba> pixels;
+};
+    
+std::ostream&
+operator<< (std::ostream& s, const PyPreviewImage& P)
+{
+    auto width = P.pixels.shape()[0];
+    auto height = P.pixels.shape()[1];
+    py::buffer_info buf = P.pixels.request();
+    const PreviewRgba* rgba = static_cast<PreviewRgba*>(buf.ptr);
+    s << "PreviewImage(" << width << ", " << height << "," << std::endl;
+    for (ssize_t y=0; y<height; y++)
+    {
+        for (ssize_t x=0; x<width; x++)
+        {
+            auto p = rgba[y*width+x];
+            s << " (" << int(p.r)
+              << "," << int(p.g)
+              << "," << int(p.b)
+              << "," << int(p.a)
+              << ")";
+        }
+        s << std::endl;
+    }
+    return s;
+}
+    
+bool
+operator==(const exr_attr_chromaticities_t& a, const exr_attr_chromaticities_t& b)
+{
+    if (a.red_x == b.red_x &&
+        a.red_y == b.red_y &&
+        a.green_x == b.green_x &&
+        a.green_y == b.green_y &&
+        a.blue_x == b.blue_x &&
+        a.blue_y == b.blue_y &&
+        a.white_x == b.white_x &&
+        a.white_y == b.white_y)
+        return true;
+    return false;
+}
+
+std::ostream&
+operator<< (std::ostream& s, const exr_attr_chromaticities_t& c)
+{
+    s << "(" << c.red_x
+      << ", " << c.red_y
+      << ", " << c.green_x 
+      << ", " << c.green_y
+      << ", " << c.blue_x
+      << ", " << c.blue_y
+      << ", " << c.white_x
+      << ", " << c.white_y
+      << ")";
+    return s;
+}
+    
 //
 // PyChannel holds information for a channel of a PyPart: name, type, x/y
 // sampling, and the array of pixel data.
 //
   
+template <class T>
+bool
+compare_arrays(const py::buffer_info& a, const py::buffer_info& b)
+{
+    const T* apixels = static_cast<T*>(a.ptr);
+    const T* bpixels = static_cast<T*>(b.ptr);
+    for (ssize_t i = 0; i < a.size; i++)
+        if (apixels[i] != bpixels[i])
+        {
+            std::cout << "pixel data differs at i=" << i
+                      << ": '" << apixels[i]
+                      << "' '" << bpixels[i]
+                      << "'" << std::endl;
+            return false;
+        }
+    
+    return true;
+}
+
 class PyChannel 
 {
 public:
@@ -102,11 +273,68 @@ public:
     
     bool operator==(const PyChannel& other) const
     {
-        return (name == other.name &&
-                type == other.type &&
-                xSampling == other.xSampling &&
-                ySampling == other.ySampling &&
-                pixels.equal(other.pixels));
+        if (name != other.name)
+        {
+            std::cout << "channel name differs: '" << name
+                      << "' '" << other.name
+                      << "'" << std::endl;
+            return false;
+        }
+        if (type != other.type)
+        {
+            std::cout << "channel type differs: '" << type
+                      << "' '" << other.type
+                      << "'" << std::endl;
+            return false;
+        }
+        
+        if (xSampling != other.xSampling)
+        {
+            std::cout << "channel xSampling differs: '" << xSampling
+                      << "' '" << other.xSampling
+                      << "'" << std::endl;
+            return false;
+        }
+        if (ySampling != other.ySampling)
+        {
+            std::cout << "channel ySampling differs: '" << ySampling
+                      << "' '" << other.ySampling
+                      << "'" << std::endl;
+            return false;
+        }
+
+        if (pixels.ndim() != other.pixels.ndim())
+        {
+            std::cout << "channel ndim differs: '" << pixels.ndim()
+                      << "' '" << other.pixels.ndim()
+                      << "'" << std::endl;
+            return false;
+        }
+        
+        if (pixels.size() != other.pixels.size())
+        {
+            std::cout << "channel size differs: '" << pixels.size()
+                      << "' '" << other.pixels.size()
+                      << "'" << std::endl;
+            return false;
+        }
+        
+        py::buffer_info buf = pixels.request();
+        py::buffer_info obuf = other.pixels.request();
+        switch (type)
+        {
+        case EXR_PIXEL_UINT:
+            return compare_arrays<uint8_t>(buf, obuf);
+        case EXR_PIXEL_HALF:
+            return compare_arrays<half>(buf, obuf);
+        case EXR_PIXEL_FLOAT:
+            return compare_arrays<float>(buf, obuf);
+        case EXR_PIXEL_LAST_TYPE:
+        default:
+            throw std::domain_error("invalid pixel type");
+            break;
+        }
+        return false;
     }
 
     std::string           name;
@@ -136,12 +364,63 @@ class PyPart
     
     bool operator==(const PyPart& other) const
     {
-        return (name == other.name &&
-                type == other.type &&
-                width == other.width &&
-                height == other.height &&
-                attributes.equal(other.attributes) &&
-                channels.equal(other.channels));
+        if (name != other.name)
+        {
+            std::cout << "part name differs: '" << name
+                      << "' '" << other.name
+                      << "'" << std::endl;
+            return false;
+        }
+        if (type != other.type)
+        {
+            std::cout << "part type differs: '" << type
+                      << "' '" << other.type
+                      << "'" << std::endl;
+            return false;
+        }
+        
+        if (width != other.width)
+        {
+            std::cout << "part width differs: '" << width
+                      << "' '" << other.width
+                      << "'" << std::endl;
+            return false;
+        }
+
+        if (height != other.height)
+        {
+            std::cout << "part height differs: '" << height
+                      << "' '" << other.height
+                      << "'" << std::endl;
+            return false;
+        }
+
+        if (!same_header(attributes, other.attributes))
+        {
+            std::cout << "part attributes differ" << std::endl;
+            return false;
+        }
+        
+        if (!channels.equal(other.channels))
+        {
+            std::cout << "part channels differ: [";
+            for (auto c : channels)
+            {
+                auto C = py::cast<PyChannel&>(*c);
+                std::cout << " " << C.name;
+            }
+            std::cout << " ] [";
+            for (auto c : other.channels)
+            {
+                auto C = py::cast<PyChannel&>(*c);
+                std::cout << " " << C.name;
+            }
+            std::cout << "]" << std::endl;
+
+            return false;
+        }
+
+        return true;
     }
 
     std::string           name;
@@ -176,9 +455,14 @@ public:
     
     bool operator==(const PyFile& other) const
     {
-        return _parts == other._parts;
+        if (_parts != other._parts)
+        {
+            std::cout << "file parts differ" << std::endl;
+            return false;
+        }
+        return true;
     }
-
+    
     std::string          _filename;
     std::vector<PyPart>  _parts;
 };
@@ -277,8 +561,6 @@ PyPart::read_scanline_part (exr_context_t f, int part)
     // Read the chunks
     //
 
-    std::vector<py::array*> channel_pixels;
-    
     for (uint64_t chunk = 0; chunk < height; chunk += lines_per_chunk)
     {
         exr_chunk_info_t cinfo = {0};
@@ -734,7 +1016,12 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
                                attr->m44d->m[14],
                                attr->m44d->m[15]));
       case EXR_ATTR_PREVIEW:
-          return py::cast(PreviewImage(attr->preview->width, attr->preview->height));
+          {
+              auto pixels = reinterpret_cast<const PreviewRgba*>(attr->preview->rgba);
+              return py::cast(PyPreviewImage(attr->preview->width,
+                                           attr->preview->height,
+                                           pixels));
+          }
       case EXR_ATTR_RATIONAL:
           return py::cast(Rational(attr->rational->num, attr->rational->denom));
           break;
@@ -841,7 +1128,7 @@ PyFile::PyFile(const std::string& filename)
     for (int p = 0; p < numparts; ++p)
     {
         //
-        // Reach the attributes into the header
+        // Read the attributes into the header
         //
         
         py::dict& h = _parts[p].attributes;
@@ -856,6 +1143,12 @@ PyFile::PyFile(const std::string& filename)
             std::string name;
             py::object attr = get_attribute(f, p, a, name);
             h[name.c_str()] = attr;
+            if (name == "name")
+            {
+                _parts[p].name = py::str(attr);
+            }
+                
+            std::cout << "File::File header[" << name << "]" << std::endl;
         }
 
         //
@@ -1020,13 +1313,16 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
         exr_attr_set_m44f(f, p, name.c_str(), v);
     else if (auto v = py_cast<exr_attr_m44d_t,M44d>(object))
         exr_attr_set_m44d(f, p, name.c_str(), v);
-    else if (auto v = py_cast<PreviewImage>(object))
+    else if (auto v = py_cast<PyPreviewImage>(object))
     {
+        auto shape = v->pixels.shape();
+        
         exr_attr_preview_t o;
-        o.width = v->width();
-        o.height = v->height();
-        o.alloc_size = 0;
-        o.rgba = nullptr;
+        o.width = shape[0];
+        o.height = shape[1];
+        o.alloc_size = o.width * o.height * 4;
+        py::buffer_info buf = v->pixels.request();
+        o.rgba = static_cast<uint8_t*>(buf.ptr);
         exr_attr_set_preview(f, p, name.c_str(), &o);
     }
     else if (auto o = py_cast<exr_attr_rational_t,Rational>(object))
@@ -1498,6 +1794,10 @@ PYBIND11_MODULE(OpenEXR, m)
 
     py::class_<exr_attr_chromaticities_t>(m, "Chromaticities")
         .def(py::init<float,float,float,float,float,float,float,float>())
+#if XXX
+        .def(py::self == py::self)
+#endif
+        .def("__repr__", [](const exr_attr_chromaticities_t& v) { return repr(v); })
         .def_readwrite("red_x", &exr_attr_chromaticities_t::red_x)
         .def_readwrite("red_y", &exr_attr_chromaticities_t::red_y)
         .def_readwrite("green_x", &exr_attr_chromaticities_t::green_x)
@@ -1517,11 +1817,14 @@ PYBIND11_MODULE(OpenEXR, m)
         .def_readwrite("a", &PreviewRgba::a)
         ;
     
-    py::class_<PreviewImage>(m, "PreviewImage")
+    PYBIND11_NUMPY_DTYPE(PreviewRgba, r, g, b, a);
+    
+    py::class_<PyPreviewImage>(m, "PreviewImage")
         .def(py::init())
         .def(py::init<int,int>())
-        .def("width", &PreviewImage::width)
-        .def("height", &PreviewImage::height)
+        .def(py::init<py::array_t<PreviewRgba>>())
+        .def("__repr__", [](const PyPreviewImage& v) { return repr(v); })
+        .def_readwrite("pixels", &PyPreviewImage::pixels)
         ;
     
     py::class_<V2i>(m, "V2i")
