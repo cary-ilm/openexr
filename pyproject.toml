@@ -65,7 +65,9 @@ BUILD_SHARED_LIBS = 'OFF'
 CMAKE_POSITION_INDEPENDENT_CODE = 'ON'
 
 [tool.cibuildwheel]
+build-verbosity = "1"
 test-command = "pytest -s {project}/src/wrappers/python/tests"
+test-requires = ["numpy"]
 test-extras = ["test"]
 test-skip = ["*universal2:arm64"]
 build-verbosity = 1

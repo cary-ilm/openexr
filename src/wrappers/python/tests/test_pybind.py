@@ -137,7 +137,6 @@ def test_write():
             "offsets": [0, 4, 8, 12],
         })
     P = np.array([(i,i,i,i) for i in range(0,psize)], dtype=dt).reshape((pwidth,pheight))
-    print(f"P: {P}")
 
     header = {}
     header["floatvector"] = [1.0, 2.0, 3.0]

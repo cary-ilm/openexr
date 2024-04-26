@@ -168,10 +168,12 @@ public:
     }
     
     static constexpr uint32_t style = py::array::c_style | py::array::forcecast;
-    
-    PyPreviewImage(unsigned int width, unsigned int height, const PreviewRgba* data = nullptr)
+    static constexpr size_t stride = sizeof(PreviewRgba);
+
+    PyPreviewImage(unsigned int width, unsigned int height,
+                   const PreviewRgba* data = nullptr)
         : pixels(py::array_t<PreviewRgba,style>(std::vector<size_t>({width, height}),
-                                                std::vector<size_t>({sizeof(PreviewRgba),sizeof(PreviewRgba)}),
+                                                std::vector<size_t>({stride, stride}),
                                                 data))
     {
     }
@@ -250,10 +252,12 @@ class PyChannel
 {
 public:
 
-    PyChannel() : type(EXR_PIXEL_LAST_TYPE), xSampling(0), ySampling(0) {}
+    PyChannel()
+        : type(EXR_PIXEL_LAST_TYPE), xSampling(0), ySampling(0) {}
     PyChannel(const char* n, exr_pixel_type_t t, int x, int y)
         : name(n), type(t), xSampling(x), ySampling(y) {}
-    PyChannel(const char* n, exr_pixel_type_t t, int x, int y, const py::array& p)
+    PyChannel(const char* n, exr_pixel_type_t t, int x, int y,
+              const py::array& p)
         : name(n), type(t), xSampling(x), ySampling(y), pixels(p) {}
     
     bool operator==(const PyChannel& other) const
@@ -343,9 +347,10 @@ public:
 class PyPart
 {
   public:
-    PyPart() : type(EXR_STORAGE_LAST_TYPE), compression (EXR_COMPRESSION_LAST_TYPE) {}
+    PyPart()
+        : type(EXR_STORAGE_LAST_TYPE), compression (EXR_COMPRESSION_LAST_TYPE) {}
     PyPart(const py::dict& a, const py::list& channels,
-         exr_storage_t type, exr_compression_t c, const char* name);
+           exr_storage_t type, exr_compression_t c, const char* name);
 
     void read_scanline_part (exr_context_t f, int part);
     void read_tiled_part (exr_context_t f, int part);
@@ -483,8 +488,10 @@ public:
 };
     
 PyPart::PyPart(const py::dict& attributes_arg, const py::list& channels_arg,
-               exr_storage_t type_arg, exr_compression_t compression_arg, const char* name_arg)
-    : name(name_arg), type(type_arg), width(0), height(0), compression(compression_arg),
+               exr_storage_t type_arg, exr_compression_t compression_arg,
+               const char* name_arg)
+    : name(name_arg), type(type_arg), width(0), height(0),
+      compression(compression_arg),
       attributes(attributes_arg), channels(channels_arg)
 {
     //
@@ -669,6 +676,7 @@ PyPart::read_scanline_part (exr_context_t f, int part)
             auto c_iterator = channels.begin();
             for (int16_t c = 0; c < decoder.channel_count; c++, c_iterator++)
             {
+                PyChannel& C = py::cast<PyChannel&>(*c_iterator);
                 exr_coding_channel_info_t& outc = decoder.channels[c];
 
                 //
@@ -676,7 +684,6 @@ PyPart::read_scanline_part (exr_context_t f, int part)
                 // into the pixel arrays
                 //
                 
-                PyChannel& C = py::cast<PyChannel&>(*c_iterator);
                 py::buffer_info buf = C.pixels.request();
                 switch (outc.data_type)
                 {
