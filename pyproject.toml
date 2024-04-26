@@ -70,7 +70,6 @@ test-command = "pytest -s {project}/src/wrappers/python/tests"
 test-requires = ["numpy"]
 test-extras = ["test"]
 test-skip = ["*universal2:arm64"]
-build-verbosity = 1
 
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
