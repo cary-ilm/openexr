@@ -184,9 +184,19 @@ public:
     py::array_t<PreviewRgba> pixels;
 };
     
-class py_exr_attr_chromaticities_t :  public exr_attr_chromaticities_t 
+class py_exr_attr_chromaticities_t
 {
   public:
+    py_exr_attr_chromaticities_t(float rx, float ry,
+                                 float gx, float gy, 
+                                 float bx, float by, 
+                                 float wx, float wy)
+        : red_x(rx), red_y(ry),
+          green_x(gx), green_y(gy),
+          blue_x(bx), blue_y(by),
+          white_x(wx), white_y(wy)
+        {
+        }
 
     bool operator==(const py_exr_attr_chromaticities_t& other) const
         {
@@ -201,6 +211,15 @@ class py_exr_attr_chromaticities_t :  public exr_attr_chromaticities_t
                 return true;
             return false;
         }
+
+    float red_x;
+    float red_y;
+    float green_x;
+    float green_y;
+    float blue_x;
+    float blue_y;
+    float white_x;
+    float white_y;
 };
 
 //
@@ -1260,7 +1279,7 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
         }
     }
     else if (auto o = py_cast<py_exr_attr_chromaticities_t>(object))
-        exr_attr_set_chromaticities(f, p, name.c_str(), o);
+        exr_attr_set_chromaticities(f, p, name.c_str(), reinterpret_cast<const exr_attr_chromaticities_t*>(o));
     else if (auto o = py_cast<exr_compression_t>(object))
         exr_attr_set_compression(f, p, name.c_str(), *o);
     else if (auto o = py_cast<exr_envmap_t>(object))
