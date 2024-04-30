@@ -19,6 +19,78 @@ filename = "GoldenGate.exr"
 filename = "10x100.exr"
 filename = "test.exr"
 
+def required_attribute(name):
+    return (name == "channels" or
+            name == "compression" or
+            name == "dataWindow" or
+            name == "displayWindow" or
+            name == "lineOrder" or 
+            name == "pixelAspectRatio" or
+            name == "screenWindowCenter" or
+            name == "screenWindowWidth" or
+            name == "tiles" or
+            name == "type" or
+            name == "name" or
+            name == "version" or
+            name == "chunkCount")
+
+def compare_files(A, B):
+
+    print(f"compare_files: {A} {B}")
+    
+    if len(A.parts()) != len(B.parts()):
+        print(f"#parts differs: {len(A.parts)} {len(B.parts)}")
+        return False
+    
+    for PA, PB in zip(A.parts(),B.parts()):
+        if compare_parts(PA, PB):
+            return False
+
+    return True
+
+def compare_parts(A, B):
+
+    akeys = set(A.header.keys())
+    bkeys = set(B.header.keys())
+    
+    for k in akeys-bkeys:
+        if not required_attribute(k):
+            print("Attribute {k} is not in both headers")
+            return False
+        
+    for k in bkeys-akeys:
+        if not required_attribute(k):
+            print("Attribute {k} is not in both headers")
+            return False
+        
+    for k in akeys.intersection(bkeys):
+        if k == "preview" or k == "float":
+            continue
+        if A.header[k] != B.header[k]:
+            print(f"attribute {k} {type(A.header[k])} differs: {A.header[k]} {B.header[k]}")
+            return False
+
+    if len(A.channels) != len(B.channels):
+        print(f"#channels in {A.name} differs: {len(A.channels)} {len(B.channels)}")
+        return False
+
+    for CA, CB in zip(sorted(A.channels),sorted(B.channels)):
+        if compare_channels(CA, CB):
+            return False
+
+    return True
+
+def compare_channels(A, B):
+
+    if (A.name != B.name or
+        A.type != B.type or
+        A.xSampling != B.xSampling or
+        A.ySampling != B.ySampling):
+        print(f"channel {A.name} differs: {A.__repr__()} {B.__repr__()}")
+        return False
+
+    return True
+        
 def print_file(f, print_pixels = False):
     
     print(f"file {f.filename}")
@@ -26,7 +98,7 @@ def print_file(f, print_pixels = False):
     parts = f.parts()
     for p in parts:
         print(f"  part: {p.name} {p.type} {p.compression} {p.width}x{p.height}")
-        h = p.attributes
+        h = p.header
         for a in h:
             print(f"  header[{a}] {h[a]}")
         for c in p.channels:
@@ -137,7 +209,7 @@ def test_write():
             "offsets": [0, 4, 8, 12],
         })
     P = np.array([(i,i,i,i) for i in range(0,psize)], dtype=dt).reshape((pwidth,pheight))
-
+    print(f"P: {P}")
     header = {}
     header["floatvector"] = [1.0, 2.0, 3.0]
     header["stringvector"] = ["do", "re", "me"]
@@ -179,6 +251,8 @@ def test_write():
     i = OpenEXR.File(outfilename)
     print(f"reading {outfilename} done.")
 
+    compare_files(i, outfile)
+
     assert i == outfile
     
     print_file(i)
@@ -187,10 +261,10 @@ def test_write():
     # Construct a 2-part file by replicating the header and channels
     #
     
-    P1 = OpenEXR.Part(header, channels,
-                      OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION, "P1")
-    P2 = OpenEXR.Part(header, channels,
-                      OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION, "P2")
+    P1 = OpenEXR.Part("P1", header, channels,
+                      OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
+    P2 = OpenEXR.Part("P2", header, channels,
+                      OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
     parts = [P1, P2]
     outfilename2 = "test_write2.exr"
     outfile2 = OpenEXR.File(parts)
@@ -203,9 +277,9 @@ def test_write():
     print_file(i)
 
 if os.path.isfile(filename):
-#    test_write_half()
+    test_write_half()
     test_write()
-#    test_read_write()
+    test_read_write()
     print("ok")
 else:    
     print(f"skipping {sys.argv[0]}: no such file: {filename}")

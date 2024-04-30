@@ -67,6 +67,19 @@ namespace detail {
 
 namespace {
 
+template <class T>
+bool
+array_equals(const py::buffer_info& a, const py::buffer_info& b)
+{
+    const T* apixels = static_cast<T*>(a.ptr);
+    const T* bpixels = static_cast<T*>(b.ptr);
+    for (ssize_t i = 0; i < a.size; i++)
+        if (!(apixels[i] == bpixels[i]))
+            return false;
+    
+    return true;
+}
+
 bool
 required_attribute(const std::string& name)
 {
@@ -86,7 +99,7 @@ required_attribute(const std::string& name)
 }
             
 bool
-same_header(const py::dict& A, const py::dict& B)
+header_equals(const py::dict& A, const py::dict& B)
 {
     int num_attributes_a = 0;
     for (auto a = A.begin(); a != A.end(); ++a)
@@ -105,12 +118,7 @@ same_header(const py::dict& A, const py::dict& B)
     }
 
     if (num_attributes_a != num_attributes_b)
-    {
-        std::cout << "different number of attributes: " << num_attributes_a
-                  << " " << num_attributes_b
-                  << std::endl;
         return false;
-    }
     
     for (auto a = A.begin(); a != A.end(); ++a)
     {
@@ -129,10 +137,6 @@ same_header(const py::dict& A, const py::dict& B)
                 if (equalWithRelError(f, of, 1e-5f))
                     return true;
             }
-            
-            std::cout << "attribute " << name << " differs: " << py::str(second)
-                      << " " << py::str(b)
-                      << std::endl;
             return false;
         }
     }
@@ -155,7 +159,7 @@ class PyDouble
 public:
     PyDouble(double x) : d(x)  {}
 
-    bool operator== (const PyDouble& other) const { return d == other.d; }
+    bool operator==(const PyDouble& other) const { return d == other.d; }
     
     double d;
 };
@@ -183,16 +187,26 @@ public:
     {
     }
     
+    bool operator==(const PyPreviewImage& other) const
+    {
+        py::buffer_info buf = pixels.request();
+        py::buffer_info obuf = other.pixels.request();
+        return array_equals<PreviewRgba>(buf, obuf);
+    }
+
     py::array_t<PreviewRgba> pixels;
 };
     
-class py_exr_attr_chromaticities_t
+class PyChromaticities;
+std::ostream& operator<< (std::ostream& s, const PyChromaticities& c);
+
+class PyChromaticities
 {
   public:
-    py_exr_attr_chromaticities_t(float rx, float ry,
-                                 float gx, float gy, 
-                                 float bx, float by, 
-                                 float wx, float wy)
+    PyChromaticities(float rx, float ry,
+                     float gx, float gy, 
+                     float bx, float by, 
+                     float wx, float wy)
         : red_x(rx), red_y(ry),
           green_x(gx), green_y(gy),
           blue_x(bx), blue_y(by),
@@ -200,20 +214,18 @@ class py_exr_attr_chromaticities_t
         {
         }
 
-    bool operator==(const py_exr_attr_chromaticities_t& other) const
+    bool operator==(const PyChromaticities& other) const
         {
-            if (red_x == other.red_x &&
-                red_y == other.red_y &&
-                green_x == other.green_x &&
-                green_y == other.green_y &&
-                blue_x == other.blue_x &&
-                blue_y == other.blue_y &&
-                white_x == other.white_x &&
-                white_y == other.white_y)
-                return true;
-            return false;
+            return (red_x == other.red_x &&
+                    red_y == other.red_y &&
+                    green_x == other.green_x &&
+                    green_y == other.green_y &&
+                    blue_x == other.blue_x &&
+                    blue_y == other.blue_y &&
+                    white_x == other.white_x &&
+                    white_y == other.white_y);
         }
-
+    
     float red_x;
     float red_y;
     float green_x;
@@ -229,25 +241,6 @@ class py_exr_attr_chromaticities_t
 // sampling, and the array of pixel data.
 //
   
-template <class T>
-bool
-compare_arrays(const py::buffer_info& a, const py::buffer_info& b)
-{
-    const T* apixels = static_cast<T*>(a.ptr);
-    const T* bpixels = static_cast<T*>(b.ptr);
-    for (ssize_t i = 0; i < a.size; i++)
-        if (apixels[i] != bpixels[i])
-        {
-            std::cout << "pixel data differs at i=" << i
-                      << ": '" << apixels[i]
-                      << "' '" << bpixels[i]
-                      << "'" << std::endl;
-            return false;
-        }
-    
-    return true;
-}
-
 class PyChannel 
 {
 public:
@@ -262,74 +255,34 @@ public:
     
     bool operator==(const PyChannel& other) const
     {
-        if (name != other.name)
+        if (name == other.name && 
+            type == other.type && 
+            xSampling == other.xSampling && 
+            ySampling == other.ySampling &&
+            pixels.ndim() == other.pixels.ndim() && 
+            pixels.size() == other.pixels.size())
         {
-            std::cout << "channel name differs: '" << name
-                      << "' '" << other.name
-                      << "'" << std::endl;
-            return false;
-        }
-        if (type != other.type)
-        {
-            std::cout << "channel type differs: '" << type
-                      << "' '" << other.type
-                      << "'" << std::endl;
-            return false;
-        }
-        
-        if (xSampling != other.xSampling)
-        {
-            std::cout << "channel xSampling differs: '" << xSampling
-                      << "' '" << other.xSampling
-                      << "'" << std::endl;
-            return false;
-        }
-        if (ySampling != other.ySampling)
-        {
-            std::cout << "channel ySampling differs: '" << ySampling
-                      << "' '" << other.ySampling
-                      << "'" << std::endl;
-            return false;
-        }
-
-        if (pixels.ndim() != other.pixels.ndim())
-        {
-            std::cout << "channel ndim differs: '" << pixels.ndim()
-                      << "' '" << other.pixels.ndim()
-                      << "'" << std::endl;
-            return false;
+            py::buffer_info buf = pixels.request();
+            py::buffer_info obuf = other.pixels.request();
+            switch (type)
+            {
+            case EXR_PIXEL_UINT:
+                return array_equals<uint8_t>(buf, obuf);
+            case EXR_PIXEL_HALF:
+                return array_equals<half>(buf, obuf);
+            case EXR_PIXEL_FLOAT:
+                return array_equals<float>(buf, obuf);
+            case EXR_PIXEL_LAST_TYPE:
+            default:
+                throw std::domain_error("invalid pixel type");
+                break;
+            }
         }
         
-        if (pixels.size() != other.pixels.size())
-        {
-            std::cout << "channel size differs: '" << pixels.size()
-                      << "' '" << other.pixels.size()
-                      << "'" << std::endl;
-            return false;
-        }
-        
-        py::buffer_info buf = pixels.request();
-        py::buffer_info obuf = other.pixels.request();
-        switch (type)
-        {
-        case EXR_PIXEL_UINT:
-            return compare_arrays<uint8_t>(buf, obuf);
-        case EXR_PIXEL_HALF:
-            return compare_arrays<half>(buf, obuf);
-        case EXR_PIXEL_FLOAT:
-            return compare_arrays<float>(buf, obuf);
-        case EXR_PIXEL_LAST_TYPE:
-        default:
-            throw std::domain_error("invalid pixel type");
-            break;
-        }
         return false;
     }
 
-    bool operator<(const PyChannel& other) const
-        {
-            return name < other.name;
-        }
+    bool operator<(const PyChannel& other) const { return name < other.name; }
 
     std::string           name;
     exr_pixel_type_t      type;
@@ -349,98 +302,38 @@ class PyPart
   public:
     PyPart()
         : type(EXR_STORAGE_LAST_TYPE), compression (EXR_COMPRESSION_LAST_TYPE) {}
-    PyPart(const py::dict& a, const py::list& channels,
-           exr_storage_t type, exr_compression_t c, const char* name);
+    PyPart(const char* name, const py::dict& a, const py::list& channels,
+           exr_storage_t type, exr_compression_t c);
 
     void read_scanline_part (exr_context_t f, int part);
     void read_tiled_part (exr_context_t f, int part);
 
-    const py::dict&    header() const { return attributes; }
-    
     bool operator==(const PyPart& other) const
     {
-        if (name != other.name)
+        if (name == other.name &&
+            type == other.type &&  
+            width == other.width &&
+            height == other.height)
         {
-            std::cout << "part name differs: '" << name
-                      << "' '" << other.name
-                      << "'" << std::endl;
-            return false;
-        }
-        if (type != other.type)
-        {
-            std::cout << "part type differs: '" << type
-                      << "' '" << other.type
-                      << "'" << std::endl;
-            return false;
-        }
-        
-        if (width != other.width)
-        {
-            std::cout << "part width differs: '" << width
-                      << "' '" << other.width
-                      << "'" << std::endl;
-            return false;
-        }
-
-        if (height != other.height)
-        {
-            std::cout << "part height differs: '" << height
-                      << "' '" << other.height
-                      << "'" << std::endl;
-            return false;
-        }
-
-        if (!same_header(attributes, other.attributes))
-        {
-            std::cout << "part attributes differ" << std::endl;
-            return false;
-        }
-        
-        auto channels_v = py::cast<std::vector<PyChannel>>(channels);
-        auto other_channels_v = py::cast<std::vector<PyChannel>>(other.channels);
-        if (channels_v.size() != other_channels_v.size())
-        {
-            std::cout << "part channel counts differ: [";
-            for (auto c : channels)
-            {
-                auto C = py::cast<PyChannel&>(*c);
-                std::cout << " " << C.name;
-            }
-            std::cout << " ] [";
-            for (auto c : other.channels)
-            {
-                auto C = py::cast<PyChannel&>(*c);
-                std::cout << " " << C.name;
-            }
-            std::cout << "]" << std::endl;
-
-            return false;
-        }
-
-        std::sort(channels_v.begin(), channels_v.end());
-        std::sort(other_channels_v.begin(), other_channels_v.end());
-        
-        for (size_t c = 0; c<channels_v.size(); c++)
-            if (!(channels_v[c] == other_channels_v[c]))
-            {
-                std::cout << "part channels differ: [";
-                for (auto c : channels)
-                {
-                    auto C = py::cast<PyChannel&>(*c);
-                    std::cout << " " << C.name;
-                }
-                std::cout << " ] [";
-                for (auto c : other.channels)
-                {
-                    auto C = py::cast<PyChannel&>(*c);
-                    std::cout << " " << C.name;
-                }
-                std::cout << "]" << std::endl;
-
+            if (!header_equals(header, other.header))
                 return false;
-            }
+        
+            auto channels_v = py::cast<std::vector<PyChannel>>(channels);
+            auto other_channels_v = py::cast<std::vector<PyChannel>>(other.channels);
+            if (channels_v.size() != other_channels_v.size())
+                return false;
 
-        return true;
+            std::sort(channels_v.begin(), channels_v.end());
+            std::sort(other_channels_v.begin(), other_channels_v.end());
+        
+            for (size_t c = 0; c<channels_v.size(); c++)
+                if (!(channels_v[c] == other_channels_v[c]))
+                    return false;
+
+            return true;
+        }
+
+        return false;
     }
 
     std::string           name;
@@ -449,7 +342,7 @@ class PyPart
     uint64_t              height;
     exr_compression_t     compression;
 
-    py::dict              attributes;
+    py::dict              header;
     py::list              channels;
 };
 
@@ -462,37 +355,38 @@ class PyFile
 {
 public:
     PyFile(const std::string& filename);
-    PyFile(const py::dict& attributes, const py::list& channels,
+    PyFile(const py::dict& header, const py::list& channels,
            exr_storage_t type, exr_compression_t compression);
     PyFile(const py::list& parts);
 
 
     py::list        parts() const { return py::cast(_parts); }
-    const py::dict& header() const { return _parts[0].header(); }
-    py::list        channels() const { return _parts[0].channels(); }
-    
+    const py::dict& header() const
+    {
+        if (_parts.size() == 0)
+            throw std::runtime_error("File has no parts");
+        return _parts[0].header;
+    }
+    py::list        channels() const
+    {
+        if (_parts.size() == 0)
+            throw std::runtime_error("File has no parts");
+        return _parts[0].channels;
+    }
+
     void            write(const char* filename);
     
-    bool operator==(const PyFile& other) const
-    {
-        if (_parts != other._parts)
-        {
-            std::cout << "file parts differ" << std::endl;
-            return false;
-        }
-        return true;
-    }
+    bool operator==(const PyFile& other) const { return _parts == other._parts; }
     
     std::string          _filename;
     std::vector<PyPart>  _parts;
 };
-    
-PyPart::PyPart(const py::dict& attributes_arg, const py::list& channels_arg,
-               exr_storage_t type_arg, exr_compression_t compression_arg,
-               const char* name_arg)
+
+PyPart::PyPart(const char* name_arg, const py::dict& header_arg, const py::list& channels_arg,
+               exr_storage_t type_arg, exr_compression_t compression_arg)
     : name(name_arg), type(type_arg), width(0), height(0),
       compression(compression_arg),
-      attributes(attributes_arg), channels(channels_arg)
+      header(header_arg), channels(channels_arg)
 {
     //
     // Confirm all the channels have 2 dimensions and the same size
@@ -531,11 +425,11 @@ PyPart::PyPart(const py::dict& attributes_arg, const py::list& channels_arg,
         }
     }
     
-    if (!attributes.contains("dataWindow"))
-        attributes["dataWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
+    if (!header.contains("dataWindow"))
+        header["dataWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
 
-    if (!attributes.contains("displayWindow"))
-        attributes["displayWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
+    if (!header.contains("displayWindow"))
+        header["displayWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
 }
     
 static void
@@ -955,16 +849,14 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
           }
       case EXR_ATTR_CHROMATICITIES:
           {
-              py_exr_attr_chromaticities_t c = {
-                  attr->chromaticities->red_x,
-                  attr->chromaticities->red_y,
-                  attr->chromaticities->green_x,
-                  attr->chromaticities->green_y,
-                  attr->chromaticities->blue_x,
-                  attr->chromaticities->blue_y,
-                  attr->chromaticities->white_x,
-                  attr->chromaticities->white_y
-              };
+              PyChromaticities c(attr->chromaticities->red_x,
+                                 attr->chromaticities->red_y,
+                                 attr->chromaticities->green_x,
+                                 attr->chromaticities->green_y,
+                                 attr->chromaticities->blue_x,
+                                 attr->chromaticities->blue_y,
+                                 attr->chromaticities->white_x,
+                                 attr->chromaticities->white_y);
               return py::cast(c);
           }
       case EXR_ATTR_COMPRESSION: 
@@ -1115,14 +1007,14 @@ PyFile::PyFile(const py::list& parts)
 }
 
 //
-// Create a PyFile out of a single part: attributes (i.e. header), channels,
+// Create a PyFile out of a single part: header, channels,
 // type, and compression (i.e. a single-part file)
 //
 
-PyFile::PyFile(const py::dict& attributes, const py::list& channels,
+PyFile::PyFile(const py::dict& header, const py::list& channels,
                exr_storage_t type, exr_compression_t compression)
 {
-    _parts.push_back(PyPart(attributes, channels, type, compression, "Part0"));
+    _parts.push_back(PyPart("Part0", header, channels, type, compression));
 }
 
 //
@@ -1165,7 +1057,7 @@ PyFile::PyFile(const std::string& filename)
         // Read the attributes into the header
         //
         
-        py::dict& h = _parts[p].attributes;
+        py::dict& h = _parts[p].header;
 
         int32_t attrcount;
         rv = exr_get_attribute_count(f, p, &attrcount);
@@ -1285,7 +1177,7 @@ write_attribute(exr_context_t f, int p, const std::string& name, py::object obje
             // since the channels get created elswhere.
         }
     }
-    else if (auto o = py_cast<py_exr_attr_chromaticities_t>(object))
+    else if (auto o = py_cast<PyChromaticities>(object))
         exr_attr_set_chromaticities(f, p, name.c_str(), reinterpret_cast<const exr_attr_chromaticities_t*>(o));
     else if (auto o = py_cast<exr_compression_t>(object))
         exr_attr_set_compression(f, p, name.c_str(), *o);
@@ -1403,8 +1295,16 @@ PyFile::write(const char* filename)
     {
         const PyPart& P = _parts[p];
             
+        exr_compression_t compression = EXR_COMPRESSION_NONE;
+        if (P.header.contains("compression"))
+            compression = py::cast<exr_compression_t>(P.header["compression"]);
+        
+        exr_storage_t type = EXR_STORAGE_SCANLINE;
+        if (P.header.contains("type"))
+            type = py::cast<exr_storage_t>(P.header["type"]);
+        
         int part_index;
-        result = exr_add_part(f, P.name.c_str(), P.type, &part_index);
+        result = exr_add_part(f, P.name.c_str(), type, &part_index);
         if (result != EXR_ERR_SUCCESS) 
             throw std::runtime_error("error writing part");
 
@@ -1413,21 +1313,17 @@ PyFile::write(const char* filename)
         //
         
         exr_lineorder_t lineOrder = EXR_LINEORDER_INCREASING_Y;
-        if (P.attributes.contains("lineOrder"))
-            lineOrder = py::cast<exr_lineorder_t>(P.attributes["lineOrder"]);
+        if (P.header.contains("lineOrder"))
+            lineOrder = py::cast<exr_lineorder_t>(P.header["lineOrder"]);
 
-        exr_compression_t compression = EXR_COMPRESSION_NONE;
-        if (P.attributes.contains("compression"))
-            compression = py::cast<exr_compression_t>(P.attributes["compression"]);
-        
         exr_attr_box2i_t dataw;
         dataw.min.x = 0;
         dataw.min.y = 0;
         dataw.max.x = int32_t(P.width - 1);
         dataw.max.x = int32_t(P.height - 1);
-        if (P.attributes.contains("dataWindow"))
+        if (P.header.contains("dataWindow"))
         {
-            Box2i box = py::cast<Box2i>(P.attributes["dataWindow"]);
+            Box2i box = py::cast<Box2i>(P.header["dataWindow"]);
             dataw.min.x = box.min.x;
             dataw.min.y = box.min.y;
             dataw.max.x = box.max.x;
@@ -1435,9 +1331,9 @@ PyFile::write(const char* filename)
         }
 
         exr_attr_box2i_t dispw = dataw;
-        if (P.attributes.contains("displayWindow"))
+        if (P.header.contains("displayWindow"))
         {
-            Box2i box = py::cast<Box2i>(P.attributes["displayWindow"]);
+            Box2i box = py::cast<Box2i>(P.header["displayWindow"]);
             dispw.min.x = box.min.x;
             dispw.min.y = box.min.y;
             dispw.max.x = box.max.x;
@@ -1447,20 +1343,20 @@ PyFile::write(const char* filename)
         exr_attr_v2f_t swc;
         swc.x = 0.5f;
         swc.x = 0.5f;
-        if (P.attributes.contains("screenWindowCenter"))
+        if (P.header.contains("screenWindowCenter"))
         {
-            V2f v = py::cast<V2f>(P.attributes["screenWindowCenter"]);
+            V2f v = py::cast<V2f>(P.header["screenWindowCenter"]);
             swc.x = v.x;
             swc.y = v.y;
         }
 
         float sww = 1.0f;
-        if (P.attributes.contains("screenWindowWidth"))
-            sww = py::cast<float>(P.attributes["screenWindowWidth"]);
+        if (P.header.contains("screenWindowWidth"))
+            sww = py::cast<float>(P.header["screenWindowWidth"]);
 
         float pixelAspectRatio = 1.0f;
-        if (P.attributes.contains("pixelAspectRatio"))
-            sww = py::cast<float>(P.attributes["pixelAspectRatio"]);
+        if (P.header.contains("pixelAspectRatio"))
+            sww = py::cast<float>(P.header["pixelAspectRatio"]);
         
         result = exr_initialize_required_attr (f, p, &dataw, &dispw, 
                                                pixelAspectRatio, &swc, sww,
@@ -1472,7 +1368,7 @@ PyFile::write(const char* filename)
         // Add the attributes
         //
         
-        for (auto a = P.attributes.begin(); a != P.attributes.end(); ++a)
+        for (auto a = P.header.begin(); a != P.header.end(); ++a)
         {
             auto v = *a;
             auto first = v.first;
@@ -1532,9 +1428,9 @@ PyFile::write(const char* filename)
         //
         
         exr_attr_box2i_t dataw = {0, 0, int32_t(P.width - 1), int32_t(P.height - 1)};
-        if (P.attributes.contains("dataWindow"))
+        if (P.header.contains("dataWindow"))
         {
-            Box2i box = py::cast<Box2i>(P.attributes["dataWindow"]);
+            Box2i box = py::cast<Box2i>(P.header["dataWindow"]);
             dataw.min.x = box.min.x;
             dataw.min.y = box.min.y;
             dataw.max.x = box.max.x;
@@ -1742,7 +1638,7 @@ operator<< (std::ostream& s, const Box2f& v)
 }
 
 std::ostream&
-operator<< (std::ostream& s, const py_exr_attr_chromaticities_t& c)
+operator<< (std::ostream& s, const PyChromaticities& c)
 {
     s << "(" << c.red_x
       << ", " << c.red_y
@@ -1900,18 +1796,18 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("setTimeAndFlags", &TimeCode::setTimeAndFlags)
         ;
 
-    py::class_<py_exr_attr_chromaticities_t>(m, "Chromaticities")
+    py::class_<PyChromaticities>(m, "Chromaticities")
         .def(py::init<float,float,float,float,float,float,float,float>())
         .def(py::self == py::self)
-        .def("__repr__", [](const py_exr_attr_chromaticities_t& v) { return repr(v); })
-        .def_readwrite("red_x", &py_exr_attr_chromaticities_t::red_x)
-        .def_readwrite("red_y", &py_exr_attr_chromaticities_t::red_y)
-        .def_readwrite("green_x", &py_exr_attr_chromaticities_t::green_x)
-        .def_readwrite("green_y", &py_exr_attr_chromaticities_t::green_y)
-        .def_readwrite("blue_x", &py_exr_attr_chromaticities_t::blue_x)
-        .def_readwrite("blue_y", &py_exr_attr_chromaticities_t::blue_y)
-        .def_readwrite("white_x", &py_exr_attr_chromaticities_t::white_x)
-        .def_readwrite("white_y", &py_exr_attr_chromaticities_t::white_y)
+        .def("__repr__", [](const PyChromaticities& v) { return repr(v); })
+        .def_readwrite("red_x", &PyChromaticities::red_x)
+        .def_readwrite("red_y", &PyChromaticities::red_y)
+        .def_readwrite("green_x", &PyChromaticities::green_x)
+        .def_readwrite("green_y", &PyChromaticities::green_y)
+        .def_readwrite("blue_x", &PyChromaticities::blue_x)
+        .def_readwrite("blue_y", &PyChromaticities::blue_y)
+        .def_readwrite("white_x", &PyChromaticities::white_x)
+        .def_readwrite("white_y", &PyChromaticities::white_y)
         ;
 
     py::class_<PreviewRgba>(m, "PreviewRgba")
@@ -1931,6 +1827,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init<int,int>())
         .def(py::init<py::array_t<PreviewRgba>>())
         .def("__repr__", [](const PyPreviewImage& v) { return repr(v); })
+        .def(py::self == py::self)
         .def_readwrite("pixels", &PyPreviewImage::pixels)
         ;
     
@@ -1985,6 +1882,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init())
         .def(py::init<float,float,float>())
         .def("__repr__", [](const V3f& v) { return repr(v); })
+        .def(py::self == py::self)
         .def_readwrite("x", &Imath::V3f::x)
         .def_readwrite("y", &Imath::V3f::y)
         .def_readwrite("z", &Imath::V3f::z)
@@ -2037,6 +1935,7 @@ PYBIND11_MODULE(OpenEXR, m)
                       float,float,float,float,
                       float,float,float,float,
                       float,float,float,float>())
+        .def(py::self == py::self)
         .def("__repr__", [](const M44f& m) { return repr(m); })
         ;
     
@@ -2059,6 +1958,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init<const char*,exr_pixel_type_t,int,int,py::array>())
         .def("__repr__", [](const PyChannel& c) { return repr(c); })
         .def(py::self == py::self)
+        .def(py::self < py::self)
         .def_readwrite("name", &PyChannel::name)
         .def_readwrite("type", &PyChannel::type)
         .def_readwrite("xSampling", &PyChannel::xSampling)
@@ -2068,7 +1968,7 @@ PYBIND11_MODULE(OpenEXR, m)
     
     py::class_<PyPart>(m, "Part")
         .def(py::init())
-        .def(py::init<py::dict,py::list,exr_storage_t,exr_compression_t,const char*>())
+        .def(py::init<const char*,py::dict,py::list,exr_storage_t,exr_compression_t>())
         .def("__repr__", [](const PyPart& p) { return repr(p); })
         .def(py::self == py::self)
         .def_readwrite("name", &PyPart::name)
@@ -2076,8 +1976,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def_readwrite("width", &PyPart::width)
         .def_readwrite("height", &PyPart::height)
         .def_readwrite("compression", &PyPart::compression)
-        .def("header", &PyPart::header)
-        .def_readwrite("attributes", &PyPart::attributes)
+        .def_readwrite("header", &PyPart::header)
         .def_readwrite("channels", &PyPart::channels)
         ;
 
