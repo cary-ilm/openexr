@@ -12,7 +12,7 @@ endif()
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
-python_add_library (PyOpenEXR MODULE OpenEXR.cpp OpenEXR_old.cpp)
+python_add_library (PyOpenEXR MODULE OpenEXR.cpp PyFile.cpp PyPart.cpp PyChannel.cpp OpenEXR_old.cpp)
 
 target_link_libraries (PyOpenEXR PRIVATE "${Python_LIBRARIES}" OpenEXR::OpenEXR pybind11::headers)
 
