@@ -28,15 +28,14 @@ public:
     PyFile(const py::list& parts);
 
 
-    py::list        parts() const { return py::cast(_parts); }
     const py::dict& header() const;
     const py::list& channels() const;
 
     void            write(const char* filename);
     
-    bool operator==(const PyFile& other) const { return _parts == other._parts; }
+    bool operator==(const PyFile& other) const;
     
     std::string          _filename;
-    std::vector<PyPart>  _parts;
+    py::list             parts;
 };
 

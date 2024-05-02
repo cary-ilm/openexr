@@ -371,11 +371,11 @@ PYBIND11_MODULE(OpenEXR, m)
         .def(py::init<py::dict,py::list,exr_storage_t,exr_compression_t>())
         .def(py::init<py::list>())
         .def(py::self == py::self)
-        .def("parts", &PyFile::parts)
+        .def_readwrite("filename", &PyFile::_filename)
+        .def_readwrite("parts", &PyFile::parts)
         .def("header", &PyFile::header)
         .def("channels", &PyFile::channels)
         .def("write", &PyFile::write)
-        .def_readwrite("filename", &PyFile::_filename)
         ;
 }
 

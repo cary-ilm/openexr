@@ -38,11 +38,11 @@ def compare_files(A, B):
 
     print(f"compare_files: {A} {B}")
     
-    if len(A.parts()) != len(B.parts()):
+    if len(A.parts) != len(B.parts):
         print(f"#parts differs: {len(A.parts)} {len(B.parts)}")
         return False
     
-    for PA, PB in zip(A.parts(),B.parts()):
+    for PA, PB in zip(A.parts,B.parts):
         if compare_parts(PA, PB):
             return False
 
@@ -95,7 +95,7 @@ def print_file(f, print_pixels = False):
     
     print(f"file {f.filename}")
     print(f"parts:")
-    parts = f.parts()
+    parts = f.parts
     for p in parts:
         print(f"  part: {p.name} {p.type} {p.compression} {p.height}x{p.width}")
         h = p.header

@@ -43,10 +43,9 @@ core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
 // Create a PyFile out of a list of parts (i.e. a multi-part file)
 //
 
-PyFile::PyFile(const py::list& parts)
+PyFile::PyFile(const py::list& p)
+    : parts(p)
 {
-    for (auto p : parts)
-        _parts.push_back(py::cast<PyPart>(*p));
 }
 
 //
@@ -57,7 +56,7 @@ PyFile::PyFile(const py::list& parts)
 PyFile::PyFile(const py::dict& header, const py::list& channels,
                exr_storage_t type, exr_compression_t compression)
 {
-    _parts.push_back(PyPart("Part0", header, channels, type, compression));
+    parts.append(py::cast<PyPart>(PyPart("Part0", header, channels, type, compression)));
 }
 
 //
@@ -93,30 +92,31 @@ PyFile::PyFile(const std::string& filename)
     if (rv != EXR_ERR_SUCCESS)
         throw std::runtime_error ("read error");
 
-    _parts.resize(numparts);
-
-    for (int p = 0; p < numparts; ++p)
+    parts = py::list();
+    
+    for (int part_index = 0; part_index < numparts; ++part_index)
     {
-        _parts[p].part_index = p;
+        PyPart P;
+        P.part_index = part_index;
         
         //
         // Read the attributes into the header
         //
         
-        py::dict& h = _parts[p].header;
+        py::dict& h = P.header;
 
         int32_t attrcount;
-        rv = exr_get_attribute_count(f, p, &attrcount);
+        rv = exr_get_attribute_count(f, part_index, &attrcount);
         if (rv != EXR_ERR_SUCCESS)
             throw std::runtime_error ("read error");
 
         for (int32_t a = 0; a < attrcount; ++a)
         {
             std::string name;
-            py::object attr = get_attribute(f, p, a, name);
+            py::object attr = get_attribute(f, part_index, a, name);
             h[name.c_str()] = attr;
             if (name == "name")
-                _parts[p].name = py::str(attr);
+                P.name = py::str(attr);
         }
 
         //
@@ -124,48 +124,64 @@ PyFile::PyFile(const std::string& filename)
         //
         
         exr_storage_t store;
-        rv = exr_get_storage (f, p, &store);
+        rv = exr_get_storage (f, part_index, &store);
         if (rv != EXR_ERR_SUCCESS)
             return;
 
-        _parts[p].type = store;
+        P.type = store;
             
         //
         // Read the compression type
         //
         
         exr_compression_t compression;
-        rv = exr_get_compression(f, p, &compression);
+        rv = exr_get_compression(f, part_index, &compression);
         if (rv != EXR_ERR_SUCCESS)
             return;
         
-        _parts[p].compression = compression;
+        P.compression = compression;
 
         //
         // Read the part
         //
         
         if (store == EXR_STORAGE_SCANLINE || store == EXR_STORAGE_DEEP_SCANLINE)
-            _parts[p].read_scanline_part (f);
+            P.read_scanline_part (f);
         else if (store == EXR_STORAGE_TILED || store == EXR_STORAGE_DEEP_TILED)
-             _parts[p].read_tiled_part (f);
+            P.read_tiled_part (f);
+
+        parts.append(P);
     }
 }
+
+bool
+PyFile::operator==(const PyFile& other) const
+{
+    if (parts.size() != other.parts.size())
+        return false;
+    
+    for (size_t i = 0; i<parts.size(); i++)
+        if (!(py::cast<const PyPart&>(parts[i]) == py::cast<const PyPart&>(other.parts[i])))
+            return false;
+    return true;
+}       
 
 const py::dict&
 PyFile::header() const
 {
-    if (_parts.size() == 0)
+    if (parts.size() == 0)
         throw std::runtime_error("File has no parts");
-    return _parts[0].header;
+    const PyPart& P = py::cast<const PyPart&>(parts[0]);
+    return P.header;
 }
 
 const py::list&
 PyFile::channels() const
 {
-    if (_parts.size() == 0)
+    if (parts.size() == 0)
         throw std::runtime_error("File has no parts");
-    return _parts[0].channels;
+    const PyPart& P = py::cast<const PyPart&>(parts[0]);
+    return P.channels;
 }
 
 //
@@ -198,10 +214,12 @@ PyFile::write(const char* filename)
     // Set up the parts
     //
     
-    for (size_t p=0; p<_parts.size(); p++)
+    for (size_t p=0; p<parts.size(); p++)
     {
-        _parts[p].add_attributes(f);
-        _parts[p].add_channels(f);
+        PyPart& P = py::cast<PyPart&>(parts[p]);
+        
+        P.add_attributes(f);
+        P.add_channels(f);
         
         result = exr_set_version(f, p, 1); // 1 is the latest version
         if (result != EXR_ERR_SUCCESS) 
@@ -220,8 +238,11 @@ PyFile::write(const char* filename)
     // Write the parts
     //
     
-    for (size_t p=0; p<_parts.size(); p++)
-        _parts[p].write(f);
+    for (size_t p=0; p<parts.size(); p++)
+    {
+        auto P = py::cast<const PyPart&>(parts[p]);
+        P.write(f);
+    }
 
     result = exr_finish(&f);
 
