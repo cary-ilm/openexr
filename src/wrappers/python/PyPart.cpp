@@ -19,11 +19,11 @@
 using namespace OPENEXR_IMF_NAMESPACE;
 using namespace IMATH_NAMESPACE;
 
-PyPart::PyPart(const char* name_arg, const py::dict& header_arg, const py::list& channels_arg,
-               exr_storage_t type_arg, exr_compression_t compression_arg)
-    : name(name_arg), type(type_arg), width(0), height(0),
-      compression(compression_arg),
-      header(header_arg), channels(channels_arg)
+PyPart::PyPart(const char* name, const py::dict& header, const py::list& channels,
+               exr_storage_t type, exr_compression_t compression)
+    : name(name), type(type), width(0), height(0),
+      compression(compression),
+      header(header), channels(channels)
 {
     //
     // Confirm all the channels have 2 dimensions and the same size
@@ -161,15 +161,15 @@ PyPart::read_scanline_part (exr_context_t f)
                 switch (outc.data_type)
                 {
                   case EXR_PIXEL_UINT:
-                    strides.assign({ sizeof(uint8_t), sizeof(uint8_t) });
-                    C.pixels = py::array_t<uint8_t,style>(shape, strides);
+                    strides.assign({ sizeof(uint32_t)*width, sizeof(uint32_t) });
+                    C.pixels = py::array_t<uint32_t,style>(shape, strides);
                     break;
                   case EXR_PIXEL_HALF:
-                    strides.assign({ sizeof(half), sizeof(half) });
+                    strides.assign({ sizeof(half)*width, sizeof(half) });
                     C.pixels = py::array_t<half,style>(shape, strides);
                     break;
                   case EXR_PIXEL_FLOAT:
-                    strides.assign({ sizeof(float), sizeof(float) });
+                    strides.assign({ sizeof(float)*width, sizeof(float) });
                     C.pixels = py::array_t<float,style>(shape, strides);
                     break;
                   case EXR_PIXEL_LAST_TYPE:
@@ -208,8 +208,8 @@ PyPart::read_scanline_part (exr_context_t f)
                 {
                   case EXR_PIXEL_UINT:
                       {
-                          uint8_t* pixels = static_cast<uint8_t*>(buf.ptr);
-                          outc.decode_to_ptr = &pixels[y*width];
+                          uint32_t* pixels = static_cast<uint32_t*>(buf.ptr);
+                          outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
                       }
                       break;
                   case EXR_PIXEL_HALF:
@@ -234,7 +234,6 @@ PyPart::read_scanline_part (exr_context_t f)
             }
         }
 
-        
         rv = exr_decoding_run (f, part_index, &decoder);
         if (rv != EXR_ERR_SUCCESS)
             throw std::runtime_error("error in decoder");
@@ -351,15 +350,15 @@ PyPart::read_tiled_part (exr_context_t f)
                             switch (outc.data_type)
                             {
                               case EXR_PIXEL_UINT:
-                                  strides.assign({ sizeof(uint8_t), sizeof(uint8_t) });
-                                  C.pixels = py::array_t<uint8_t,style>(shape, strides);
+                                  strides.assign({ sizeof(uint32_t)*width, sizeof(uint32_t) });
+                                  C.pixels = py::array_t<uint32_t,style>(shape, strides);
                                   break;
                               case EXR_PIXEL_HALF:
-                                  strides.assign({ sizeof(half), sizeof(half) });
+                                  strides.assign({ sizeof(half)*width, sizeof(half) });
                                   C.pixels = py::array_t<half,style>(shape, strides);
                                   break;
                               case EXR_PIXEL_FLOAT:
-                                  strides.assign({ sizeof(float), sizeof(float) });
+                                  strides.assign({ sizeof(float)*width, sizeof(float) });
                                   C.pixels = py::array_t<float,style>(shape, strides);
                                   break;
                               case EXR_PIXEL_LAST_TYPE:
@@ -400,8 +399,8 @@ PyPart::read_tiled_part (exr_context_t f)
                             {
                               case EXR_PIXEL_UINT:
                                   {
-                                      uint8_t* pixels = static_cast<uint8_t*>(buf.ptr);
-                                      outc.decode_to_ptr = &pixels[cury*width];
+                                      uint32_t* pixels = static_cast<uint32_t*>(buf.ptr);
+                                      outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[cury*width]);
                                   }
                                   break;
                               case EXR_PIXEL_HALF:
@@ -542,11 +541,9 @@ PyPart::add_attribute(exr_context_t f, const std::string& name, py::object objec
         exr_attr_set_m44d(f, part_index, name.c_str(), v);
     else if (auto v = py_cast<PyPreviewImage>(object))
     {
-        auto shape = v->pixels.shape();
-        
         exr_attr_preview_t o;
-        o.width = shape[1];
-        o.height = shape[0];
+        o.width = v->pixels.shape(1);
+        o.height = v->pixels.shape(0);
         o.alloc_size = o.width * o.height * 4;
         py::buffer_info buf = v->pixels.request();
         o.rgba = static_cast<uint8_t*>(buf.ptr);

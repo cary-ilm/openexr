@@ -48,6 +48,9 @@ namespace detail {
 }  // namespace detail
 }  // namespace pybind11
 
+template <class T>
+bool
+array_equals(const py::buffer_info& a, const py::buffer_info& b, const std::string& name);
 
 class PyPreviewImage
 {
@@ -61,8 +64,8 @@ public:
 
     PyPreviewImage(unsigned int width, unsigned int height,
                    const PreviewRgba* data = nullptr)
-        : pixels(py::array_t<PreviewRgba,style>(std::vector<size_t>({width, height}),
-                                                std::vector<size_t>({stride, stride}),
+        : pixels(py::array_t<PreviewRgba,style>(std::vector<size_t>({height, width}),
+                                                std::vector<size_t>({stride*width, stride}),
                                                 data))
     {
     }
@@ -71,16 +74,8 @@ public:
         : pixels(p)
     {
     }
-    
-    bool operator==(const PyPreviewImage& other) const
-    {
-        py::buffer_info buf = pixels.request();
-        py::buffer_info obuf = other.pixels.request();
-#if XXX
-        //        return array_equals<PreviewRgba>(buf, obuf);
-#endif
-        return true;
-    }
+
+    inline bool operator==(const PyPreviewImage& other) const;
 
     py::array_t<PreviewRgba> pixels;
 };
@@ -100,11 +95,12 @@ operator<< (std::ostream& s, const PreviewRgba& p)
 inline std::ostream&
 operator<< (std::ostream& s, const PyPreviewImage& P)
 {
-    auto width = P.pixels.shape()[1];
-    auto height = P.pixels.shape()[0];
+    auto width = P.pixels.shape(1);
+    auto height = P.pixels.shape(0);
+    
+    s << "PreviewImage(" << width << ", " << height << "," << std::endl;
     py::buffer_info buf = P.pixels.request();
     const PreviewRgba* rgba = static_cast<PreviewRgba*>(buf.ptr);
-    s << "PreviewImage(" << width << ", " << height << "," << std::endl;
     for (ssize_t y=0; y<height; y++)
     {
         for (ssize_t x=0; x<width; x++)
@@ -114,6 +110,22 @@ operator<< (std::ostream& s, const PyPreviewImage& P)
     return s;
 }
     
+inline bool
+PyPreviewImage::operator==(const PyPreviewImage& other) const
+{
+    py::buffer_info buf = pixels.request();
+    py::buffer_info obuf = other.pixels.request();
+    
+    const PreviewRgba* apixels = static_cast<PreviewRgba*>(buf.ptr);
+    const PreviewRgba* bpixels = static_cast<PreviewRgba*>(obuf.ptr);
+    for (ssize_t i = 0; i < buf.size; i++)
+        if (!(apixels[i] == bpixels[i]))
+        {
+            std::cout << "PreviewImage differs: pixel " << i << " differs: " << apixels[i] << " " << bpixels[i] << std::endl;
+            return false;
+        }
+    return true;
+}
 
 
 //

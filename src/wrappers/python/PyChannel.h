@@ -47,7 +47,7 @@ inline std::ostream&
 operator<< (std::ostream& s, const PyChannel& C)
 {
     return s << "Channel(\"" << C.name 
-             << ", xSampling=" << C.xSampling 
+             << "\", xSampling=" << C.xSampling 
              << ", ySampling=" << C.ySampling
              << ")";
 }

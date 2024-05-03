@@ -97,18 +97,17 @@ def print_file(f, print_pixels = False):
     print(f"parts:")
     parts = f.parts
     for p in parts:
-        print(f"  part: {p.name} {p.type} {p.compression} {p.height}x{p.width}")
+        print(f"  part: {p.name} {p.type} {p.compression} height={p.height} width={p.width}")
         h = p.header
         for a in h:
             print(f"  header[{a}] {h[a]}")
         for c in p.channels:
-            pixels = c.pixels
-            print(f"  channel[{c.name}] {pixels.shape} {c.type()} {pixels.dtype}")
+            print(f"  channel[{c.name}] shape={c.pixels.shape} strides={c.pixels.strides} {c.type()} {c.pixels.dtype}")
             if print_pixels:
-                for y in range(0,p.height):
+                for y in range(0,c.pixels.shape[0]):
                     s = f"    {c.name}[{y}]:"
-                    for x in range(0,p.width):
-                        s += f" {pixels[y][x]}"
+                    for x in range(0,c.pixels.shape[1]):
+                        s += f" {c.pixels[y][x]}"
                     print(s)
     
 def test_read_write():
@@ -156,10 +155,11 @@ def test_write_uint():
     width = 5
     height = 10
     size = width * height
-    R = np.array([i%256 for i in range(0,size)], dtype='uint8').reshape((height, width))
-    G = np.array([(i*2)%256 for i in range(0,size)], dtype='uint8').reshape((height, width))
-    B = np.array([(i*3)%256 for i in range(0,size)], dtype='uint8').reshape((height, width))
-    A = np.array([(i*5)%256 for i in range(0,size)], dtype='uint8').reshape((height, width))
+    R = np.array([i for i in range(0,size)], dtype='uint32').reshape((height, width))
+    G = np.array([i*10 for i in range(0,size)], dtype='uint32').reshape((height, width))
+    B = np.array([i*100 for i in range(0,size)], dtype='uint32').reshape((height, width))
+    A = np.array([-i*100 for i in range(0,size)], dtype='uint32').reshape((height, width))
+    A = np.array([i*5 for i in range(0,size)], dtype='uint32').reshape((height, width))
     channels = [
         OpenEXR.Channel("R", R, 1, 1),
         OpenEXR.Channel("G", G, 1, 1),
@@ -169,23 +169,25 @@ def test_write_uint():
 
     header = {}
 
-    outfilename = "test_write_half.exr"
+    print_pixels = True
+    
+    outfilename = "test_write_uint.exr"
     outfile = OpenEXR.File(header, channels,
                            OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
     print(f"writing {outfilename}")
     outfile.write(outfilename)
     print(f"writing {outfilename} done.")
     
-#    print(f"File outfile:")
-#    print_file(outfile, True)
+    print(f"File outfile:")
+    print_file(outfile, print_pixels)
     
     # Verify reading it back gives the same data
     print(f"reading {outfilename}")
     infile = OpenEXR.File(outfilename)
     print(f"reading {outfilename} done.")
 
-    print(f"File infil:")
-    print_file(infile, True)
+    print(f"File infile:")
+    print_file(infile, print_pixels)
 
     compare_files(infile, outfile)
     
@@ -198,10 +200,10 @@ def test_write_half():
     width = 10
     height = 20
     size = width * height
-    R = np.array([i for i in range(0,size)], dtype='e').reshape((width, height))
-    G = np.array([i*10 for i in range(0,size)], dtype='e').reshape((width, height))
-    B = np.array([i*100 for i in range(0,size)], dtype='e').reshape((width, height))
-    A = np.array([-i*100 for i in range(0,size)], dtype='e').reshape((width, height))
+    R = np.array([i for i in range(0,size)], dtype='e').reshape((height, width))
+    G = np.array([i*10 for i in range(0,size)], dtype='e').reshape((height, width))
+    B = np.array([i*100 for i in range(0,size)], dtype='e').reshape((height, width))
+    A = np.array([-i*100 for i in range(0,size)], dtype='e').reshape((height, width))
     channels = [ OpenEXR.Channel("A", A, 1, 1), 
                  OpenEXR.Channel("B", B, 1, 1),
                  OpenEXR.Channel("G", G, 1, 1),
@@ -227,33 +229,64 @@ def test_write_half():
     
     assert infile == outfile
 
-def test_write_float():
-
-    # Construct a file from scratch and write it.
-    
-    width = 10
-    height = 20
-    size = width * height
-    R = np.array([i for i in range(0,size)], dtype='f').reshape((height, width))
-    G = np.array([i*10 for i in range(0,size)], dtype='f').reshape((height, width))
-    B = np.array([i*100 for i in range(0,size)], dtype='f').reshape((height, width))
-    A = np.array([i*1000 for i in range(0,size)], dtype='f').reshape((height, width))
-    channels = [ OpenEXR.Channel("R", R, 1, 1),
-                 OpenEXR.Channel("G", G, 1, 1),
-                 OpenEXR.Channel("B", B, 1, 1),
-                 OpenEXR.Channel("A", A, 1, 1) ] 
-
-    pwidth = 3
-    pheight = 3
-    psize = pwidth * pheight
+def test_preview_image():
 
     dt = np.dtype({
             "names": ["r", "g", "b", "a"],
             "formats": ["u4", "u4", "u4", "u4"],
             "offsets": [0, 4, 8, 12],
         })
+    pwidth = 3
+    pheight = 3
+    psize = pwidth * pheight
     P = np.array([(i,i,i,i) for i in range(0,psize)], dtype=dt).reshape((pwidth,pheight))
+
+    header = {}
+    header["preview"] = OpenEXR.PreviewImage(pwidth, pheight, P)
     print(f"P: {P}")
+
+    width = 10
+    height = 20
+    size = width * height
+    Z = np.array([i for i in range(0,size)], dtype='f').reshape((height, width))
+    
+    channels = [ OpenEXR.Channel("Z", Z, 1, 1) ]
+
+    outfile = OpenEXR.File(header, channels,
+                           OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
+    outfilename = "test_preview_image.exr"
+    print(f"printing {outfilename}")
+    print_file(outfile)
+
+    print(f"\nwriting {outfilename}")
+    outfile.write(outfilename)
+
+    print(f"\nreading {outfilename}")
+    infile = OpenEXR.File(outfilename)
+    
+    print(f"printing {outfilename}")
+    print_file(infile)
+
+    assert infile == outfile
+    
+def test_write_float():
+
+    # Construct a file from scratch and write it.
+    
+    width = 50
+    height = 1
+    size = width * height
+    R = np.array([i for i in range(0,size)], dtype='f').reshape((height, width))
+    G = np.array([i*10 for i in range(0,size)], dtype='f').reshape((height, width))
+    B = np.array([i*100 for i in range(0,size)], dtype='f').reshape((height, width))
+    A = np.array([i*1000 for i in range(0,size)], dtype='f').reshape((height, width))
+    channels = [
+        OpenEXR.Channel("R", R, 1, 1),
+        OpenEXR.Channel("G", G, 1, 1),
+        OpenEXR.Channel("B", B, 1, 1),
+        OpenEXR.Channel("A", A, 1, 1)
+    ] 
+
     header = {}
     header["floatvector"] = [1.0, 2.0, 3.0]
     header["stringvector"] = ["do", "re", "me"]
@@ -270,7 +303,6 @@ def test_write_float():
     header["m33d"] = OpenEXR.M33d(1,0,0,0,1,0,0,0,1)
     header["m44f"] = OpenEXR.M44f(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
     header["m44d"] = OpenEXR.M44d(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
-    header["preview"] = OpenEXR.PreviewImage(P)
     header["rational"] = OpenEXR.Rational(1,3)
     header["string"] = "stringy"
     header["timecode"] = OpenEXR.TimeCode(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)
@@ -374,6 +406,7 @@ def test_write_2part():
     print_file(i)
 
 if os.path.isfile(filename):
+    test_preview_image()
     test_write_uint()
     test_write_half()
     test_write_float()
