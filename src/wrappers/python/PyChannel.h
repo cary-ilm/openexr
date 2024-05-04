@@ -22,13 +22,21 @@ public:
 
     PyChannel()
         : xSampling(0), ySampling(0) {}
+
+    PyChannel(exr_pixel_type_t t, int x, int y)
+        : xSampling(x), ySampling(y) {}
+    PyChannel(const py::array& p)
+        : xSampling(1), ySampling(1), pixels(p) {}
+    PyChannel(const py::array& p, int x, int y)
+        : xSampling(x), ySampling(y), pixels(p) {}
+        
     PyChannel(const char* n, exr_pixel_type_t t, int x, int y)
         : name(n), xSampling(x), ySampling(y) {}
     PyChannel(const char* n, const py::array& p)
         : name(n), xSampling(1), ySampling(1), pixels(p) {}
     PyChannel(const char* n, const py::array& p, int x, int y)
         : name(n), xSampling(x), ySampling(y), pixels(p) {}
-    
+
     bool operator==(const PyChannel& other) const;
     bool operator!=(const PyChannel& other) const { return !(*this == other); }
 

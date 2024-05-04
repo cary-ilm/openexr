@@ -31,16 +31,20 @@ PyPart::PyPart(const char* name, const py::dict& header, const py::dict& channel
     
     for (auto c : channels)
     {
-        std::string name = py::cast<std::string>(py::str(c.first));
-        auto C = py::cast<PyChannel>(c.second);
+        auto name = py::str(c.first);
+        auto C = py::cast<const PyChannel&>(c.second);
+
+        //
+        // Initialize the channel's name field to match the dict key.
+        //
+        
+        py::cast<PyChannel&>(channels[c.first]).name = name;
 
         if (C.pixels.ndim() == 2)
         {
             uint32_t w = C.pixels.shape(1);
             uint32_t h = C.pixels.shape(0);
 
-            std::cout << "channel " << C.name << " width=" << w << " height=" << h << std::endl;
-            
             if (width == 0)
                 width = w;
             if (height == 0)
@@ -548,7 +552,7 @@ PyPart::add_attribute(exr_context_t f, const std::string& name, py::object objec
         exr_attr_set_rational(f, part_index, name.c_str(), o);
     else if (py::isinstance<py::str>(object))
     {
-        const std::string& s = py::cast<py::str>(object);
+        const std::string& s = py::str(object);
         exr_attr_set_string(f, part_index, name.c_str(), s.c_str());
     }
     else if (auto v = py_cast<TileDescription>(object))
@@ -665,7 +669,7 @@ PyPart::add_attributes(exr_context_t f)
         
     for (auto a : header)
     {
-        std::string name = py::cast<std::string>(py::str(a.first));
+        auto name = py::str(a.first);
         py::object second = py::cast<py::object>(a.second);
         add_attribute(f, name, second);
     }
@@ -682,8 +686,8 @@ PyPart::add_channels(exr_context_t f)
         
     std::vector<std::string> sorted_channels;
     for (auto c : channels)
-        sorted_channels.push_back(py::cast<std::string>(c.first));
-
+        sorted_channels.push_back(py::str(c.first));
+    
     std::sort(sorted_channels.begin(), sorted_channels.end());
 
     //
@@ -695,7 +699,7 @@ PyPart::add_channels(exr_context_t f)
         auto channel_name = sorted_channels[i];
         PyChannel& C = channels[py::str(channel_name)].cast<PyChannel&>();
         C.channel_index = i;
-
+        
         exr_result_t result = exr_add_channel(f, part_index, C.name.c_str(), C.pixelType(), 
                                               EXR_PERCEPTUALLY_LOGARITHMIC,
                                               C.xSampling, C.ySampling);
@@ -766,7 +770,7 @@ PyPart::write_scanlines(exr_context_t f)
             
         for (auto c : channels)
         {
-            auto C = py::cast<PyChannel>(c.second);
+            auto C = py::cast<PyChannel&>(c.second);
             C.set_encoder_channel(encoder, y, width, scansperchunk);
         }
 
@@ -818,42 +822,45 @@ header_equals(const py::dict& A, const py::dict& B)
 {
     int num_attributes_a = 0;
     for (auto a : A)
-    {
-        std::string name = py::cast<std::string>(py::str(a.first));
-        if (!required_attribute(name))
+        if (!required_attribute(py::str(a.first)))
             num_attributes_a++;
-    }            
 
     int num_attributes_b = 0;
     for (auto b : B)
-    {
-        std::string name = py::cast<std::string>(py::str(b.first));
-        if (!required_attribute(name))
+        if (!required_attribute(py::str(b.first)))
             num_attributes_b++;
-    }
 
     if (num_attributes_a != num_attributes_b)
         return false;
     
     for (auto a : A)
     {
-        std::string name = py::cast<std::string>(py::str(a.first));
-        if (required_attribute(name))
+        if (required_attribute(py::str(a.first)))
             continue;
         
         py::object second = py::cast<py::object>(a.second);
         py::object b = B[a.first];
         if (!second.equal(b))
         {
-#if XXX
             if (py::isinstance<py::float_>(second))
             {                
                 float f = py::cast<py::float_>(second);
                 float of = py::cast<py::float_>(b);
-                if (equalWithRelError(f, of, 1e-5f))
+                if (f == of)
                     return true;
+                
+                if (equalWithRelError(f, of, 1e-8f))
+                {
+                    float df = f - of;
+                    std::cout << "float values are very close: "
+                              << std::scientific << std::setprecision(12)
+                              << f << " "
+                              << of << " ("
+                              << df << ")"
+                              << std::endl;
+                    return true;
+                }
             }
-#endif
             return false;
         }
     }
@@ -884,9 +891,9 @@ PyPart::operator==(const PyPart& other) const
         
         for (auto c : channels)
         {
-            std::string name = py::cast<std::string>(c.first);
-            auto C = py::cast<PyChannel>(c.second);
-            auto O = py::cast<PyChannel>(other.channels[py::str(name)]);
+            auto name = py::str(c.first);
+            auto C = py::cast<const PyChannel&>(c.second);
+            auto O = py::cast<const PyChannel&>(other.channels[py::str(name)]);
             if (C != O)
                 return false;
         }

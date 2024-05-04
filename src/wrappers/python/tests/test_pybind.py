@@ -161,10 +161,10 @@ def test_write_uint():
     A = np.array([-i*100 for i in range(0,size)], dtype='uint32').reshape((height, width))
     A = np.array([i*5 for i in range(0,size)], dtype='uint32').reshape((height, width))
     channels = {
-        "R" : OpenEXR.Channel("R", R, 1, 1),
-        "G" : OpenEXR.Channel("G", G, 1, 1),
-        "B" : OpenEXR.Channel("B", B, 1, 1),
-        "A" : OpenEXR.Channel("A", A, 1, 1), 
+        "R" : OpenEXR.Channel(R, 1, 1),
+        "G" : OpenEXR.Channel(G, 1, 1),
+        "B" : OpenEXR.Channel(B, 1, 1),
+        "A" : OpenEXR.Channel(A, 1, 1), 
     }
 
     header = {}
@@ -174,6 +174,9 @@ def test_write_uint():
     outfilename = "test_write_uint.exr"
     outfile = OpenEXR.File(header, channels,
                            OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
+
+    assert outfile.channels()['A'].name == "A"
+
     print(f"writing {outfilename}")
     outfile.write(outfilename)
     print(f"writing {outfilename} done.")

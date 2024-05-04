@@ -409,8 +409,8 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
                                               lm, lrm));
           }
       case EXR_ATTR_TIMECODE:
-          return py::cast( TimeCode(attr->timecode->time_and_flags,
-                                    attr->timecode->user_data));
+          return py::cast(TimeCode(attr->timecode->time_and_flags,
+                                   attr->timecode->user_data));
       case EXR_ATTR_V2I:
           return py::cast(V2i(attr->v2i->x, attr->v2i->y));
       case EXR_ATTR_V2F:
