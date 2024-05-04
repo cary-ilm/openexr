@@ -11,6 +11,8 @@
 #include <ImfKeyCode.h>
 #include <ImfPreviewImage.h>
 
+#include <ImfForward.h>
+
 #include <ImathVec.h>
 #include <ImathMatrix.h>
 #include <ImathBox.h>
@@ -52,7 +54,7 @@ template <class T>
 bool
 array_equals(const py::buffer_info& a, const py::buffer_info& b, const std::string& name);
 
-class PyPreviewImage
+class IMF_EXPORT_TYPE PyPreviewImage
 {
 public:
     PyPreviewImage() 

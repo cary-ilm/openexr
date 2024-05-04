@@ -30,6 +30,10 @@ PyPart::PyPart(const char* name, const py::dict& header, const py::list& channel
     //
     
     
+    //
+    // Validate that all channels have the same width and height
+    //
+    
     for (auto c : channels)
     {
         auto o = *c;

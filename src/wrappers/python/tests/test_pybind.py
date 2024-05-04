@@ -229,6 +229,60 @@ def test_write_half():
     
     assert infile == outfile
 
+def equalWithRelError (x1, x2, e):
+    
+#    return ((x1 > x2) ? x1 - x2 : x2 - x1) <= e * ((x1 > 0) ? x1 : -x1)
+    return ((x1 - x2) if (x1 > x2) else (x2 - x1)) <= e * (x1 if (x1 > 0) else -x1)
+
+def test_modify_in_place():
+
+    #
+    # Test modifying header attributes in place
+    #
+
+    filename = "test.exr"
+    f = OpenEXR.File(filename)
+    
+    # set the value of an existing attribute
+    par = 2.3
+    f.parts[0].header["pixelAspectRatio"] = par
+
+    # add a new attribute
+    f.parts[0].header["foo"] = "bar"
+
+    dt = np.dtype({
+            "names": ["r", "g", "b", "a"],
+            "formats": ["u4", "u4", "u4", "u4"],
+            "offsets": [0, 4, 8, 12],
+        })
+    pwidth = 3
+    pheight = 3
+    psize = pwidth * pheight
+    P = np.array([ [(0,0,0,0), (1,1,1,1), (2,2,2,2) ],
+                   [(3,3,3,3), (4,4,4,4), (5,5,5,5) ],
+                   [(6,6,6,6), (7,7,7,7), (8,8,8,8) ] ], dtype=dt).reshape((pwidth,pheight))
+    f.parts[0].header["preview"] = OpenEXR.PreviewImage(P)
+
+    # Modify a pixel value
+    f.parts[0].channels[0].pixels[0][1] = 42.0
+    f.parts[0].channels[0].pixels[2][3] = 666.0
+    
+    # write to a new file
+    modified_filename = "modified.exr"
+    f.write(modified_filename)
+    
+    # read the new file
+    m = OpenEXR.File(modified_filename)
+
+    # validate the values are the same
+    eps = 1e-5
+    assert equalWithRelError(m.parts[0].header["pixelAspectRatio"], par, eps)
+    assert m.parts[0].header["foo"] == "bar"
+    assert np.array_equal(m.parts[0].header["preview"].pixels, P)
+    
+    assert equalWithRelError(m.parts[0].channels[0].pixels[0][1], 42.0, eps)
+    assert equalWithRelError(m.parts[0].channels[0].pixels[2][3], 666.0, eps)
+
 def test_preview_image():
 
     dt = np.dtype({
@@ -242,8 +296,7 @@ def test_preview_image():
     P = np.array([(i,i,i,i) for i in range(0,psize)], dtype=dt).reshape((pwidth,pheight))
 
     header = {}
-    header["preview"] = OpenEXR.PreviewImage(pwidth, pheight, P)
-    print(f"P: {P}")
+    header["preview"] = OpenEXR.PreviewImage(P)
 
     width = 10
     height = 20
@@ -255,18 +308,13 @@ def test_preview_image():
     outfile = OpenEXR.File(header, channels,
                            OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
     outfilename = "test_preview_image.exr"
-    print(f"printing {outfilename}")
-    print_file(outfile)
-
-    print(f"\nwriting {outfilename}")
     outfile.write(outfilename)
 
-    print(f"\nreading {outfilename}")
     infile = OpenEXR.File(outfilename)
-    
-    print(f"printing {outfilename}")
-    print_file(infile)
 
+    Q = infile.header()["preview"].pixels
+    
+    assert np.array_equal(P, Q)
     assert infile == outfile
     
 def test_write_float():
@@ -406,12 +454,13 @@ def test_write_2part():
     print_file(i)
 
 if os.path.isfile(filename):
-    test_preview_image()
-    test_write_uint()
-    test_write_half()
-    test_write_float()
-    test_write_2part()
-    test_read_write()
+    test_modify_in_place()
+#    test_preview_image()
+#    test_write_uint()
+#    test_write_half()
+#    test_write_float()
+#    test_write_2part()
+#    test_read_write()
 
     print("ok")
 else:    

@@ -14,7 +14,9 @@
 // sampling, and the array of pixel data.
 //
   
-class PyChannel 
+#include "ImfForward.h"
+
+class IMF_EXPORT_TYPE PyChannel 
 {
 public:
 

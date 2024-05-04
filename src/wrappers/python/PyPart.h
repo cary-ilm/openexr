@@ -23,7 +23,9 @@
 #include <ostream>
 #include "openexr.h"
 
-class PyPart
+#include "ImfForward.h"
+
+class IMF_EXPORT_TYPE PyPart
 {
   public:
     PyPart()

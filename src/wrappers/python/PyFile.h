@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "ImfForward.h"
+
 namespace py = pybind11;
 
 //
@@ -19,7 +21,7 @@ namespace py = pybind11;
 
 class PyPart;
 
-class PyFile 
+class IMF_EXPORT_TYPE PyFile 
 {
 public:
     PyFile(const std::string& filename);
