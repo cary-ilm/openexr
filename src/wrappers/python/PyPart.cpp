@@ -19,7 +19,7 @@
 using namespace OPENEXR_IMF_NAMESPACE;
 using namespace IMATH_NAMESPACE;
 
-PyPart::PyPart(const char* name, const py::dict& header, const py::list& channels,
+PyPart::PyPart(const char* name, const py::dict& header, const py::dict& channels,
                exr_storage_t type, exr_compression_t compression)
     : name(name), type(type), width(0), height(0),
       compression(compression),
@@ -29,21 +29,18 @@ PyPart::PyPart(const char* name, const py::dict& header, const py::list& channel
     // Confirm all the channels have 2 dimensions and the same size
     //
     
-    
-    //
-    // Validate that all channels have the same width and height
-    //
-    
     for (auto c : channels)
     {
-        auto o = *c;
-        auto C = py::cast<PyChannel>(*o);
+        std::string name = py::cast<std::string>(py::str(c.first));
+        auto C = py::cast<PyChannel>(c.second);
 
         if (C.pixels.ndim() == 2)
         {
             uint32_t w = C.pixels.shape(1);
             uint32_t h = C.pixels.shape(0);
 
+            std::cout << "channel " << C.name << " width=" << w << " height=" << h << std::endl;
+            
             if (width == 0)
                 width = w;
             if (height == 0)
@@ -128,12 +125,10 @@ PyPart::read_scanline_part (exr_context_t f)
                 throw std::runtime_error ("error initializing decoder");
             
             //
-            // Initialize the channel list with empty data, to be filled in below.
+            // Clear the channels, to be filled in below.
             //
             
-            channels = py::list();
-            for (int c = 0; c < decoder.channel_count; c++)
-                channels.append(PyChannel());
+            channels = py::dict();
             
             //
             // Build the channel list for the decoder and allocate each
@@ -142,8 +137,7 @@ PyPart::read_scanline_part (exr_context_t f)
             // iterate through both in lock step.
             //
             
-            auto c_iterator = channels.begin();
-            for (int c = 0; c < decoder.channel_count; c++, c_iterator++)
+            for (int c = 0; c < decoder.channel_count; c++)
             {
                 exr_coding_channel_info_t& outc = decoder.channels[c];
 
@@ -151,7 +145,7 @@ PyPart::read_scanline_part (exr_context_t f)
                 outc.user_pixel_stride = outc.user_bytes_per_element;
                 outc.user_line_stride  = outc.user_pixel_stride * width;
 
-                PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+                PyChannel C;
                 C.name = outc.channel_name;
                 C.xSampling  = outc.x_samples;
                 C.ySampling  = outc.y_samples;
@@ -181,6 +175,8 @@ PyPart::read_scanline_part (exr_context_t f)
                       throw std::domain_error("invalid pixel type");
                       break;
                 }
+
+                channels[py::str(outc.channel_name)] = C;
             }
 
             rv = exr_decoding_choose_default_routines (f, part_index, &decoder);
@@ -196,10 +192,9 @@ PyPart::read_scanline_part (exr_context_t f)
 
         if (cinfo.type != EXR_STORAGE_DEEP_SCANLINE)
         {
-            auto c_iterator = channels.begin();
-            for (int16_t c = 0; c < decoder.channel_count; c++, c_iterator++)
+            for (int16_t c = 0; c < decoder.channel_count; c++)
             {
-                PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+                PyChannel& C = py::cast<PyChannel&>(channels[decoder.channels[c].channel_name]);
                 exr_coding_channel_info_t& outc = decoder.channels[c];
 
                 //
@@ -320,12 +315,10 @@ PyPart::read_tiled_part (exr_context_t f)
                             throw std::runtime_error("error initializing decoder");
 
                         //
-                        // Initialize the channel list with empty data, to be filled in below.
+                        // Initialize the channel dict, to be filled in below.
                         //
             
                         channels = py::list();
-                        for (int c = 0; c < decoder.channel_count; c++)
-                            channels.append(PyChannel());
 
                         //
                         // Build the channel list for the decoder and allocate each
@@ -334,8 +327,7 @@ PyPart::read_tiled_part (exr_context_t f)
                         // iterate through both in lock step.
                         //
             
-                        auto c_iterator = channels.begin();
-                        for (int c = 0; c < decoder.channel_count; c++, c_iterator++)
+                        for (int c = 0; c < decoder.channel_count; c++)
                         {
                             exr_coding_channel_info_t& outc = decoder.channels[c];
                             // fake addr for default routines
@@ -343,7 +335,7 @@ PyPart::read_tiled_part (exr_context_t f)
                             outc.user_pixel_stride = outc.user_bytes_per_element;
                             outc.user_line_stride = outc.user_pixel_stride * curtw;
 
-                            PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+                            PyChannel& C = py::cast<PyChannel&>(channels[outc.channel_name]);
                             C.name = outc.channel_name;
                             
                             std::vector<size_t> shape, strides;
@@ -385,8 +377,7 @@ PyPart::read_tiled_part (exr_context_t f)
 
                     if (cinfo.type != EXR_STORAGE_DEEP_TILED)
                     {
-                        auto c_iterator = channels.begin();
-                        for (int c = 0; c < decoder.channel_count; c++, c_iterator++)
+                        for (int c = 0; c < decoder.channel_count; c++)
                         {
                             exr_coding_channel_info_t& outc = decoder.channels[c];
                             outc.user_pixel_stride = outc.user_bytes_per_element;
@@ -397,7 +388,7 @@ PyPart::read_tiled_part (exr_context_t f)
                             // into the pixel arrays
                             //
                 
-                            PyChannel& C = py::cast<PyChannel&>(*c_iterator);
+                            PyChannel& C = py::cast<PyChannel&>(channels[outc.channel_name]);
                             py::buffer_info buf = C.pixels.request();
                             switch (outc.data_type)
                             {
@@ -672,12 +663,10 @@ PyPart::add_attributes(exr_context_t f)
     // Add the attributes
     //
         
-    for (auto a = header.begin(); a != header.end(); ++a)
+    for (auto a : header)
     {
-        auto v = *a;
-        auto first = v.first;
-        std::string name = py::cast<std::string>(py::str(first));
-        py::object second = py::cast<py::object>(v.second);
+        std::string name = py::cast<std::string>(py::str(a.first));
+        py::object second = py::cast<py::object>(a.second);
         add_attribute(f, name, second);
     }
 }
@@ -687,34 +676,26 @@ PyPart::add_channels(exr_context_t f)
 {
     //
     // The channels must be written in alphabetic order, but the channels
-    // py::list may not be sorted.  Assign each channel's "index" field
-    // to the index in sorted order.
+    // py::dict may not be sorted.  Build a sorted vector of channel
+    // names and write them in that order.
     //
         
-    std::vector<int> sorted_indices(channels.size());
-    std::iota(sorted_indices.begin(), sorted_indices.end(), 0);
+    std::vector<std::string> sorted_channels;
+    for (auto c : channels)
+        sorted_channels.push_back(py::cast<std::string>(c.first));
 
-    // Sort the indices based on the names of the PyChannel objects
+    std::sort(sorted_channels.begin(), sorted_channels.end());
+
+    //
+    // Add the channels in sorted order, and assign the index field
+    // based on the sorted order
     
-    py::list& L = channels;
-    std::sort(sorted_indices.begin(), sorted_indices.end(),
-              [&L](int i, int j) {
-                  PyChannel& channel_i = L[i].cast<PyChannel&>();
-                  PyChannel& channel_j = L[j].cast<PyChannel&>();
-                  return channel_i.name < channel_j.name;
-              });
+    for (size_t i = 0; i < sorted_channels.size(); ++i)
+    {
+        auto channel_name = sorted_channels[i];
+        PyChannel& C = channels[py::str(channel_name)].cast<PyChannel&>();
+        C.channel_index = i;
 
-    // Assign the index field based on the sorted order
-    for (size_t i = 0; i < channels.size(); ++i)
-    {
-        PyChannel& channel = channels[sorted_indices[i]].cast<PyChannel&>();
-        channel.channel_index = i;
-    }
-        
-    for (size_t i=0; i<sorted_indices.size(); i++)
-    {
-        auto c = sorted_indices[i];
-        PyChannel& C = channels[c].cast<PyChannel&>();
         exr_result_t result = exr_add_channel(f, part_index, C.name.c_str(), C.pixelType(), 
                                               EXR_PERCEPTUALLY_LOGARITHMIC,
                                               C.xSampling, C.ySampling);
@@ -783,10 +764,10 @@ PyPart::write_scanlines(exr_context_t f)
         // constructor are in sorted order.
         //
             
-        for (size_t c=0; c<channels.size(); c++)
-        {            
-            PyChannel& channel = channels[c].cast<PyChannel&>();
-            channel.set_encoder_channel(encoder, y, width, scansperchunk);
+        for (auto c : channels)
+        {
+            auto C = py::cast<PyChannel>(c.second);
+            C.set_encoder_channel(encoder, y, width, scansperchunk);
         }
 
         if (first)
@@ -836,17 +817,17 @@ bool
 header_equals(const py::dict& A, const py::dict& B)
 {
     int num_attributes_a = 0;
-    for (auto a = A.begin(); a != A.end(); ++a)
+    for (auto a : A)
     {
-        std::string name = py::cast<std::string>(py::str(a->first));
+        std::string name = py::cast<std::string>(py::str(a.first));
         if (!required_attribute(name))
             num_attributes_a++;
     }            
 
     int num_attributes_b = 0;
-    for (auto a = B.begin(); a != B.end(); ++a)
+    for (auto b : B)
     {
-        std::string name = py::cast<std::string>(py::str(a->first));
+        std::string name = py::cast<std::string>(py::str(b.first));
         if (!required_attribute(name))
             num_attributes_b++;
     }
@@ -854,16 +835,17 @@ header_equals(const py::dict& A, const py::dict& B)
     if (num_attributes_a != num_attributes_b)
         return false;
     
-    for (auto a = A.begin(); a != A.end(); ++a)
+    for (auto a : A)
     {
-        std::string name = py::cast<std::string>(py::str(a->first));
+        std::string name = py::cast<std::string>(py::str(a.first));
         if (required_attribute(name))
             continue;
         
-        py::object second = py::cast<py::object>(a->second);
-        py::object b = B[a->first];
+        py::object second = py::cast<py::object>(a.second);
+        py::object b = B[a.first];
         if (!second.equal(b))
         {
+#if XXX
             if (py::isinstance<py::float_>(second))
             {                
                 float f = py::cast<py::float_>(second);
@@ -871,6 +853,7 @@ header_equals(const py::dict& A, const py::dict& B)
                 if (equalWithRelError(f, of, 1e-5f))
                     return true;
             }
+#endif
             return false;
         }
     }
@@ -890,17 +873,23 @@ PyPart::operator==(const PyPart& other) const
         if (!header_equals(header, other.header))
             return false;
         
-        auto channels_v = py::cast<std::vector<PyChannel>>(channels);
-        auto other_channels_v = py::cast<std::vector<PyChannel>>(other.channels);
-        if (channels_v.size() != other_channels_v.size())
-            return false;
-
-        std::sort(channels_v.begin(), channels_v.end());
-        std::sort(other_channels_v.begin(), other_channels_v.end());
+        //
+        // The channel dicts might not be in alphabetical order
+        // (they're sorted on write), so don't just compare the dicts
+        // directly, compare each entry by key/name.
+        //
         
-        for (size_t c = 0; c<channels_v.size(); c++)
-            if (!(channels_v[c] == other_channels_v[c]))
+        if (channels.size() != other.channels.size())
+            return false;
+        
+        for (auto c : channels)
+        {
+            std::string name = py::cast<std::string>(c.first);
+            auto C = py::cast<PyChannel>(c.second);
+            auto O = py::cast<PyChannel>(other.channels[py::str(name)]);
+            if (C != O)
                 return false;
+        }
         
         return true;
     }

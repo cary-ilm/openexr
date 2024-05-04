@@ -53,7 +53,7 @@ PyFile::PyFile(const py::list& p)
 // type, and compression (i.e. a single-part file)
 //
 
-PyFile::PyFile(const py::dict& header, const py::list& channels,
+PyFile::PyFile(const py::dict& header, const py::dict& channels,
                exr_storage_t type, exr_compression_t compression)
 {
     parts.append(py::cast<PyPart>(PyPart("Part0", header, channels, type, compression)));
@@ -65,7 +65,7 @@ PyFile::PyFile(const py::dict& header, const py::list& channels,
 
 
 PyFile::PyFile(const std::string& filename)
-    : _filename (filename)
+    : filename (filename)
 {
     exr_result_t              rv;
     exr_context_t             f;
@@ -175,7 +175,7 @@ PyFile::header() const
     return P.header;
 }
 
-const py::list&
+const py::dict&
 PyFile::channels() const
 {
     if (parts.size() == 0)
@@ -189,7 +189,7 @@ PyFile::channels() const
 //
 
 void
-PyFile::write(const char* filename)
+PyFile::write(const char* outfilename)
 {
     //
     // Open the file for writing
@@ -200,11 +200,11 @@ PyFile::write(const char* filename)
 
     cinit.error_handler_fn = &core_error_handler_cb;
 
-    exr_result_t result = exr_start_write(&f, filename, EXR_WRITE_FILE_DIRECTLY, &cinit);
+    exr_result_t result = exr_start_write(&f, outfilename, EXR_WRITE_FILE_DIRECTLY, &cinit);
     if (result != EXR_ERR_SUCCESS)
     {
         std::stringstream s;
-        s << "can't open " << filename << " for write";
+        s << "can't open " << outfilename << " for write";
         throw std::runtime_error(s.str());
     }
 
@@ -246,7 +246,7 @@ PyFile::write(const char* filename)
 
     result = exr_finish(&f);
 
-    _filename = filename;
+    filename = outfilename;
 }
 
 //

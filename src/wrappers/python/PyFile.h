@@ -25,19 +25,19 @@ class IMF_EXPORT_TYPE PyFile
 {
 public:
     PyFile(const std::string& filename);
-    PyFile(const py::dict& header, const py::list& channels,
+    PyFile(const py::dict& header, const py::dict& channels,
            exr_storage_t type, exr_compression_t compression);
     PyFile(const py::list& parts);
 
 
     const py::dict& header() const;
-    const py::list& channels() const;
+    const py::dict& channels() const;
 
     void            write(const char* filename);
     
     bool operator==(const PyFile& other) const;
     
-    std::string          _filename;
+    std::string          filename;
     py::list             parts;
 };
 

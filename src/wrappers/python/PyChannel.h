@@ -30,7 +30,7 @@ public:
         : name(n), xSampling(x), ySampling(y), pixels(p) {}
     
     bool operator==(const PyChannel& other) const;
-    bool operator<(const PyChannel& other) const { return name < other.name; }
+    bool operator!=(const PyChannel& other) const { return !(*this == other); }
 
     exr_pixel_type_t      pixelType() const;
 

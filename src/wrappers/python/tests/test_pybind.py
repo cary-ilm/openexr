@@ -74,8 +74,8 @@ def compare_parts(A, B):
         print(f"#channels in {A.name} differs: {len(A.channels)} {len(B.channels)}")
         return False
 
-    for CA, CB in zip(sorted(A.channels),sorted(B.channels)):
-        if compare_channels(CA, CB):
+    for c in A.channels.keys():
+        if compare_channels(A.channels[c], B.channels[c]):
             return False
 
     return True
@@ -101,7 +101,7 @@ def print_file(f, print_pixels = False):
         h = p.header
         for a in h:
             print(f"  header[{a}] {h[a]}")
-        for c in p.channels:
+        for n,c in p.channels.items():
             print(f"  channel[{c.name}] shape={c.pixels.shape} strides={c.pixels.strides} {c.type()} {c.pixels.dtype}")
             if print_pixels:
                 for y in range(0,c.pixels.shape[0]):
@@ -160,12 +160,12 @@ def test_write_uint():
     B = np.array([i*100 for i in range(0,size)], dtype='uint32').reshape((height, width))
     A = np.array([-i*100 for i in range(0,size)], dtype='uint32').reshape((height, width))
     A = np.array([i*5 for i in range(0,size)], dtype='uint32').reshape((height, width))
-    channels = [
-        OpenEXR.Channel("R", R, 1, 1),
-        OpenEXR.Channel("G", G, 1, 1),
-        OpenEXR.Channel("B", B, 1, 1),
-        OpenEXR.Channel("A", A, 1, 1), 
-    ]
+    channels = {
+        "R" : OpenEXR.Channel("R", R, 1, 1),
+        "G" : OpenEXR.Channel("G", G, 1, 1),
+        "B" : OpenEXR.Channel("B", B, 1, 1),
+        "A" : OpenEXR.Channel("A", A, 1, 1), 
+    }
 
     header = {}
 
@@ -204,10 +204,12 @@ def test_write_half():
     G = np.array([i*10 for i in range(0,size)], dtype='e').reshape((height, width))
     B = np.array([i*100 for i in range(0,size)], dtype='e').reshape((height, width))
     A = np.array([-i*100 for i in range(0,size)], dtype='e').reshape((height, width))
-    channels = [ OpenEXR.Channel("A", A, 1, 1), 
-                 OpenEXR.Channel("B", B, 1, 1),
-                 OpenEXR.Channel("G", G, 1, 1),
-                 OpenEXR.Channel("R", R, 1, 1) ]
+    channels = {
+        "A" : OpenEXR.Channel("A", A, 1, 1), 
+        "B" : OpenEXR.Channel("B", B, 1, 1),
+        "G" : OpenEXR.Channel("G", G, 1, 1),
+        "R" : OpenEXR.Channel("R", R, 1, 1)
+    }
 
     header = {}
 
@@ -264,8 +266,8 @@ def test_modify_in_place():
     f.parts[0].header["preview"] = OpenEXR.PreviewImage(P)
 
     # Modify a pixel value
-    f.parts[0].channels[0].pixels[0][1] = 42.0
-    f.parts[0].channels[0].pixels[2][3] = 666.0
+    f.parts[0].channels["R"].pixels[0][1] = 42.0
+    f.parts[0].channels["G"].pixels[2][3] = 666.0
     
     # write to a new file
     modified_filename = "modified.exr"
@@ -280,8 +282,8 @@ def test_modify_in_place():
     assert m.parts[0].header["foo"] == "bar"
     assert np.array_equal(m.parts[0].header["preview"].pixels, P)
     
-    assert equalWithRelError(m.parts[0].channels[0].pixels[0][1], 42.0, eps)
-    assert equalWithRelError(m.parts[0].channels[0].pixels[2][3], 666.0, eps)
+    assert equalWithRelError(m.parts[0].channels["R"].pixels[0][1], 42.0, eps)
+    assert equalWithRelError(m.parts[0].channels["G"].pixels[2][3], 666.0, eps)
 
 def test_preview_image():
 
@@ -303,7 +305,7 @@ def test_preview_image():
     size = width * height
     Z = np.array([i for i in range(0,size)], dtype='f').reshape((height, width))
     
-    channels = [ OpenEXR.Channel("Z", Z, 1, 1) ]
+    channels = { "Z" : OpenEXR.Channel("Z", Z, 1, 1) }
 
     outfile = OpenEXR.File(header, channels,
                            OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
@@ -328,12 +330,12 @@ def test_write_float():
     G = np.array([i*10 for i in range(0,size)], dtype='f').reshape((height, width))
     B = np.array([i*100 for i in range(0,size)], dtype='f').reshape((height, width))
     A = np.array([i*1000 for i in range(0,size)], dtype='f').reshape((height, width))
-    channels = [
-        OpenEXR.Channel("R", R, 1, 1),
-        OpenEXR.Channel("G", G, 1, 1),
-        OpenEXR.Channel("B", B, 1, 1),
-        OpenEXR.Channel("A", A, 1, 1)
-    ] 
+    channels = {
+        "R" : OpenEXR.Channel("R", R, 1, 1),
+        "G" : OpenEXR.Channel("G", G, 1, 1),
+        "B" : OpenEXR.Channel("B", B, 1, 1),
+        "A" : OpenEXR.Channel("A", A, 1, 1)
+    }
 
     header = {}
     header["floatvector"] = [1.0, 2.0, 3.0]
@@ -395,10 +397,12 @@ def test_write_2part():
     G = np.array([i*10 for i in range(0,size)], dtype='f').reshape((height, width))
     B = np.array([i*100 for i in range(0,size)], dtype='f').reshape((height, width))
     A = np.array([i*1000 for i in range(0,size)], dtype='f').reshape((height, width))
-    channels = [ OpenEXR.Channel("R", R, 1, 1),
-                 OpenEXR.Channel("G", G, 1, 1),
-                 OpenEXR.Channel("B", B, 1, 1),
-                 OpenEXR.Channel("A", A, 1, 1) ] 
+    channels = {
+        "R" : OpenEXR.Channel("R", R, 1, 1),
+        "G" : OpenEXR.Channel("G", G, 1, 1),
+        "B" : OpenEXR.Channel("B", B, 1, 1),
+        "A" : OpenEXR.Channel("A", A, 1, 1)
+    }
 
     pwidth = 3
     pheight = 3
@@ -455,12 +459,12 @@ def test_write_2part():
 
 if os.path.isfile(filename):
     test_modify_in_place()
-#    test_preview_image()
-#    test_write_uint()
-#    test_write_half()
-#    test_write_float()
-#    test_write_2part()
-#    test_read_write()
+    test_preview_image()
+    test_write_uint()
+    test_write_half()
+    test_write_float()
+    test_write_2part()
+    test_read_write()
 
     print("ok")
 else:    

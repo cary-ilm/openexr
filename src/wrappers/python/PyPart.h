@@ -30,7 +30,7 @@ class IMF_EXPORT_TYPE PyPart
   public:
     PyPart()
         : type(EXR_STORAGE_LAST_TYPE), compression (EXR_COMPRESSION_LAST_TYPE) {}
-    PyPart(const char* name, const py::dict& a, const py::list& channels,
+    PyPart(const char* name, const py::dict& a, const py::dict& channels,
            exr_storage_t type, exr_compression_t c);
 
     bool operator==(const PyPart& other) const;
@@ -42,7 +42,7 @@ class IMF_EXPORT_TYPE PyPart
     exr_compression_t     compression;
 
     py::dict              header;
-    py::list              channels;
+    py::dict              channels;
 
     int                   part_index;
     
