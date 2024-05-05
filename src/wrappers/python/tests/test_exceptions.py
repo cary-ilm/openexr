@@ -16,11 +16,11 @@ import OpenEXR
 
 class TestExceptions(unittest.TestCase):
 
-    def hepme(self):
-
-        help(OpenEXR)
-    
     def test_File(self):
+        
+        print(f"sys.argv={sys.argv} cwd: {os.getcwd()}")
+        if os.path.isdir("src/wrappers/python/tests"):
+            os.chdir("src/wrappers/python/tests")
         
         # invalid argument
         with self.assertRaises(TypeError):
