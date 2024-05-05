@@ -67,7 +67,7 @@ CMAKE_POSITION_INDEPENDENT_CODE = 'ON'
 
 [tool.cibuildwheel]
 build-verbosity = "1"
-test-command = "pytest -s {project}/src/wrappers/python/tests"
+test-command = "pytest -s {project}/src/wrappers/python/tests -rootdir=src/wrappers/python/tests"
 test-requires = ["numpy"]
 test-extras = ["test"]
 test-skip = ["*universal2:arm64"]
