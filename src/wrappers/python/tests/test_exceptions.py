@@ -22,6 +22,9 @@ class TestExceptions(unittest.TestCase):
         if os.path.isdir("src/wrappers/python/tests"):
             os.chdir("src/wrappers/python/tests")
         
+        for n,v in os.environ.items():
+            print(f"os.environ[{n}]={v}")
+            
         # invalid argument
         with self.assertRaises(TypeError):
             f = OpenEXR.File(1)
