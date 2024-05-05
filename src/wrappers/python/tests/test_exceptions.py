@@ -18,9 +18,13 @@ class TestExceptions(unittest.TestCase):
 
     def test_File(self):
         
-        print(f"sys.argv={sys.argv} cwd: {os.getcwd()}")
-        if os.path.isdir("src/wrappers/python/tests"):
-            os.chdir("src/wrappers/python/tests")
+#        print(f"sys.argv={sys.argv} cwd: {os.getcwd()}")
+#        if os.path.isdir("src/wrappers/python/tests"):
+#            os.chdir("src/wrappers/python/tests")
+        
+        print(f"__file__={__file__}")
+        test_dir = os.path.dirname(__file__)
+        os.chdir(test_dir)
         
         for n,v in os.environ.items():
             print(f"os.environ[{n}]={v}")

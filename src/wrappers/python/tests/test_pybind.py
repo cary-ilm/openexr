@@ -460,10 +460,8 @@ def test_write_2part():
 
     print_file(i)
 
-print(f"sys.argv={sys.argv} cwd: {os.getcwd()}")
-if os.path.isdir("src/wrappers/python/tests"):
-    os.chdir("src/wrappers/python/tests")
-        
+test_dir = os.path.dirname(__file__)
+os.chdir(test_dir)
 
 if os.path.isfile(filename):
     test_modify_in_place()
