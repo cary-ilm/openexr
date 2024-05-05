@@ -34,6 +34,9 @@ filterwarnings = [
 ]
 testpaths = ["tests"]
 
+[tool.pytest]
+rootdir = "src/wrappers/python/tests"
+
 [tool.scikit-build]
 wheel.expand-macos-universal-tags = true
 sdist.exclude = [".github", "src/test", "src/examples", "website", "ASWF", "bazel", "share"]
@@ -67,7 +70,7 @@ CMAKE_POSITION_INDEPENDENT_CODE = 'ON'
 
 [tool.cibuildwheel]
 build-verbosity = "1"
-test-command = "pytest  -rootdir={project}/src/wrappers/python/tests -s {project}/src/wrappers/python/tests"
+test-command = "pytest -s {project}/src/wrappers/python/tests"
 test-requires = ["numpy"]
 test-extras = ["test"]
 test-skip = ["*universal2:arm64"]
