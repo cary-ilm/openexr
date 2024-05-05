@@ -110,15 +110,18 @@ def print_file(f, print_pixels = False):
                         s += f" {c.pixels[y][x]}"
                     print(s)
     
-def array_equal(a, b):
+def preview_image_equal(a, b):
 
     if a.shape != b.shape:
         return False
     
     for y in range(0,a.shape[0]):
         for x in range(0,a.shape[1]):
-            if a[y][x] != b[y][x]:
-                return False
+            if len(a[y][x]) != len(b[y][x]):
+                for i in range(0,len(a[y][x])):
+                    if a[y][x][i] != b[y][x][i]:
+                        return False
+
     return True
 
 def test_read_write():
@@ -295,7 +298,7 @@ def test_modify_in_place():
     assert equalWithRelError(m.parts[0].header["pixelAspectRatio"], par, eps)
     assert m.parts[0].header["foo"] == "bar"
 
-    assert array_equal(m.parts[0].header["preview"].pixels, P)
+    assert preview_image_equal(m.parts[0].header["preview"].pixels, P)
 #    assert np.array_equal(m.parts[0].header["preview"].pixels, P)
     
     assert equalWithRelError(m.parts[0].channels["R"].pixels[0][1], 42.0, eps)
