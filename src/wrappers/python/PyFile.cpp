@@ -29,13 +29,10 @@ py::object get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& nam
 static void
 core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
 {
-    const char* fn = "";
-#if XXX
-    if (EXR_ERR_SUCCESS != exr_get_file_name (f, &fn))
-        fn = "<error>";
-#endif
+    const char* filename = "";
+    exr_get_file_name (f, &filename);
     std::stringstream s;
-    s << "error " << fn << " " << exr_get_error_code_as_string (code) << " " << msg;
+    s << "error \"" << filename << "\": " << msg;
     throw std::runtime_error(s.str());
 }
 
@@ -46,6 +43,9 @@ core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
 PyFile::PyFile(const py::list& p)
     : parts(p)
 {
+    for (auto v : parts)
+        if (!py::isinstance<PyPart>(*v))
+            throw std::invalid_argument("must be a list of OpenEXR.Part() objects");
 }
 
 //
@@ -166,22 +166,41 @@ PyFile::operator==(const PyFile& other) const
     return true;
 }       
 
-const py::dict&
-PyFile::header() const
+void
+validate_part_index(int part_index, size_t num_parts)
 {
-    if (parts.size() == 0)
-        throw std::runtime_error("File has no parts");
-    const PyPart& P = py::cast<const PyPart&>(parts[0]);
-    return P.header;
+    if (0 < part_index)
+    {
+        std::stringstream s;
+        s << "Invalid part index '" << part_index << "'";
+        throw std::invalid_argument(s.str());
+    }
+    
+    if (static_cast<size_t>(part_index) >= num_parts)
+    {
+        std::stringstream s;
+        s << "Invalid part index '" << part_index
+          << "': file has " << num_parts
+          << " part";
+        if (num_parts != 1)
+            s << "s";
+        s << ".";
+        throw std::invalid_argument(s.str());
+    }
+}
+    
+py::dict&
+PyFile::header(int part_index)
+{
+    validate_part_index(part_index, parts.size());
+    return parts[part_index].cast<PyPart&>().header;
 }
 
-const py::dict&
-PyFile::channels() const
+py::dict&
+PyFile::channels(int part_index)
 {
-    if (parts.size() == 0)
-        throw std::runtime_error("File has no parts");
-    const PyPart& P = py::cast<const PyPart&>(parts[0]);
-    return P.channels;
+    validate_part_index(part_index, parts.size());
+    return parts[part_index].cast<PyPart&>().channels;
 }
 
 //

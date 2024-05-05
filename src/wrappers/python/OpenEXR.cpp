@@ -71,28 +71,28 @@ PYBIND11_MODULE(OpenEXR, m)
     py::enum_<LevelRoundingMode>(m, "LevelRoundingMode")
         .value("ROUND_UP", ROUND_UP)
         .value("ROUND_DOWN", ROUND_DOWN)
-        .value("NUM_ROUNDINGMODES", NUM_ROUNDINGMODES)
+        .value("NUM_ROUNDING_MODES", NUM_ROUNDINGMODES)
         .export_values();
 
     py::enum_<LevelMode>(m, "LevelMode")
         .value("ONE_LEVEL", ONE_LEVEL)
         .value("MIPMAP_LEVELS", MIPMAP_LEVELS)
         .value("RIPMAP_LEVELS", RIPMAP_LEVELS)
-        .value("NUM_LEVELMODES", NUM_LEVELMODES)
+        .value("NUM_LEVEL_MODES", NUM_LEVELMODES)
         .export_values();
 
     py::enum_<exr_lineorder_t>(m, "LineOrder")
         .value("INCREASING_Y", EXR_LINEORDER_INCREASING_Y)
         .value("DECREASING_Y", EXR_LINEORDER_DECREASING_Y)
         .value("RANDOM_Y", EXR_LINEORDER_RANDOM_Y)
-        .value("NUM_LINEORDERS", EXR_LINEORDER_LAST_TYPE)
+        .value("NUM_LINE_ORDERS", EXR_LINEORDER_LAST_TYPE)
         .export_values();
 
     py::enum_<exr_pixel_type_t>(m, "PixelType")
         .value("UINT", EXR_PIXEL_UINT)
         .value("HALF", EXR_PIXEL_HALF)
         .value("FLOAT", EXR_PIXEL_FLOAT)
-        .value("NUM_PIXELTYPES", EXR_PIXEL_LAST_TYPE)
+        .value("NUM_PIXEL_TYPES", EXR_PIXEL_LAST_TYPE)
         .export_values();
 
     py::enum_<exr_compression_t>(m, "Compression")
@@ -112,14 +112,14 @@ PYBIND11_MODULE(OpenEXR, m)
     py::enum_<exr_envmap_t>(m, "EnvMap")
         .value("EXR_ENVMAP_LATLONG", EXR_ENVMAP_LATLONG)
         .value("EXR_ENVMAP_CUBE", EXR_ENVMAP_CUBE)    
-        .value("EXR_ENVMAP_LAST_TYPE", EXR_ENVMAP_LAST_TYPE)
+        .value("NUM_ENVMAP_TYPES", EXR_ENVMAP_LAST_TYPE)
         .export_values();
 
     py::enum_<exr_storage_t>(m, "Storage")
         .value("scanlineimage", EXR_STORAGE_SCANLINE)
-        .value("tiledimage,", EXR_STORAGE_TILED)
-        .value("deepscanline,", EXR_STORAGE_DEEP_SCANLINE)
-        .value("deeptile,", EXR_STORAGE_DEEP_TILED)
+        .value("tiledimage", EXR_STORAGE_TILED)
+        .value("deepscanline", EXR_STORAGE_DEEP_SCANLINE)
+        .value("deeptile", EXR_STORAGE_DEEP_TILED)
         .value("NUM_STORAGE_TYPES", EXR_STORAGE_LAST_TYPE)
         .export_values();
 
@@ -357,27 +357,37 @@ PYBIND11_MODULE(OpenEXR, m)
     
     py::class_<PyPart>(m, "Part")
         .def(py::init())
-        .def(py::init<const char*,py::dict,py::dict,exr_storage_t,exr_compression_t>())
+        .def(py::init<const char*,py::dict,py::dict,exr_storage_t,exr_compression_t>(),
+             py::arg("name"),
+             py::arg("header"),
+             py::arg("channels"),
+             py::arg("type")=EXR_STORAGE_SCANLINE,
+             py::arg("compression")=EXR_COMPRESSION_ZIP)
         .def("__repr__", [](const PyPart& p) { return repr(p); })
         .def(py::self == py::self)
         .def_readwrite("name", &PyPart::name)
         .def_readwrite("type", &PyPart::type)
-        .def_readwrite("width", &PyPart::width)
-        .def_readwrite("height", &PyPart::height)
+        .def_readonly("width", &PyPart::width)
+        .def_readonly("height", &PyPart::height)
         .def_readwrite("compression", &PyPart::compression)
         .def_readwrite("header", &PyPart::header)
         .def_readwrite("channels", &PyPart::channels)
         ;
 
     py::class_<PyFile>(m, "File")
+        .def(py::init<>())
         .def(py::init<std::string>())
-        .def(py::init<py::dict,py::dict,exr_storage_t,exr_compression_t>())
+        .def(py::init<py::dict,py::dict,exr_storage_t,exr_compression_t>(),
+             py::arg("header"),
+             py::arg("channels"),
+             py::arg("type")=EXR_STORAGE_SCANLINE,
+             py::arg("compression")=EXR_COMPRESSION_ZIP)
         .def(py::init<py::list>())
         .def(py::self == py::self)
         .def_readwrite("filename", &PyFile::filename)
         .def_readwrite("parts", &PyFile::parts)
-        .def("header", &PyFile::header)
-        .def("channels", &PyFile::channels)
+        .def("header", &PyFile::header, py::arg("part_index") = 0)
+        .def("channels", &PyFile::channels, py::arg("part_index") = 0)
         .def("write", &PyFile::write)
         ;
 }

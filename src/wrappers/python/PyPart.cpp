@@ -25,14 +25,33 @@ PyPart::PyPart(const char* name, const py::dict& header, const py::dict& channel
       compression(compression),
       header(header), channels(channels)
 {
+    if (type >= EXR_STORAGE_LAST_TYPE)
+        throw std::invalid_argument("invalid storage type");
+    
+    if (compression >= EXR_COMPRESSION_LAST_TYPE)
+        throw std::invalid_argument("invalid compression type");
+
+    for (auto a : header)
+    {
+        if (!py::isinstance<py::str>(a.first))
+            throw std::invalid_argument("header key must be string (attribute name)");
+        
+        // TODO: confirm it's a valid attribute value
+        py::object second = py::cast<py::object>(a.second);
+    }
+    
     //
     // Confirm all the channels have 2 dimensions and the same size
     //
     
     for (auto c : channels)
     {
+        if (!py::isinstance<py::str>(c.first))
+            throw std::invalid_argument("channels key must be string (channel name)");
         auto name = py::str(c.first);
-        auto C = py::cast<const PyChannel&>(c.second);
+
+        if (!py::isinstance<const PyChannel&>(c.second))
+            throw std::invalid_argument("channels value must be a OpenEXR.Channel() object");
 
         //
         // Initialize the channel's name field to match the dict key.
@@ -40,6 +59,8 @@ PyPart::PyPart(const char* name, const py::dict& header, const py::dict& channel
         
         py::cast<PyChannel&>(channels[c.first]).name = name;
 
+        std::string channel_name;
+        auto C = py::cast<const PyChannel&>(c.second);
         if (C.pixels.ndim() == 2)
         {
             uint32_t w = C.pixels.shape(1);
@@ -53,27 +74,29 @@ PyPart::PyPart(const char* name, const py::dict& header, const py::dict& channel
             if (w != width)
             {
                 std::stringstream s;
-                s << "error: bad width " << w << ", expected " << width;
-                throw std::runtime_error(s.str());
+                s << "channel widths differ: " << channel_name << "=" << width << ", " << C.name << "=" << w;
+                throw std::invalid_argument(s.str());
             }
             if (h != height)
             {
                 std::stringstream s;
-                s << "error: bad height " << h << ", expected " << height;
-                throw std::runtime_error(s.str());
+                s << "channel heights differ: " << channel_name << "=" << height << ", " << C.name << "=" << h;
+                throw std::invalid_argument(s.str());
             }                
+
+            channel_name = C.name;
         }
         else
-        {
-            throw std::runtime_error("error: channel must have a 2D array");
-        }
+            throw std::invalid_argument("error: channel must have a 2D array");
     }
-    
+
+#if TODO    
     if (!header.contains("dataWindow"))
         header["dataWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
 
     if (!header.contains("displayWindow"))
         header["displayWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
+#endif
 }
     
 //

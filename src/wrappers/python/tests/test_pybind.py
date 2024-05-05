@@ -270,7 +270,7 @@ def test_modify_in_place():
 
     # Modify a pixel value
     f.parts[0].channels["R"].pixels[0][1] = 42.0
-    f.parts[0].channels["G"].pixels[2][3] = 666.0
+    f.channels()["G"].pixels[2][3] = 666.0
     
     # write to a new file
     modified_filename = "modified.exr"

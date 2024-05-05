@@ -24,20 +24,20 @@ class PyPart;
 class IMF_EXPORT_TYPE PyFile 
 {
 public:
+    PyFile() {}
     PyFile(const std::string& filename);
     PyFile(const py::dict& header, const py::dict& channels,
            exr_storage_t type, exr_compression_t compression);
     PyFile(const py::list& parts);
 
+    py::dict& header(int part_index = 0);
+    py::dict& channels(int part_index = 0);
 
-    const py::dict& header() const;
-    const py::dict& channels() const;
-
-    void            write(const char* filename);
+    void      write(const char* filename);
     
     bool operator==(const PyFile& other) const;
     
-    std::string          filename;
-    py::list             parts;
+    std::string  filename;
+    py::list     parts;
 };
 
