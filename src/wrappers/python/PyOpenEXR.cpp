@@ -29,13 +29,6 @@
 #include <typeinfo>
 #include <sys/types.h>
 
-#if XXX
-#include "PyFile.h"
-#include "PyPart.h"
-#include "PyChannel.h"
-#include "PyAttributes.h"
-#endif
-
 namespace py = pybind11;
 using namespace py::literals;
 
@@ -75,7 +68,7 @@ namespace detail {
 
 namespace {
 
-#include "OpenEXR.h"
+#include "PyOpenEXR.h"
     
 static void
 core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
