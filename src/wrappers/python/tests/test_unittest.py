@@ -30,7 +30,7 @@ def cleanup():
         if os.path.isfile(outfilename):
             print(f"deleting {outfilename}")
             os.unlink(outfilename)
-atexit.register(cleanup)
+#atexit.register(cleanup)
 
 
 def equalWithRelError (x1, x2, e):
@@ -158,8 +158,6 @@ class TestExceptions(unittest.TestCase):
     
         assert outfile == infile
     
-        os.unlink(outfilename)
-        
     def test_keycode(self):
 
         filmMfcCode = 1
@@ -222,8 +220,6 @@ class TestExceptions(unittest.TestCase):
         
         assert infile == outfile
 
-        os.unlink(outfilename)
-        
     def test_write_half(self):
 
         # Construct a file from scratch and write it.
@@ -255,8 +251,6 @@ class TestExceptions(unittest.TestCase):
         compare_files(infile, outfile)
         
         assert infile == outfile
-
-        os.unlink(outfilename)
 
     def test_modify_in_place(self):
 
@@ -308,8 +302,6 @@ class TestExceptions(unittest.TestCase):
         assert equalWithRelError(m.parts[0].channels["R"].pixels[0][1], 42.0, eps)
         assert equalWithRelError(m.parts[0].channels["G"].pixels[2][3], 666.0, eps)
 
-        os.unlink(outfilename)
-
     def test_preview_image(self):
 
         dt = np.dtype({
@@ -345,8 +337,6 @@ class TestExceptions(unittest.TestCase):
         
         assert infile == outfile
     
-        os.unlink(outfilename)
-
     def test_write_float(self):
 
         # Construct a file from scratch and write it.
@@ -404,8 +394,6 @@ class TestExceptions(unittest.TestCase):
     
         assert infile == outfile
     
-        os.unlink(outfilename)
-
     def test_write_2part(self):
 
         #
@@ -477,7 +465,5 @@ class TestExceptions(unittest.TestCase):
         i = OpenEXR.File(outfilename)
         assert i == outfile2
 
-        os.unlink(outfilename)
-        
 if __name__ == '__main__':
     unittest.main()
