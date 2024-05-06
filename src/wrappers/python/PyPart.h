@@ -33,7 +33,8 @@ class IMF_EXPORT_TYPE PyPart
         compression (EXR_COMPRESSION_LAST_TYPE), part_index(0) {}
     PyPart(const char* name, const py::dict& a, const py::dict& channels,
            exr_storage_t type, exr_compression_t c);
-
+    PyPart(exr_context_t f, int part_index);
+    
     bool operator==(const PyPart& other) const;
 
     std::string           name;
@@ -49,6 +50,8 @@ class IMF_EXPORT_TYPE PyPart
     
     void read_scanline_part (exr_context_t f);
     void read_tiled_part (exr_context_t f);
+
+    py::object get_attribute_object(exr_context_t f, int32_t attr_index, std::string& name);
 
     void add_attributes(exr_context_t f); 
     void add_attribute(exr_context_t f, const std::string& name, py::object object);

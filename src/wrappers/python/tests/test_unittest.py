@@ -17,6 +17,22 @@ import OpenEXR
 
 test_dir = os.path.dirname(__file__)
 
+outfilenames = []
+def mktemp_outfilename():
+    fd, outfilename = tempfile.mkstemp(".exr")
+    os.close(fd)
+    global outfilenames
+    outfilenames += outfilename
+    return outfilename
+
+def cleanup():
+    for outfilename in outfilenames:
+        if os.path.isfile(outfilename):
+            print(f"deleting {outfilename}")
+            os.unlink(outfilename)
+atexit.register(cleanup)
+
+
 def equalWithRelError (x1, x2, e):
     return ((x1 - x2) if (x1 > x2) else (x2 - x1)) <= e * (x1 if (x1 > 0) else -x1)
 
@@ -135,6 +151,7 @@ class TestExceptions(unittest.TestCase):
         infilename = f"{test_dir}/test.exr"
         infile = OpenEXR.File(infilename)
 
+        outfilename = mktemp_outfilename()
         infile.write(outfilename)
 
         outfile = OpenEXR.File(outfilename)
@@ -195,6 +212,7 @@ class TestExceptions(unittest.TestCase):
 
         self.assertEqual(outfile.channels()['A'].name, "A")
 
+        outfilename = mktemp_outfilename()
         outfile.write(outfilename)
     
         # Verify reading it back gives the same data
@@ -228,6 +246,7 @@ class TestExceptions(unittest.TestCase):
 
         outfile = OpenEXR.File(header, channels,
                                OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
+        outfilename = mktemp_outfilename()
         outfile.write(outfilename)
     
         # Verify reading it back gives the same data
@@ -273,6 +292,7 @@ class TestExceptions(unittest.TestCase):
         f.channels()["G"].pixels[2][3] = 666.0
     
         # write to a new file
+        outfilename = mktemp_outfilename()
         f.write(outfilename)
     
         # read the new file
@@ -314,6 +334,7 @@ class TestExceptions(unittest.TestCase):
 
         outfile = OpenEXR.File(header, channels,
                                OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
+        outfilename = mktemp_outfilename()
         outfile.write(outfilename)
 
         infile = OpenEXR.File(outfilename)
@@ -373,6 +394,7 @@ class TestExceptions(unittest.TestCase):
         outfile = OpenEXR.File(header, channels,
                                OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
 
+        outfilename = mktemp_outfilename()
         outfile.write(outfilename)
         
         # Verify reading it back gives the same data
@@ -448,6 +470,7 @@ class TestExceptions(unittest.TestCase):
                           OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
         parts = [P1, P2]
         outfile2 = OpenEXR.File(parts)
+        outfilename = mktemp_outfilename()
         outfile2.write(outfilename)
     
         # Verify reading it back gives the same data
@@ -456,14 +479,5 @@ class TestExceptions(unittest.TestCase):
 
         os.unlink(outfilename)
         
-fd, outfilename = tempfile.mkstemp(".exr")
-os.close(fd)
-
-def cleanup():
-    if os.path.isfile(outfilename):
-        print(f"deleting {outfilename}")
-        os.unlink(outfilename)
-atexit.register(cleanup)
-
 if __name__ == '__main__':
     unittest.main()
