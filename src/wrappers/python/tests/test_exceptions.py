@@ -9,7 +9,6 @@ from __future__ import print_function
 import sys
 import os
 import numpy as np
-
 import unittest
 
 import OpenEXR
@@ -18,17 +17,6 @@ class TestExceptions(unittest.TestCase):
 
     def test_File(self):
         
-#        print(f"sys.argv={sys.argv} cwd: {os.getcwd()}")
-#        if os.path.isdir("src/wrappers/python/tests"):
-#            os.chdir("src/wrappers/python/tests")
-        
-        print(f"__file__={__file__}")
-        test_dir = os.path.dirname(__file__)
-        os.chdir(test_dir)
-        
-        for n,v in os.environ.items():
-            print(f"os.environ[{n}]={v}")
-            
         # invalid argument
         with self.assertRaises(TypeError):
             f = OpenEXR.File(1)
@@ -168,5 +156,8 @@ class TestExceptions(unittest.TestCase):
 
         OpenEXR.Channel()
         
+test_dir = os.path.dirname(__file__)
+os.chdir(test_dir)
+
 if __name__ == '__main__':
     unittest.main()
