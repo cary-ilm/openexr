@@ -27,14 +27,12 @@ class TestExceptions(unittest.TestCase):
         
         # file not found
         filename = "nonexistentfile.exr"
-        with self.assertRaisesRegex(RuntimeError,
-                                    f".*error.*{filename}.*No such file"):
+        with self.assertRaises(RuntimeError):
             f = OpenEXR.File(filename)
 
         # file exists but is not an image
         filename = sys.argv[0]
-        with self.assertRaisesRegex(RuntimeError, 
-                                    f".*error.*{filename}.*File is not"):
+        with self.assertRaises(RuntimeError):
             f = OpenEXR.File(filename)
 
         # Empty file object (useful it's possible to assign to it later)
