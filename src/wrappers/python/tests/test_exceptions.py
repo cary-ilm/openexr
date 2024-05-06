@@ -154,8 +154,41 @@ class TestExceptions(unittest.TestCase):
 
     def test_Channel(self):
 
-        OpenEXR.Channel()
+        with self.assertRaises(TypeError):
+            OpenEXR.Channel(1)
         
+        with self.assertRaises(TypeError):
+            OpenEXR.Channel("C", 2)
+
+        C = OpenEXR.Channel("C", 2, 3)
+        assert C.xSampling == 2
+        assert C.ySampling == 3
+        
+        # not a 2D array
+        with self.assertRaises(ValueError):
+            OpenEXR.Channel(np.array([0,0,0,0], dtype='uint32'))
+        with self.assertRaises(ValueError):
+            OpenEXR.Channel("C", np.array([0,0,0,0], dtype='uint32'))
+        with self.assertRaises(ValueError):
+            OpenEXR.Channel(np.array([0,0,0,0], dtype='uint32'), 2, 3)
+        with self.assertRaises(ValueError):
+            OpenEXR.Channel("C", np.array([0,0,0,0], dtype='uint32'), 2, 3)
+
+        # 2D array of unrecognized type
+        width = 2
+        height = 2
+        with self.assertRaises(ValueError):
+            OpenEXR.Channel(np.array([0,0,0,0], dtype='uint8').reshape((height, width)))
+        with self.assertRaises(ValueError):
+            OpenEXR.Channel("C", np.array([0,0,0,0], dtype='uint8').reshape((height, width)))
+        with self.assertRaises(ValueError):
+            OpenEXR.Channel(np.array([0,0,0,0], dtype='uint8').reshape((height, width)), 2, 2)
+        with self.assertRaises(ValueError):
+            OpenEXR.Channel("C", np.array([0,0,0,0], dtype='uint8').reshape((height, width)), 2, 2)
+
+
+
+            
 test_dir = os.path.dirname(__file__)
 os.chdir(test_dir)
 

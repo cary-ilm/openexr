@@ -21,25 +21,27 @@ class IMF_EXPORT_TYPE PyChannel
 public:
 
     PyChannel()
-        : xSampling(0), ySampling(0) {}
+        : xSampling(1), ySampling(1), channel_index(0) {}
 
-    PyChannel(exr_pixel_type_t t, int x, int y)
-        : xSampling(x), ySampling(y) {}
+    PyChannel(int x, int y)
+        : xSampling(x), ySampling(y), channel_index(0) {}
     PyChannel(const py::array& p)
-        : xSampling(1), ySampling(1), pixels(p) {}
+        : xSampling(1), ySampling(1), pixels(p), channel_index(0) { validate_pixel_array(); }
     PyChannel(const py::array& p, int x, int y)
-        : xSampling(x), ySampling(y), pixels(p) {}
+        : xSampling(x), ySampling(y), pixels(p), channel_index(0) { validate_pixel_array(); }
         
-    PyChannel(const char* n, exr_pixel_type_t t, int x, int y)
-        : name(n), xSampling(x), ySampling(y) {}
+    PyChannel(const char* n, int x, int y)
+        : name(n), xSampling(x), ySampling(y), channel_index(0) {}
     PyChannel(const char* n, const py::array& p)
-        : name(n), xSampling(1), ySampling(1), pixels(p) {}
+        : name(n), xSampling(1), ySampling(1), pixels(p), channel_index(0) { validate_pixel_array(); }
     PyChannel(const char* n, const py::array& p, int x, int y)
-        : name(n), xSampling(x), ySampling(y), pixels(p) {}
+        : name(n), xSampling(x), ySampling(y), pixels(p), channel_index(0) { validate_pixel_array(); }
 
     bool operator==(const PyChannel& other) const;
     bool operator!=(const PyChannel& other) const { return !(*this == other); }
 
+    void validate_pixel_array();
+    
     exr_pixel_type_t      pixelType() const;
 
     std::string           name;

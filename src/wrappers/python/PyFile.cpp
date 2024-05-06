@@ -300,7 +300,7 @@ get_attribute(exr_context_t f, int32_t p, int32_t a, std::string& name)
               for (int c = 0; c < attr->chlist->num_channels; ++c)
               {
                   auto e = attr->chlist->entries[c];
-                  l.append(py::cast(PyChannel(e.name.str, e.pixel_type, e.x_sampling, e.y_sampling)));
+                  l.append(py::cast(PyChannel(e.name.str, e.x_sampling, e.y_sampling)));
               }
               return l;
           }

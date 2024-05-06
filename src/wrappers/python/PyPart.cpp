@@ -23,7 +23,7 @@ PyPart::PyPart(const char* name, const py::dict& header, const py::dict& channel
                exr_storage_t type, exr_compression_t compression)
     : name(name), type(type), width(0), height(0),
       compression(compression),
-      header(header), channels(channels)
+      header(header), channels(channels), part_index(0)
 {
     if (type >= EXR_STORAGE_LAST_TYPE)
         throw std::invalid_argument("invalid storage type");

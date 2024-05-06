@@ -140,14 +140,24 @@ class TestExceptions(unittest.TestCase):
         assert outfile == infile
     
     def test_keycode(self):
-        k = OpenEXR.KeyCode()
-        print(f"filmMfcCode={k.filmMfcCode}")
-        print(f"filmType={k.filmType}")
-        print(f"prefix={k.prefix}")
-        print(f"count={k.count}")
-        print(f"perfOffset={k.perfOffset}")
-        print(f"perfsPerFrame={k.perfsPerFrame}")
-        print(f"perfsPerCount={k.perfsPerCount}")
+
+        filmMfcCode = 1
+        filmType = 2
+        prefix = 3
+        count = 4
+        perfOffset = 5
+        perfsPerFrame = 6
+        perfsPerCount = 20
+
+        k = OpenEXR.KeyCode(filmMfcCode, filmType, prefix, count, perfOffset, perfsPerFrame, perfsPerCount)
+
+        assert (k.filmMfcCode == filmMfcCode and
+                k.filmType == filmType and
+                k.prefix == prefix and
+                k.count == count and
+                k.perfOffset == perfOffset and
+                k.perfsPerFrame == perfsPerFrame and
+                k.perfsPerCount == perfsPerCount)
 
     def test_rational(self):
 

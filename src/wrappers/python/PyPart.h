@@ -29,7 +29,8 @@ class IMF_EXPORT_TYPE PyPart
 {
   public:
     PyPart()
-        : type(EXR_STORAGE_LAST_TYPE), compression (EXR_COMPRESSION_LAST_TYPE) {}
+        : type(EXR_STORAGE_LAST_TYPE), width(0), height(0),
+        compression (EXR_COMPRESSION_LAST_TYPE), part_index(0) {}
     PyPart(const char* name, const py::dict& a, const py::dict& channels,
            exr_storage_t type, exr_compression_t c);
 

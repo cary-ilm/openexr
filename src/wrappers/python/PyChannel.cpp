@@ -32,6 +32,18 @@ array_equals(const py::buffer_info& a, const py::buffer_info& b, const std::stri
     return true;
 }
 
+void
+PyChannel::validate_pixel_array()
+{
+    if (!(py::isinstance<py::array_t<uint32_t>>(pixels) ||
+          py::isinstance<py::array_t<half>>(pixels) ||
+          py::isinstance<py::array_t<float>>(pixels)))
+        throw std::invalid_argument("invalid pixel array: unrecognized type: must be uint32, half, or float");
+
+    if (pixels.ndim() != 2)
+        throw std::invalid_argument("invalid pixel array: must be 2D numpy array");
+}
+
 bool
 PyChannel::operator==(const PyChannel& other) const
 {

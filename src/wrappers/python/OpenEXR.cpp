@@ -339,10 +339,10 @@ PYBIND11_MODULE(OpenEXR, m)
     
     py::class_<PyChannel>(m, "Channel")
         .def(py::init())
-        .def(py::init<exr_pixel_type_t,int,int>())
+        .def(py::init<int,int>())
         .def(py::init<py::array>())
         .def(py::init<py::array,int,int>())
-        .def(py::init<const char*,exr_pixel_type_t,int,int>())
+        .def(py::init<const char*,int,int>())
         .def(py::init<const char*,py::array>())
         .def(py::init<const char*,py::array,int,int>())
         .def("__repr__", [](const PyChannel& c) { return repr(c); })
@@ -353,6 +353,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def_readwrite("xSampling", &PyChannel::xSampling)
         .def_readwrite("ySampling", &PyChannel::ySampling)
         .def_readwrite("pixels", &PyChannel::pixels)
+        .def_readonly("channel_index", &PyChannel::channel_index)
         ;
     
     py::class_<PyPart>(m, "Part")
@@ -372,6 +373,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def_readwrite("compression", &PyPart::compression)
         .def_readwrite("header", &PyPart::header)
         .def_readwrite("channels", &PyPart::channels)
+        .def_readonly("part_index", &PyPart::part_index)
         ;
 
     py::class_<PyFile>(m, "File")
