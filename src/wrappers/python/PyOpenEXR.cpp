@@ -1440,7 +1440,7 @@ array_equals(const py::buffer_info& a, const py::buffer_info& b, const std::stri
 {
     const T* apixels = static_cast<const T*>(a.ptr);
     const T* bpixels = static_cast<const T*>(b.ptr);
-    for (ssize_t i = 0; i < a.size; i++)
+    for (decltype(a.size) i = 0; i<a.size; i++)
         if (!(apixels[i] == bpixels[i]))
             return false;
     return true;

@@ -161,9 +161,9 @@ operator<< (std::ostream& s, const PyPreviewImage& P)
     s << "PreviewImage(" << width << ", " << height << "," << std::endl;
     py::buffer_info buf = P.pixels.request();
     const PreviewRgba* rgba = static_cast<PreviewRgba*>(buf.ptr);
-    for (ssize_t y=0; y<height; y++)
+    for (decltype(height) y = 0; y<height; y++)
     {
-        for (ssize_t x=0; x<width; x++)
+        for (decltype(width) x = 0; x<width; x++)
             s << rgba[y*width+x];
         s << std::endl;
     }
