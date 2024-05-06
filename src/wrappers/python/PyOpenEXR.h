@@ -178,12 +178,9 @@ PyPreviewImage::operator==(const PyPreviewImage& other) const
     
     const PreviewRgba* apixels = static_cast<PreviewRgba*>(buf.ptr);
     const PreviewRgba* bpixels = static_cast<PreviewRgba*>(obuf.ptr);
-    for (ssize_t i = 0; i < buf.size; i++)
+    for (decltype(buf.size) i = 0; i < buf.size; i++)
         if (!(apixels[i] == bpixels[i]))
-        {
-            std::cout << "PreviewImage differs: pixel " << i << " differs: " << apixels[i] << " " << bpixels[i] << std::endl;
             return false;
-        }
     return true;
 }
 
