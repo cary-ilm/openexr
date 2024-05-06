@@ -3,86 +3,144 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
-#define PYBIND11_DETAILED_ERROR_MESSAGES 1
+//
+// PyFile is the object that corresponds to an exr file, either for reading
+// or writing, consisting of a simple list of parts.
+//
 
-#include <ImfTimeCodeAttribute.h>
-#include <ImfTileDescription.h>
-#include <ImfRational.h>
-#include <ImfKeyCode.h>
-#include <ImfPreviewImage.h>
+class PyPart;
 
-#include <ImfForward.h>
+class PyFile 
+{
+public:
+    PyFile() {}
+    PyFile(const std::string& filename);
+    PyFile(const py::dict& header, const py::dict& channels,
+           exr_storage_t type, exr_compression_t compression);
+    PyFile(const py::list& parts);
 
-#include <ImathVec.h>
-#include <ImathMatrix.h>
-#include <ImathBox.h>
-#include <ImathMath.h>
+    py::dict& header(int part_index = 0);
+    py::dict& channels(int part_index = 0);
 
-using namespace OPENEXR_IMF_NAMESPACE;
-using namespace IMATH_NAMESPACE;
+    void      write(const char* filename);
+    
+    bool operator==(const PyFile& other) const;
+    
+    std::string  filename;
+    py::list     parts;
+};
 
-namespace pybind11 {
-namespace detail {
+//
+// PyPart holds the information for a part of an exr file: name, type,
+// dimension, compression, the list of attributes (e.g. "header") and the
+// list of channels.
+//
 
-    // From https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/master/src/python/py_oiio.h
-    //
-    // This half casting support for numpy was all derived from discussions
-    // here: https://github.com/pybind/pybind11/issues/1776
+class PyPart
+{
+  public:
+    PyPart()
+        : type(EXR_STORAGE_LAST_TYPE), width(0), height(0),
+        compression (EXR_COMPRESSION_LAST_TYPE), part_index(0) {}
+    PyPart(const char* name, const py::dict& a, const py::dict& channels,
+           exr_storage_t type, exr_compression_t c);
+    PyPart(exr_context_t f, int part_index);
+    
+    bool operator==(const PyPart& other) const;
 
-    // Similar to enums in `pybind11/numpy.h`. Determined by doing:
-    // python3 -c 'import numpy as np; print(np.dtype(np.float16).num)'
-    constexpr int NPY_FLOAT16 = 23;
+    std::string           name;
+    exr_storage_t         type;
+    uint64_t              width;
+    uint64_t              height;
+    exr_compression_t     compression;
 
-    template<> struct npy_format_descriptor<half> {
-        static pybind11::dtype dtype()
-        {
-            handle ptr = npy_api::get().PyArray_DescrFromType_(NPY_FLOAT16);
-            return reinterpret_borrow<pybind11::dtype>(ptr);
-        }
-        static std::string format()
-        {
-            // following: https://docs.python.org/3/library/struct.html#format-characters
-            return "e";
-        }
-        static constexpr auto name = _("float16");
-    };
+    py::dict              header;
+    py::dict              channels;
 
-}  // namespace detail
-}  // namespace pybind11
+    int                   part_index;
+    
+    void read_scanline_part (exr_context_t f);
+    void read_tiled_part (exr_context_t f);
 
+    py::object get_attribute_object(exr_context_t f, int32_t attr_index, std::string& name);
+
+    void add_attributes(exr_context_t f); 
+    void add_attribute(exr_context_t f, const std::string& name, py::object object);
+    void add_channels(exr_context_t f);
+
+    void write(exr_context_t f);
+    void write_scanlines(exr_context_t f);
+    void write_tiles(exr_context_t f);
+};
+
+//
+// PyChannel holds information for a channel of a PyPart: name, type, x/y
+// sampling, and the array of pixel data.
+//
+  
+class PyChannel 
+{
+public:
+
+    PyChannel()
+        : xSampling(1), ySampling(1), channel_index(0) {}
+
+    PyChannel(int x, int y)
+        : xSampling(x), ySampling(y), channel_index(0) {}
+    PyChannel(const py::array& p)
+        : xSampling(1), ySampling(1), pixels(p), channel_index(0) { validate_pixel_array(); }
+    PyChannel(const py::array& p, int x, int y)
+        : xSampling(x), ySampling(y), pixels(p), channel_index(0) { validate_pixel_array(); }
+        
+    PyChannel(const char* n, int x, int y)
+        : name(n), xSampling(x), ySampling(y), channel_index(0) {}
+    PyChannel(const char* n, const py::array& p)
+        : name(n), xSampling(1), ySampling(1), pixels(p), channel_index(0) { validate_pixel_array(); }
+    PyChannel(const char* n, const py::array& p, int x, int y)
+        : name(n), xSampling(x), ySampling(y), pixels(p), channel_index(0) { validate_pixel_array(); }
+
+    bool operator==(const PyChannel& other) const;
+    bool operator!=(const PyChannel& other) const { return !(*this == other); }
+
+    void validate_pixel_array();
+    
+    exr_pixel_type_t      pixelType() const;
+
+    std::string           name;
+    int                   xSampling;
+    int                   ySampling;
+    py::array             pixels;
+
+    size_t                channel_index;
+    
+    void set_encoder_channel(exr_encode_pipeline_t& encoder, size_t y, size_t width, size_t scansperchunk) const;
+};
+    
 template <class T>
 bool
 array_equals(const py::buffer_info& a, const py::buffer_info& b, const std::string& name);
 
-class IMF_EXPORT_TYPE PyPreviewImage
+class PyPreviewImage
 {
 public:
-    PyPreviewImage() 
-    {
-    }
-    
     static constexpr uint32_t style = py::array::c_style | py::array::forcecast;
     static constexpr size_t stride = sizeof(PreviewRgba);
 
+    PyPreviewImage() {}
+    
     PyPreviewImage(unsigned int width, unsigned int height,
                    const PreviewRgba* data = nullptr)
         : pixels(py::array_t<PreviewRgba,style>(std::vector<size_t>({height, width}),
                                                 std::vector<size_t>({stride*width, stride}),
-                                                data))
-    {
-    }
+                                                data)) {}
     
-    PyPreviewImage(const py::array_t<PreviewRgba>& p)
-        : pixels(p)
-    {
-    }
+    PyPreviewImage(const py::array_t<PreviewRgba>& p) : pixels(p) {}
 
     inline bool operator==(const PyPreviewImage& other) const;
 
     py::array_t<PreviewRgba> pixels;
 };
     
-
 inline std::ostream&
 operator<< (std::ostream& s, const PreviewRgba& p)
 {
@@ -263,5 +321,26 @@ operator<< (std::ostream& s, const Box2f& v)
 {
     s << "(" << v.min << "  " << v.max << ")";
     return s;
+}
+
+
+inline std::ostream&
+operator<< (std::ostream& s, const PyChannel& C)
+{
+    return s << "Channel(\"" << C.name 
+             << "\", xSampling=" << C.xSampling 
+             << ", ySampling=" << C.ySampling
+             << ")";
+}
+
+inline std::ostream&
+operator<< (std::ostream& s, const PyPart& P)
+{
+    return s << "Part(\"" << P.name 
+             << "\", type=" << py::cast(P.type) 
+             << ", width=" << P.width
+             << ", height=" << P.height
+             << ", compression=" << P.compression
+             << ")";
 }
 
