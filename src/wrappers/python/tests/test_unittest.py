@@ -174,9 +174,8 @@ class TestExceptions(unittest.TestCase):
         height = 10
         size = width * height
         R = np.array([i for i in range(0,size)], dtype='uint32').reshape((height, width))
-        G = np.array([i*10 for i in range(0,size)], dtype='uint32').reshape((height, width))
-        B = np.array([i*100 for i in range(0,size)], dtype='uint32').reshape((height, width))
-        A = np.array([-i*100 for i in range(0,size)], dtype='uint32').reshape((height, width))
+        G = np.array([i*2 for i in range(0,size)], dtype='uint32').reshape((height, width))
+        B = np.array([i*3 for i in range(0,size)], dtype='uint32').reshape((height, width))
         A = np.array([i*5 for i in range(0,size)], dtype='uint32').reshape((height, width))
         channels = {
             "R" : OpenEXR.Channel(R, 1, 1),
