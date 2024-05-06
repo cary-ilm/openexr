@@ -15,6 +15,8 @@ import numpy as np
 
 import OpenEXR
 
+test_dir = os.path.dirname(__file__)
+
 def equalWithRelError (x1, x2, e):
     return ((x1 - x2) if (x1 > x2) else (x2 - x1)) <= e * (x1 if (x1 > 0) else -x1)
 
@@ -130,7 +132,7 @@ class TestExceptions(unittest.TestCase):
         # file to validate it's the same.
         #
     
-        infilename = "test.exr"
+        infilename = f"{test_dir}/test.exr"
         infile = OpenEXR.File(infilename)
 
         infile.write(outfilename)
@@ -139,6 +141,8 @@ class TestExceptions(unittest.TestCase):
     
         assert outfile == infile
     
+        os.unlink(outfilename)
+        
     def test_keycode(self):
 
         filmMfcCode = 1
@@ -200,6 +204,8 @@ class TestExceptions(unittest.TestCase):
         
         assert infile == outfile
 
+        os.unlink(outfilename)
+        
     def test_write_half(self):
 
         # Construct a file from scratch and write it.
@@ -231,14 +237,16 @@ class TestExceptions(unittest.TestCase):
         
         assert infile == outfile
 
+        os.unlink(outfilename)
+
     def test_modify_in_place(self):
 
         #
         # Test modifying header attributes in place
         #
 
-        filename = "test.exr"
-        f = OpenEXR.File(filename)
+        infilename = f"{test_dir}/test.exr"
+        f = OpenEXR.File(infilename)
     
         # set the value of an existing attribute
         par = 2.3
@@ -280,6 +288,8 @@ class TestExceptions(unittest.TestCase):
         assert equalWithRelError(m.parts[0].channels["R"].pixels[0][1], 42.0, eps)
         assert equalWithRelError(m.parts[0].channels["G"].pixels[2][3], 666.0, eps)
 
+        os.unlink(outfilename)
+
     def test_preview_image(self):
 
         dt = np.dtype({
@@ -314,6 +324,8 @@ class TestExceptions(unittest.TestCase):
         
         assert infile == outfile
     
+        os.unlink(outfilename)
+
     def test_write_float(self):
 
         # Construct a file from scratch and write it.
@@ -370,6 +382,8 @@ class TestExceptions(unittest.TestCase):
     
         assert infile == outfile
     
+        os.unlink(outfilename)
+
     def test_write_2part(self):
 
         #
@@ -440,15 +454,15 @@ class TestExceptions(unittest.TestCase):
         i = OpenEXR.File(outfilename)
         assert i == outfile2
 
-test_dir = os.path.dirname(__file__)
-os.chdir(test_dir)
-
+        os.unlink(outfilename)
+        
 fd, outfilename = tempfile.mkstemp(".exr")
 os.close(fd)
 
 def cleanup():
-    print(f"deleting {outfilename}")
-    os.unlink(outfilename)
+    if os.path.isfile(outfilename):
+        print(f"deleting {outfilename}")
+        os.unlink(outfilename)
 atexit.register(cleanup)
 
 if __name__ == '__main__':

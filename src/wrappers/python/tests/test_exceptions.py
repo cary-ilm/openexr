@@ -13,6 +13,8 @@ import unittest
 
 import OpenEXR
 
+test_dir = os.path.dirname(__file__)
+
 class TestExceptions(unittest.TestCase):
 
     def test_File(self):
@@ -26,12 +28,12 @@ class TestExceptions(unittest.TestCase):
             f = OpenEXR.File("foo", "bar")
         
         # file not found
-        filename = "nonexistentfile.exr"
+        filename = "/nonexistentfile.exr"
         with self.assertRaises(RuntimeError):
             f = OpenEXR.File(filename)
 
         # file exists but is not an image
-        filename = sys.argv[0]
+        filename = f"{test_dir}"
         with self.assertRaises(RuntimeError):
             f = OpenEXR.File(filename)
 
@@ -47,7 +49,7 @@ class TestExceptions(unittest.TestCase):
             f.channels()
 
         # 1-part file
-        filename = "test.exr"
+        filename = f"{test_dir}/test.exr"
         f = OpenEXR.File(filename)
         self.assertEqual(f.filename, filename)
 
@@ -183,12 +185,6 @@ class TestExceptions(unittest.TestCase):
             OpenEXR.Channel(np.array([0,0,0,0], dtype='uint8').reshape((height, width)), 2, 2)
         with self.assertRaises(ValueError):
             OpenEXR.Channel("C", np.array([0,0,0,0], dtype='uint8').reshape((height, width)), 2, 2)
-
-
-
-            
-test_dir = os.path.dirname(__file__)
-os.chdir(test_dir)
 
 if __name__ == '__main__':
     unittest.main()
