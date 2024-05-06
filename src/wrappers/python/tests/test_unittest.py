@@ -301,7 +301,8 @@ class TestExceptions(unittest.TestCase):
 
         Q = infile.header()["preview"].pixels
     
-        assert np.array_equal(P, Q)
+        assert preview_pixels_equal(P, Q)
+        
         assert infile == outfile
     
     def test_write_float(self):
