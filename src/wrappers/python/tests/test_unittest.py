@@ -230,7 +230,7 @@ class TestExceptions(unittest.TestCase):
         R = np.array([i for i in range(0,size)], dtype='e').reshape((height, width))
         G = np.array([i*10 for i in range(0,size)], dtype='e').reshape((height, width))
         B = np.array([i*100 for i in range(0,size)], dtype='e').reshape((height, width))
-        A = np.array([-i*100 for i in range(0,size)], dtype='e').reshape((height, width))
+        A = np.array([i/size for i in range(0,size)], dtype='e').reshape((height, width))
         channels = {
             "A" : OpenEXR.Channel("A", A, 1, 1), 
             "B" : OpenEXR.Channel("B", B, 1, 1),

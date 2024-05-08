@@ -28,6 +28,9 @@ public:
     
     std::string  filename;
     py::list     parts;
+
+    void        RgbaInputFile(const char* filename);
+    void        TiledRgbaInputFile(const char* filename);
 };
 
 //
@@ -64,8 +67,8 @@ class PyPart
 
     py::object get_attribute_object(exr_context_t f, int32_t attr_index, std::string& name);
 
-    void add_attributes(exr_context_t f); 
-    void add_attribute(exr_context_t f, const std::string& name, py::object object);
+    void set_attributes(exr_context_t f); 
+    void set_attribute(exr_context_t f, const std::string& name, py::object object);
     void add_channels(exr_context_t f);
 
     void write(exr_context_t f);
@@ -92,7 +95,7 @@ public:
     PyChannel(const py::array& p, int x, int y)
         : xSampling(x), ySampling(y), pixels(p), channel_index(0) { validate_pixel_array(); }
         
-    PyChannel(const char* n, int x, int y)
+    PyChannel(const char* n, int x = 1, int y = 1)
         : name(n), xSampling(x), ySampling(y), channel_index(0) {}
     PyChannel(const char* n, const py::array& p)
         : name(n), xSampling(1), ySampling(1), pixels(p), channel_index(0) { validate_pixel_array(); }

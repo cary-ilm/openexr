@@ -29,6 +29,10 @@
 #include <typeinfo>
 #include <sys/types.h>
 
+#include <ImfRgbaFile.h>
+#include <ImfTiledRgbaFile.h>
+#include <ImfArray.h>
+
 namespace py = pybind11;
 using namespace py::literals;
 
@@ -70,6 +74,12 @@ namespace {
 
 #include "PyOpenEXR.h"
     
+void
+diff(const char* func, int line)
+{
+    std::cout << func << " " << line << std::endl;
+}
+    
 static void
 core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
 {
@@ -78,6 +88,69 @@ core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
     std::stringstream s;
     s << "error \"" << filename << "\": " << msg;
     throw std::runtime_error(s.str());
+}
+
+void
+PyFile::TiledRgbaInputFile(const char* filename)
+{
+    Imf::TiledRgbaInputFile file(filename);
+
+    const Box2i&       dw = file.dataWindow ();
+
+    int width  = dw.max.x - dw.min.x + 1;
+    int height = dw.max.y - dw.min.y + 1;
+    int dwx    = dw.min.x;
+    int dwy    = dw.min.y;
+
+    Array2D<Rgba> pixels (height, width);
+    file.setFrameBuffer (&pixels[-dwy][-dwx], 1, width);
+    file.readTiles (0, file.numXTiles () - 1, 0, file.numYTiles () - 1);
+
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    std::cout << "height=" << height << " width=" << width << std::endl;
+
+    const Rgba* p = &pixels[0][0];
+    for (int y=0; y<height; y++)
+        for (int x=0; x<width; x++)
+        {
+            int i = y * width + x;
+            std::cout << i << " pixels[" << y
+                      << "][" << x
+                      << "]=(" << pixels[y][x].r
+                      << ", " << pixels[y][x].g
+                      << ", " << pixels[y][x].b
+                      << ")" << std::endl;
+        }
+}
+    
+void
+PyFile::RgbaInputFile(const char* filename)
+{
+    Imf::RgbaInputFile file(filename);
+    Imath::Box2i       dw = file.dataWindow();
+    int                width  = dw.max.x - dw.min.x + 1;
+    int                height = dw.max.y - dw.min.y + 1;
+
+    Imf::Array2D<Imf::Rgba> pixels(height, width);
+        
+    file.setFrameBuffer(&pixels[0][0], 1, width);
+    file.readPixels(dw.min.y, dw.max.y);
+
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    std::cout << "height=" << height << " width=" << width << std::endl;
+
+    const Rgba* p = &pixels[0][0];
+    for (int y=0; y<height; y++)
+        for (int x=0; x<width; x++)
+        {
+            int i = y * width + x;
+            std::cout << i << " pixels[" << y
+                      << "][" << x
+                      << "]=(" << pixels[y][x].r
+                      << ", " << pixels[y][x].g
+                      << ", " << pixels[y][x].b
+                      << ")" << std::endl;
+        }
 }
 
 //
@@ -146,11 +219,18 @@ bool
 PyFile::operator==(const PyFile& other) const
 {
     if (parts.size() != other.parts.size())
+    {
+        diff(__PRETTY_FUNCTION__, __LINE__);
         return false;
+    }
     
     for (size_t i = 0; i<parts.size(); i++)
         if (!(py::cast<const PyPart&>(parts[i]) == py::cast<const PyPart&>(other.parts[i])))
+        {
+            diff(__PRETTY_FUNCTION__, __LINE__);
             return false;
+        }
+    
     return true;
 }       
 
@@ -225,7 +305,7 @@ PyFile::write(const char* outfilename)
     {
         PyPart& P = py::cast<PyPart&>(parts[p]);
         
-        P.add_attributes(f);
+        P.set_attributes(f);
         P.add_channels(f);
         
         result = exr_set_version(f, p, 1); // 1 is the latest version
@@ -392,10 +472,14 @@ PyPart::PyPart(exr_context_t f, int part_index)
     // Read the part
     //
         
-    if (type == EXR_STORAGE_SCANLINE || type == EXR_STORAGE_DEEP_SCANLINE)
+    if (type == EXR_STORAGE_SCANLINE) 
         read_scanline_part (f);
-    else if (type == EXR_STORAGE_TILED || type == EXR_STORAGE_DEEP_TILED)
+    else if (type == EXR_STORAGE_TILED)
         read_tiled_part (f);
+    else if (type == EXR_STORAGE_DEEP_SCANLINE)
+        throw std::runtime_error("deepscanline not implemented");
+    else if (type == EXR_STORAGE_DEEP_TILED)
+        throw std::runtime_error("deeptiled not implemented");
 }
 
 //
@@ -539,7 +623,30 @@ PyPart::get_attribute_object(exr_context_t f, int32_t attr_index, std::string& n
           return py::cast(Rational(attr->rational->num, attr->rational->denom));
           break;
       case EXR_ATTR_STRING:
-          return py::str(attr->string->str);
+          {
+              if (name == "type")
+              {
+                  //
+                  // The "type" attribute comes through as a string,
+                  // but we want it to be the OpenEXR.Storage enum.
+                  //
+                  
+                  exr_storage_t t = EXR_STORAGE_LAST_TYPE;
+                  if (strcmp (attr->string->str, "scanlineimage") == 0)
+                      t = EXR_STORAGE_SCANLINE;
+                  else if (strcmp(attr->string->str, "tiledimage") == 0)
+                      t = EXR_STORAGE_TILED;
+                  else if (strcmp(attr->string->str, "deepscanline") == 0)
+                      t = EXR_STORAGE_DEEP_SCANLINE;
+                  else if (strcmp(attr->string->str, "deeptile") == 0)
+                      t = EXR_STORAGE_DEEP_TILED;
+                  else
+                      throw std::invalid_argument("unrecognized image 'type' attribute");
+                  return py::cast(t);
+              }
+              return py::str(attr->string->str);
+          }
+          
           break;
       case EXR_ATTR_STRING_VECTOR:
           {
@@ -620,9 +727,9 @@ PyPart::read_scanline_part (exr_context_t f)
     for (uint64_t chunk = 0; chunk < height; chunk += lines_per_chunk)
     {
         exr_chunk_info_t cinfo = {0};
-        int              y     = ((int) chunk) + datawin.min.y;
+        int              y     = (int) chunk;
 
-        rv = exr_read_scanline_chunk_info (f, part_index, y, &cinfo);
+        rv = exr_read_scanline_chunk_info (f, part_index, y + datawin.min.y, &cinfo);
         if (rv != EXR_ERR_SUCCESS)
             throw std::runtime_error("error reading scanline chunk");
 
@@ -638,7 +745,7 @@ PyPart::read_scanline_part (exr_context_t f)
                 throw std::runtime_error ("error initializing decoder");
             
             //
-            // Clear the channels, to be filled in below.
+            // Initialize the channels dict, to be filled in below.
             //
             
             channels = py::dict();
@@ -655,8 +762,8 @@ PyPart::read_scanline_part (exr_context_t f)
                 exr_coding_channel_info_t& outc = decoder.channels[c];
 
                 outc.decode_to_ptr     = (uint8_t*) 0x1000;
-                outc.user_pixel_stride = outc.user_bytes_per_element;
-                outc.user_line_stride  = outc.user_pixel_stride * width;
+                outc.user_pixel_stride = outc.bytes_per_element * outc.x_samples;
+                outc.user_line_stride  = outc.bytes_per_element * width / outc.x_samples;
 
                 PyChannel C;
                 C.name = outc.channel_name;
@@ -728,12 +835,14 @@ PyPart::read_scanline_part (exr_context_t f)
                       {
                           half* pixels = static_cast<half*>(buf.ptr);
                           outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
+                          outc.user_bytes_per_element = sizeof(half);
                       }
                       break;
                   case EXR_PIXEL_FLOAT:
                       {
                           float* pixels = static_cast<float*>(buf.ptr);
                           outc.decode_to_ptr = reinterpret_cast<uint8_t*>(&pixels[y*width]);
+                          outc.user_bytes_per_element = sizeof(float);
                       }
                       break;
                   case EXR_PIXEL_LAST_TYPE:
@@ -741,8 +850,6 @@ PyPart::read_scanline_part (exr_context_t f)
                       throw std::domain_error("invalid pixel type");
                       break;
                 }
-                outc.user_pixel_stride = outc.user_bytes_per_element;
-                outc.user_line_stride  = outc.user_pixel_stride * width;
             }
         }
 
@@ -751,6 +858,35 @@ PyPart::read_scanline_part (exr_context_t f)
             throw std::runtime_error("error in decoder");
     }
 
+#if XXX
+    auto R = py::cast<const PyChannel&>(channels[py::str("R")]);
+    py::buffer_info Rbuf = R.pixels.request();
+    half* Rpixels = static_cast<half*>(Rbuf.ptr);
+                                        
+    auto G = py::cast<const PyChannel&>(channels[py::str("G")]);
+    py::buffer_info Gbuf = G.pixels.request();
+    half* Gpixels = static_cast<half*>(Gbuf.ptr);
+                                        
+    auto B = py::cast<const PyChannel&>(channels[py::str("B")]);
+    py::buffer_info Bbuf = B.pixels.request();
+    half* Bpixels = static_cast<half*>(Bbuf.ptr);
+                                        
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    std::cout << "height=" << height << " width=" << width << std::endl;
+    for (int y=0; y<height; y++)
+        for (int x=0; x<width; x++)
+        {
+            int i = y * width + x;
+            std::cout << i << " pixels["
+                      << y << "]["
+                      << x << "]=("
+                      << Rpixels[i] << ", "
+                      << Gpixels[i] << ", "
+                      << Bpixels[i] << ")"
+                      << std::endl;
+        }
+#endif
+    
     exr_decoding_destroy (f, &decoder);
 }
 
@@ -854,8 +990,7 @@ PyPart::read_tiled_part (exr_context_t f)
                             outc.user_pixel_stride = outc.user_bytes_per_element;
                             outc.user_line_stride = outc.user_pixel_stride * curtw;
 
-                            PyChannel& C = py::cast<PyChannel&>(channels[outc.channel_name]);
-                            C.name = outc.channel_name;
+                            PyChannel C(outc.channel_name);
                             
                             std::vector<size_t> shape, strides;
                             shape.assign({ height, width });
@@ -881,6 +1016,8 @@ PyPart::read_tiled_part (exr_context_t f)
                                   throw std::domain_error("invalid pixel type");
                                   break;
                             }
+
+                            channels[py::str(outc.channel_name)] = C;
                         }
 
                         rv = exr_decoding_choose_default_routines (f, part_index, &decoder);
@@ -908,6 +1045,7 @@ PyPart::read_tiled_part (exr_context_t f)
                             //
                 
                             PyChannel& C = py::cast<PyChannel&>(channels[outc.channel_name]);
+
                             py::buffer_info buf = C.pixels.request();
                             switch (outc.data_type)
                             {
@@ -988,7 +1126,7 @@ py_cast(const py::object& object)
 //
 
 void
-PyPart::add_attribute(exr_context_t f, const std::string& name, py::object object)
+PyPart::set_attribute(exr_context_t f, const std::string& name, py::object object)
 {
     if (auto v = py_cast<exr_attr_box2i_t,Box2i>(object))
         exr_attr_set_box2i(f, part_index, name.c_str(), v);
@@ -1030,20 +1168,11 @@ PyPart::add_attribute(exr_context_t f, const std::string& name, py::object objec
     else if (auto o = py_cast<exr_envmap_t>(object))
         exr_attr_set_envmap(f, part_index, name.c_str(), *o);
     else if (py::isinstance<py::float_>(object))
-    {
-        const float o = py::cast<py::float_>(object);
-        exr_attr_set_float(f, part_index, name.c_str(), o);
-    }
+        exr_attr_set_float(f, part_index, name.c_str(), py::cast<py::float_>(object));
     else if (py::isinstance<PyDouble>(object))
-    {
-        const PyDouble d = py::cast<PyDouble>(object);
-        exr_attr_set_double(f, part_index, name.c_str(), d.d);
-    }
+        exr_attr_set_double(f, part_index, name.c_str(), py::cast<PyDouble>(object).d);
     else if (py::isinstance<py::int_>(object))
-    {
-        const int o = py::cast<py::int_>(object);
-        exr_attr_set_int(f, part_index, name.c_str(), o);
-    }
+        exr_attr_set_int(f, part_index, name.c_str(), py::cast<py::int_>(object));
     else if (auto o = py_cast<exr_attr_keycode_t,KeyCode>(object))
         exr_attr_set_keycode(f, part_index, name.c_str(), o);
     else if (auto o = py_cast<exr_lineorder_t>(object))
@@ -1068,11 +1197,6 @@ PyPart::add_attribute(exr_context_t f, const std::string& name, py::object objec
     }
     else if (auto o = py_cast<exr_attr_rational_t,Rational>(object))
         exr_attr_set_rational(f, part_index, name.c_str(), o);
-    else if (py::isinstance<py::str>(object))
-    {
-        const std::string& s = py::str(object);
-        exr_attr_set_string(f, part_index, name.c_str(), s.c_str());
-    }
     else if (auto v = py_cast<TileDescription>(object))
     {
         exr_attr_tiledesc_t t;
@@ -1100,8 +1224,19 @@ PyPart::add_attribute(exr_context_t f, const std::string& name, py::object objec
         exr_attr_set_v3f(f, part_index, name.c_str(), v);
     else if (auto v = py_cast<exr_attr_v3d_t,V3d>(object))
         exr_attr_set_v3d(f, part_index, name.c_str(), v);
+    else if (py::isinstance<py::str>(object))
+        exr_attr_set_string(f, part_index, name.c_str(), std::string(py::str(object)).c_str());
+    else if (auto o = py_cast<exr_storage_t>(object))
+    {
+        // The OpenEXRCOre API does not treat storage as an attribute
+    }
     else
-        throw std::runtime_error("unknown attribute type");
+    {
+        std::stringstream s;
+        s << "unknown attribute type: " << py::str(object);
+        throw std::runtime_error(s.str());
+    }
+    
 }
 
 //
@@ -1110,16 +1245,18 @@ PyPart::add_attribute(exr_context_t f, const std::string& name, py::object objec
 //
 
 void
-PyPart::add_attributes(exr_context_t f)
+PyPart::set_attributes(exr_context_t f)
 {
     //
     // Initialize the part_index. If there's a "type" attribute in the
     // header, use it over the value provided in the constructor.
     //
     
+#if XXX
     if (header.contains("type"))
         type = py::cast<exr_storage_t>(header["type"]);
-        
+#endif
+    
     exr_result_t result = exr_add_part(f, name.c_str(), type, &part_index);
     if (result != EXR_ERR_SUCCESS) 
         throw std::runtime_error("error writing part");
@@ -1130,14 +1267,15 @@ PyPart::add_attributes(exr_context_t f)
     // If there's a "compression" attribute in the header, use it over the
     // value provided in the constructor.
     //
-        
+#if XXX        
     if (header.contains("compression"))
         compression = py::cast<exr_compression_t>(header["compression"]);
     
+#endif
     exr_lineorder_t lineOrder = EXR_LINEORDER_INCREASING_Y;
     if (header.contains("lineOrder"))
         lineOrder = py::cast<exr_lineorder_t>(header["lineOrder"]);
-
+    
     exr_attr_box2i_t dataw;
     dataw.min.x = 0;
     dataw.min.y = 0;
@@ -1194,7 +1332,7 @@ PyPart::add_attributes(exr_context_t f)
     {
         auto name = py::str(a.first);
         py::object second = py::cast<py::object>(a.second);
-        add_attribute(f, name, second);
+        set_attribute(f, name, second);
     }
 }
 
@@ -1300,7 +1438,7 @@ PyPart::write_scanlines(exr_context_t f)
         for (auto c : channels)
         {
             auto C = py::cast<PyChannel&>(c.second);
-            C.set_encoder_channel(encoder, y, width, scansperchunk);
+            C.set_encoder_channel(encoder, y-dataw.min.y, width, scansperchunk);
         }
 
         if (first)
@@ -1326,7 +1464,7 @@ void
 PyPart::write_tiles(exr_context_t f)
 {
     // TODO
-    throw std::runtime_error("not implemented.");
+    throw std::runtime_error("tiled writing not implemented.");
 }
 
 bool
@@ -1408,7 +1546,10 @@ PyPart::operator==(const PyPart& other) const
         height == other.height)
     {
         if (!equal_header(header, other.header))
+        {
+            diff(__PRETTY_FUNCTION__, __LINE__);
             return false;
+        }
         
         //
         // The channel dicts might not be in alphabetical order
@@ -1417,7 +1558,10 @@ PyPart::operator==(const PyPart& other) const
         //
         
         if (channels.size() != other.channels.size())
+        {
+            diff(__PRETTY_FUNCTION__, __LINE__);
             return false;
+        }
         
         for (auto c : channels)
         {
@@ -1425,24 +1569,66 @@ PyPart::operator==(const PyPart& other) const
             auto C = py::cast<const PyChannel&>(c.second);
             auto O = py::cast<const PyChannel&>(other.channels[py::str(name)]);
             if (C != O)
+            {
+                diff(__PRETTY_FUNCTION__, __LINE__);
+                std::cout << "channel " << name << " differs." << std::endl;
                 return false;
+            }
         }
         
         return true;
     }
     
+    diff(__PRETTY_FUNCTION__, __LINE__);
+    std::cout << *this;
+    std::cout << "other:" << std::endl;
+    std::cout << other;
+
     return false;
 }
 
 template <class T>
 bool
-array_equals(const py::buffer_info& a, const py::buffer_info& b, const std::string& name)
+both_nans(T a, T b)
+{
+    return std::isnan(a) && std::isnan(b);
+}
+
+template <>
+bool
+both_nans<half>(half a, half b)
+{
+    return a.isNan() && b.isNan();
+}
+
+template <class T>
+bool
+array_equals(const py::buffer_info& a, const py::buffer_info& b,
+             const std::string& name, int width, int height)
 {
     const T* apixels = static_cast<const T*>(a.ptr);
     const T* bpixels = static_cast<const T*>(b.ptr);
-    for (decltype(a.size) i = 0; i<a.size; i++)
-        if (!(apixels[i] == bpixels[i]))
-            return false;
+
+    for (int y=0; y<height; y++)
+        for (int x=0; x<width; x++)
+        {
+            int i = y * width + x;
+            if (!(apixels[i] == bpixels[i]))
+            {
+                if (both_nans(apixels[i], bpixels[i]))
+                    continue;
+                
+                std::cout << "i=" << i
+                          << " a[" << y
+                          << "][" << x
+                          << "] = " << apixels[i]
+                          << " b=" << bpixels[i]
+                          << std::endl;
+                diff(__PRETTY_FUNCTION__, __LINE__);
+                return false;
+            }
+        }
+
     return true;
 }
 
@@ -1470,13 +1656,25 @@ PyChannel::operator==(const PyChannel& other) const
         py::buffer_info buf = pixels.request();
         py::buffer_info obuf = other.pixels.request();
 
+        int width = pixels.shape(1);
+        int height = pixels.shape(0);
         if (py::isinstance<py::array_t<uint32_t>>(pixels) && py::isinstance<py::array_t<uint32_t>>(other.pixels))
-            return array_equals<uint32_t>(buf, obuf, name);
+            if (array_equals<uint32_t>(buf, obuf, name, width, height))
+                return true;
         if (py::isinstance<py::array_t<half>>(pixels) && py::isinstance<py::array_t<half>>(other.pixels))
-            return array_equals<half>(buf, obuf, name);
+            if (array_equals<half>(buf, obuf, name, width, height))
+                return true;
         if (py::isinstance<py::array_t<float>>(pixels) && py::isinstance<py::array_t<float>>(other.pixels))
-            return array_equals<float>(buf, obuf, name);
+            if (array_equals<float>(buf, obuf, name, width, height))
+                return true;
+        
+        diff(__PRETTY_FUNCTION__, __LINE__);
+        std::cout << "this=" << *this
+                  << " other=" << other
+                  << std::endl;
     }
+
+    diff(__PRETTY_FUNCTION__, __LINE__);
 
     return false;
 }
@@ -1505,27 +1703,29 @@ PyChannel::set_encoder_channel(exr_encode_pipeline_t& encoder, size_t y, size_t 
 
     auto offset = y * width;
 
+    exr_coding_channel_info_t& channel = encoder.channels[channel_index];
+
     switch (pixelType())
     {
       case EXR_PIXEL_UINT:
           {
               const uint32_t* pixels = static_cast<const uint32_t*>(buf.ptr);
-              encoder.channels[channel_index].encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[offset]);
-              encoder.channels[channel_index].user_pixel_stride = sizeof(uint32_t);
+              channel.encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[offset]);
+              channel.user_pixel_stride = sizeof(uint32_t);
           }
           break;
       case EXR_PIXEL_HALF:
           {
               const half* pixels = static_cast<const half*>(buf.ptr);
-              encoder.channels[channel_index].encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[offset]);
-              encoder.channels[channel_index].user_pixel_stride = sizeof(half);
+              channel.encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[offset]);
+              channel.user_pixel_stride = sizeof(half);
           }
           break;
       case EXR_PIXEL_FLOAT:
           {
               const float* pixels = static_cast<const float*>(buf.ptr);
-              encoder.channels[channel_index].encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[offset]);
-              encoder.channels[channel_index].user_pixel_stride = sizeof(float);
+              channel.encode_from_ptr = reinterpret_cast<const uint8_t*>(&pixels[offset]);
+              channel.user_pixel_stride = sizeof(float);
           }
           break;
       case EXR_PIXEL_LAST_TYPE:
@@ -1534,9 +1734,7 @@ PyChannel::set_encoder_channel(exr_encode_pipeline_t& encoder, size_t y, size_t 
           break;
     }
 
-    encoder.channels[channel_index].user_line_stride  = encoder.channels[channel_index].user_pixel_stride * width;
-    encoder.channels[channel_index].height            = scansperchunk; // chunk height
-    encoder.channels[channel_index].width             = width;
+    channel.user_line_stride= channel.user_pixel_stride * width / channel.x_samples;
 }
 
 
@@ -1894,6 +2092,8 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("header", &PyFile::header, py::arg("part_index") = 0)
         .def("channels", &PyFile::channels, py::arg("part_index") = 0)
         .def("write", &PyFile::write)
+        .def("RgbaInputFile", &PyFile::RgbaInputFile)
+        .def("TiledRgbaInputFile", &PyFile::TiledRgbaInputFile)
         ;
 }
 
