@@ -31,6 +31,8 @@ public:
 
     void        RgbaInputFile(const char* filename);
     void        TiledRgbaInputFile(const char* filename);
+    void        multiPartInputFile(const char* filename);
+    void        multiPartOutputFile(const char* filename);
 };
 
 //

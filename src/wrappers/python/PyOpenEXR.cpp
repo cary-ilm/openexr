@@ -31,6 +31,11 @@
 
 #include <ImfRgbaFile.h>
 #include <ImfTiledRgbaFile.h>
+#include <ImfMultiPartInputFile.h>
+#include <ImfMultiPartOutputFile.h>
+#include <ImfInputPart.h>
+#include <ImfOutputPart.h>
+#include <ImfChannelList.h>
 #include <ImfArray.h>
 
 namespace py = pybind11;
@@ -91,6 +96,171 @@ core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
 }
 
 void
+PyFile::multiPartOutputFile(const char* filename)
+{
+    std::vector<Header> headers;
+
+    for (size_t p=0; p<parts.size(); p++)
+    {
+        PyPart& P = py::cast<PyPart&>(parts[p]);
+        
+        Header header (P.width,
+                       P.height,
+                       1.f,
+                       IMATH_NAMESPACE::V2f (0, 0),
+                       1.f,
+                       INCREASING_Y,
+                       ZIPS_COMPRESSION);
+
+        header.setName (P.name);
+
+        for (auto c : P.channels)
+        {
+            auto C = py::cast<PyChannel&>(c.second);
+            header.channels ().insert (C.name, Channel (static_cast<PixelType>(C.pixelType())));
+        }
+
+        switch (P.type)
+        {
+        case EXR_STORAGE_SCANLINE:
+            header.setType ("scanlineimage");
+            break;
+        case EXR_STORAGE_TILED:
+            header.setType ("tiledimage");
+            break;
+        default:
+            break;
+        }
+
+        if (P.header.contains("tiles"))
+        {
+            auto td = P.header["tiles"].cast<const TileDescription&>();
+            header.setTileDescription (td);
+        }
+
+        if (P.header.contains("lineOrder"))
+        {
+            auto lo = P.header["lineOrder"].cast<exr_lineorder_t&>();
+            header.lineOrder() = static_cast<LineOrder>(lo);
+        }
+
+        headers.push_back (header);
+    }
+
+    MultiPartOutputFile outfile(filename, headers.data(), headers.size());
+
+    for (size_t p=0; p<parts.size(); p++)
+    {
+        PyPart& P = py::cast<PyPart&>(parts[p]);
+
+        auto header = headers[p];
+        const Box2i& dw = header.dataWindow();
+
+        OutputPart part(outfile, p);
+
+        FrameBuffer frameBuffer;
+        
+        for (auto c : P.channels)
+        {
+            auto C = py::cast<PyChannel&>(c.second);
+            py::buffer_info buf = C.pixels.request();
+            std::cout << "frameBuffer.insert " << C << std::endl;
+            frameBuffer.insert (C.name,
+                                Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                             (void*) buf.ptr,
+                                             dw, 0, 0,
+                                             C.xSampling,
+                                             C.ySampling));
+        }
+        
+        part.setFrameBuffer (frameBuffer);
+        part.writePixels (P.height);
+    }
+}
+    
+void
+PyFile::multiPartInputFile(const char* filename)
+{
+    MultiPartInputFile infile(filename);
+
+    for (int part_index = 0; part_index < infile.parts(); part_index++)
+    {
+        const Header& header = infile.header(part_index);
+
+        PyPart P;
+
+        if (header.hasName())
+            P.name = header.name();
+        else
+        {
+            std::stringstream s;
+            s << "Part" << part_index;
+            P.name = s.str();
+        }
+        
+        P.part_index = part_index;
+        
+        const Box2i& dw = header.dataWindow();
+        P.width = static_cast<size_t>(dw.max.x - dw.min.x + 1);
+        P.height = static_cast<size_t>(dw.max.y - dw.min.y + 1);
+        
+        P.compression = static_cast<exr_compression_t>(header.compression());
+
+        if (header.type() == "scanlineimage")
+            P.type = EXR_STORAGE_SCANLINE;
+        else if (header.type() == "tiledimage")
+            P.type = EXR_STORAGE_TILED;
+        
+        std::vector<size_t> shape ({P.height, P.width});
+
+        FrameBuffer frameBuffer;
+        
+        InputPart part (infile, part_index);
+
+        for (auto c = header.channels().begin(); c != header.channels().end(); c++)
+        {
+            PyChannel C;
+            
+            C.name = c.name();
+            C.xSampling = c.channel().xSampling;
+            C.ySampling = c.channel().ySampling;
+
+            const auto style = py::array::c_style | py::array::forcecast;
+
+            switch (c.channel().type)
+            {
+            case UINT:
+                C.pixels = py::array_t<uint32_t,style>(shape);
+                break;
+            case HALF:
+                C.pixels = py::array_t<half,style>(shape);
+                break;
+            case FLOAT:
+                C.pixels = py::array_t<float,style>(shape);
+                break;
+            default:
+                throw std::runtime_error("invalid pixel type");
+            } // switch c->type
+
+            py::buffer_info buf = C.pixels.request();
+
+            frameBuffer.insert (C.name,
+                                Slice::Make (c.channel().type,
+                                             (void*) buf.ptr,
+                                             dw, 0, 0,
+                                             C.xSampling,
+                                             C.ySampling));
+            P.channels[py::str(c.name())] = C;
+        } // for header.channels()
+
+        part.setFrameBuffer (frameBuffer);
+        part.readPixels (dw.min.y, dw.max.y);
+
+        parts.append(py::cast<PyPart>(PyPart(P)));
+    } // for parts
+}
+    
+void
 PyFile::TiledRgbaInputFile(const char* filename)
 {
     Imf::TiledRgbaInputFile file(filename);
@@ -109,7 +279,7 @@ PyFile::TiledRgbaInputFile(const char* filename)
     std::cout << __PRETTY_FUNCTION__ << std::endl;
     std::cout << "height=" << height << " width=" << width << std::endl;
 
-    const Rgba* p = &pixels[0][0];
+//    const Rgba* p = &pixels[0][0];
     for (int y=0; y<height; y++)
         for (int x=0; x<width; x++)
         {
@@ -139,7 +309,7 @@ PyFile::RgbaInputFile(const char* filename)
     std::cout << __PRETTY_FUNCTION__ << std::endl;
     std::cout << "height=" << height << " width=" << width << std::endl;
 
-    const Rgba* p = &pixels[0][0];
+//    const Rgba* p = &pixels[0][0];
     for (int y=0; y<height; y++)
         for (int x=0; x<width; x++)
         {
@@ -1226,7 +1396,7 @@ PyPart::set_attribute(exr_context_t f, const std::string& name, py::object objec
         exr_attr_set_v3d(f, part_index, name.c_str(), v);
     else if (py::isinstance<py::str>(object))
         exr_attr_set_string(f, part_index, name.c_str(), std::string(py::str(object)).c_str());
-    else if (auto o = py_cast<exr_storage_t>(object))
+    else if (py_cast<exr_storage_t>(object))
     {
         // The OpenEXRCOre API does not treat storage as an attribute
     }
@@ -2094,6 +2264,8 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("write", &PyFile::write)
         .def("RgbaInputFile", &PyFile::RgbaInputFile)
         .def("TiledRgbaInputFile", &PyFile::TiledRgbaInputFile)
+        .def("multiPartInputFile", &PyFile::multiPartInputFile)
+        .def("multiPartOutputFile", &PyFile::multiPartOutputFile)
         ;
 }
 
