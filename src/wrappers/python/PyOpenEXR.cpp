@@ -35,8 +35,35 @@
 #include <ImfMultiPartOutputFile.h>
 #include <ImfInputPart.h>
 #include <ImfOutputPart.h>
+#include <ImfTiledOutputPart.h>
+#include <ImfDeepScanLineOutputPart.h>
+#include <ImfDeepTiledOutputPart.h>
+#include <ImfDeepFrameBuffer.h>
 #include <ImfChannelList.h>
 #include <ImfArray.h>
+
+
+#include <ImfBoxAttribute.h>
+#include <ImfChannelListAttribute.h>
+#include <ImfChromaticitiesAttribute.h>
+#include <ImfCompressionAttribute.h>
+#include <ImfDoubleAttribute.h>
+#include <ImfEnvmapAttribute.h>
+#include <ImfFloatAttribute.h>
+#include <ImfHeader.h>
+#include <ImfIntAttribute.h>
+#include <ImfKeyCodeAttribute.h>
+#include <ImfLineOrderAttribute.h>
+#include <ImfMatrixAttribute.h>
+#include <ImfMultiPartInputFile.h>
+#include <ImfPreviewImageAttribute.h>
+#include <ImfRationalAttribute.h>
+#include <ImfStringAttribute.h>
+#include <ImfStringVectorAttribute.h>
+#include <ImfFloatVectorAttribute.h>
+#include <ImfTileDescriptionAttribute.h>
+#include <ImfTimeCodeAttribute.h>
+#include <ImfVecAttribute.h>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -79,6 +106,9 @@ namespace {
 
 #include "PyOpenEXR.h"
     
+template <class T> const T* py_cast(const py::object& object);
+template <class T, class S> const T* py_cast(const py::object& object);
+
 void
 diff(const char* func, int line)
 {
@@ -94,6 +124,8 @@ core_error_handler_cb (exr_const_context_t f, int code, const char* msg)
     s << "error \"" << filename << "\": " << msg;
     throw std::runtime_error(s.str());
 }
+
+void set_attribute(Header& header, const std::string& name, py::object object);
 
 void
 PyFile::multiPartOutputFile(const char* filename)
@@ -114,10 +146,18 @@ PyFile::multiPartOutputFile(const char* filename)
 
         header.setName (P.name);
 
+        for (auto a : P.header)
+        {
+            auto name = py::str(a.first);
+            py::object second = py::cast<py::object>(a.second);
+            set_attribute(header, name, second);
+        }
+        
         for (auto c : P.channels)
         {
             auto C = py::cast<PyChannel&>(c.second);
-            header.channels ().insert (C.name, Channel (static_cast<PixelType>(C.pixelType())));
+            auto t = static_cast<PixelType>(C.pixelType());
+            header.channels ().insert(C.name, Channel (t, C.xSampling, C.ySampling, C.pLinear));
         }
 
         switch (P.type)
@@ -128,7 +168,15 @@ PyFile::multiPartOutputFile(const char* filename)
         case EXR_STORAGE_TILED:
             header.setType ("tiledimage");
             break;
+        case EXR_STORAGE_DEEP_SCANLINE:
+            header.setType("deepscanlineimage");
+            break;
+        case EXR_STORAGE_DEEP_TILED:
+            header.setType("deeptiledimage");
+            break;
+        case EXR_STORAGE_LAST_TYPE:
         default:
+            throw std::runtime_error("unknown storage type");
             break;
         }
 
@@ -156,28 +204,414 @@ PyFile::multiPartOutputFile(const char* filename)
         auto header = headers[p];
         const Box2i& dw = header.dataWindow();
 
-        OutputPart part(outfile, p);
+        std::set<std::pair<int,int>> samplingFactors;
 
-        FrameBuffer frameBuffer;
-        
-        for (auto c : P.channels)
+        if (P.type == EXR_STORAGE_SCANLINE ||
+            P.type == EXR_STORAGE_TILED)
         {
-            auto C = py::cast<PyChannel&>(c.second);
-            py::buffer_info buf = C.pixels.request();
-            std::cout << "frameBuffer.insert " << C << std::endl;
-            frameBuffer.insert (C.name,
-                                Slice::Make (static_cast<PixelType>(C.pixelType()),
-                                             (void*) buf.ptr,
-                                             dw, 0, 0,
-                                             C.xSampling,
-                                             C.ySampling));
-        }
+            for (auto c : P.channels)
+            {
+                auto C = py::cast<PyChannel&>(c.second);
+                samplingFactors.insert(std::pair<int,int>(C.xSampling, C.ySampling));
+            }
+            
+            for (auto s : samplingFactors)
+            {
+                FrameBuffer frameBuffer;
         
-        part.setFrameBuffer (frameBuffer);
-        part.writePixels (P.height);
+                for (auto c : P.channels)
+                {
+                    auto C = py::cast<PyChannel&>(c.second);
+                    if (true/*C.xSampling == s.first && C.ySampling == s.second*/)
+                        frameBuffer.insert (C.name,
+                                            Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                                         static_cast<void*>(C.pixels.request().ptr),
+                                                         dw, 0, 0,
+                                                         C.xSampling,
+                                                         C.ySampling));
+                }
+                
+                if (P.type == EXR_STORAGE_SCANLINE)
+                {
+                    OutputPart part(outfile, p);
+                    part.setFrameBuffer (frameBuffer);
+                    part.writePixels (P.height);
+                }
+                else if (P.type == EXR_STORAGE_TILED)
+                {
+                    TiledOutputPart part(outfile, p);
+                    part.setFrameBuffer (frameBuffer);
+                    part.writeTiles (0, part.numXTiles() - 1, 0, part.numYTiles() - 1);
+                }
+            }
+        }
+        else if (P.type == EXR_STORAGE_DEEP_SCANLINE ||
+                 P.type == EXR_STORAGE_DEEP_TILED)
+        {
+            for (auto c : P.channels)
+            {
+                auto C = py::cast<PyChannel&>(c.second);
+                samplingFactors.insert(std::pair<int,int>(C.xSampling, C.ySampling));
+            }
+            
+            for (auto s : samplingFactors)
+            {
+                DeepFrameBuffer frameBuffer;
+        
+                for (auto c : P.channels)
+                {
+                    auto C = py::cast<PyChannel&>(c.second);
+                    if (true/*C.xSampling == s.first && C.ySampling == s.second*/)
+                        frameBuffer.insert (C.name,
+                                            DeepSlice (static_cast<PixelType>(C.pixelType()),
+                                                       static_cast<char*>(C.pixels.request().ptr),
+                                                       0, 0, 0,
+                                                       C.xSampling,
+                                                       C.ySampling));
+                }
+        
+                if (P.type == EXR_STORAGE_DEEP_SCANLINE)
+                {
+                    DeepScanLineOutputPart part(outfile, p);
+                    part.setFrameBuffer (frameBuffer);
+                    part.writePixels (P.height);
+                }
+                else if (P.type == EXR_STORAGE_DEEP_TILED)
+                {
+                    DeepTiledOutputPart part(outfile, p);
+                    part.setFrameBuffer (frameBuffer);
+                    part.writeTiles (0, part.numXTiles() - 1, 0, part.numYTiles() - 1);
+                }
+            }
+        }
     }
 }
     
+py::object
+get_attribute_object(const char* name, const Attribute* a)
+{
+    if (auto v = dynamic_cast<const Box2iAttribute*> (a))
+        return py::cast(Box2i(v->value()));
+
+    if (auto v = dynamic_cast<const Box2fAttribute*> (a))
+        return py::cast(Box2f(v->value()));
+
+    if (auto v = dynamic_cast<const ChannelListAttribute*> (a))
+    {
+        auto L = v->value();
+        auto l = py::list();
+        for (auto c = L.begin (); c != L.end (); ++c)
+        {
+            auto C = c.channel();
+            l.append(py::cast(PyChannel(c.name(),
+                                        C.xSampling,
+                                        C.ySampling,
+                                        C.pLinear)));
+        }
+        return l;
+    }
+    
+    if (auto v = dynamic_cast<const ChromaticitiesAttribute*> (a))
+    {
+        PyChromaticities c(v->value().red.x,
+                           v->value().red.y,
+                           v->value().green.x,
+                           v->value().green.y,
+                           v->value().blue.x,
+                           v->value().blue.y,
+                           v->value().white.x,
+                           v->value().white.y);
+        return py::cast(c);
+    }
+
+    if (auto v = dynamic_cast<const CompressionAttribute*> (a))
+        return py::cast(exr_compression_t(v->value()));
+
+    if (auto v = dynamic_cast<const DoubleAttribute*> (a))
+        return py::cast(PyDouble(v->value()));
+
+    if (auto v = dynamic_cast<const EnvmapAttribute*> (a))
+        return py::cast(exr_envmap_t(v->value()));
+
+    if (auto v = dynamic_cast<const FloatAttribute*> (a))
+        return py::float_(v->value());
+
+    if (auto v = dynamic_cast<const IntAttribute*> (a))
+        return py::int_(v->value());
+
+    if (auto v = dynamic_cast<const KeyCodeAttribute*> (a))
+        return py::cast(v->value());
+
+    if (auto v = dynamic_cast<const LineOrderAttribute*> (a))
+        return py::cast(exr_lineorder_t(v->value()));
+
+    if (auto v = dynamic_cast<const M33fAttribute*> (a))
+        return py::cast(M33f(v->value()[0][0],
+                             v->value()[0][1],
+                             v->value()[0][2],
+                             v->value()[1][0],
+                             v->value()[1][1],
+                             v->value()[1][2],
+                             v->value()[2][0],
+                             v->value()[2][1],
+                             v->value()[2][2]));
+
+    if (auto v = dynamic_cast<const M33dAttribute*> (a))
+        return py::cast(M33d(v->value()[0][0],
+                             v->value()[0][1],
+                             v->value()[0][2],
+                             v->value()[1][0],
+                             v->value()[1][1],
+                             v->value()[1][2],
+                             v->value()[2][0],
+                             v->value()[2][1],
+                             v->value()[2][2]));
+
+    if (auto v = dynamic_cast<const M44fAttribute*> (a))
+        return py::cast(M44f(v->value()[0][0],
+                             v->value()[0][1],
+                             v->value()[0][2],
+                             v->value()[0][3],
+                             v->value()[1][0],
+                             v->value()[1][1],
+                             v->value()[1][2],
+                             v->value()[1][3],
+                             v->value()[2][0],
+                             v->value()[2][1],
+                             v->value()[2][2],
+                             v->value()[2][3],
+                             v->value()[3][0],
+                             v->value()[3][1],
+                             v->value()[3][2],
+                             v->value()[3][3]));
+
+    if (auto v = dynamic_cast<const M44dAttribute*> (a))
+        return py::cast(M44d(v->value()[0][0],
+                             v->value()[0][1],
+                             v->value()[0][2],
+                             v->value()[0][3],
+                             v->value()[1][0],
+                             v->value()[1][1],
+                             v->value()[1][2],
+                             v->value()[1][3],
+                             v->value()[2][0],
+                             v->value()[2][1],
+                             v->value()[2][2],
+                             v->value()[2][3],
+                             v->value()[3][0],
+                             v->value()[3][1],
+                             v->value()[3][2],
+                             v->value()[3][3]));
+
+    if (auto v = dynamic_cast<const PreviewImageAttribute*> (a))
+    {
+        auto I = v->value();
+        return py::cast(PyPreviewImage(I.width(), I.height(), I.pixels()));
+    }
+
+    if (auto v = dynamic_cast<const StringAttribute*> (a))
+    {
+        if (!strcmp(name, "type"))
+        {
+            //
+            // The "type" attribute comes through as a string,
+            // but we want it to be the OpenEXR.Storage enum.
+            //
+                  
+            exr_storage_t t = EXR_STORAGE_LAST_TYPE;
+            if (v->value() == "scanlineimage")
+                t = EXR_STORAGE_SCANLINE;
+            else if (v->value() == "tiledimage")
+                t = EXR_STORAGE_TILED;
+            else if (v->value() == "deepscanline")
+                t = EXR_STORAGE_DEEP_SCANLINE;
+            else if (v->value() == "deeptile") 
+                t = EXR_STORAGE_DEEP_TILED;
+            else
+                throw std::invalid_argument("unrecognized image 'type' attribute");
+            return py::cast(t);
+        }
+        return py::str(v->value());
+    }
+
+    if (auto v = dynamic_cast<const StringVectorAttribute*> (a))
+    {
+        auto l = py::list();
+        for (auto i = v->value().begin (); i != v->value().end(); i++)
+            l.append(py::str(*i));
+        return l;
+    }
+
+    if (auto v = dynamic_cast<const FloatVectorAttribute*> (a))
+    {
+        auto l = py::list();
+        for (auto i = v->value().begin(); i != v->value().end(); i++)
+            l.append(py::float_(*i));
+    }
+
+    if (auto v = dynamic_cast<const RationalAttribute*> (a))
+        return py::cast(v->value());
+
+    if (auto v = dynamic_cast<const TileDescriptionAttribute*> (a))
+        return py::cast(v->value());
+
+    if (auto v = dynamic_cast<const TimeCodeAttribute*> (a))
+        return py::cast(v->value());
+
+    if (auto v = dynamic_cast<const V2iAttribute*> (a))
+        return py::cast(V2i(v->value().x, v->value().y));
+
+    if (auto v = dynamic_cast<const V2fAttribute*> (a))
+        return py::cast(V2f(v->value().x, v->value().y));
+
+    if (auto v = dynamic_cast<const V2dAttribute*> (a))
+        return py::cast(V2d(v->value().x, v->value().y));
+
+    if (auto v = dynamic_cast<const V3iAttribute*> (a))
+        return py::cast(V3i(v->value().x, v->value().y, v->value().z));
+    
+    if (auto v = dynamic_cast<const V3fAttribute*> (a))
+        return py::cast(V3f(v->value().x, v->value().y, v->value().z));
+    
+    if (auto v = dynamic_cast<const V3dAttribute*> (a))
+        return py::cast(V3d(v->value().x, v->value().y, v->value().z));
+    
+    return py::none();
+}
+    
+void
+set_attribute(Header& header, const std::string& name, py::object object)
+{
+#if XXX
+    std::cout << "header " << header.name()
+              << " set_attribute: name=" << name
+              << " value=" << py::str(object)
+              << std::endl;
+#endif
+    if (auto v = py_cast<Box2i>(object))
+    {
+        header.insert(name, Box2iAttribute(*v));
+    }
+    else if (auto v = py_cast<Box2f>(object))
+        header.insert(name, Box2fAttribute(*v));
+    else if (py::isinstance<py::list>(object))
+    {
+        auto list = py::cast<py::list>(object);
+        auto size = list.size();
+        if (size == 0)
+            throw std::runtime_error("invalid empty list is header: can't deduce attribute type");
+
+        if (py::isinstance<py::float_>(list[0]))
+        {
+            // float vector
+            std::vector<float> v = list.cast<std::vector<float>>();
+            header.insert(name, FloatVectorAttribute(v));
+        }
+        else if (py::isinstance<py::str>(list[0]))
+        {
+            // string vector
+            std::vector<std::string> v = list.cast<std::vector<std::string>>();
+            header.insert(name, StringVectorAttribute(v));
+        }
+        else if (py::isinstance<PyChannel>(list[0]))
+        {
+            //
+            // Channel list: don't create an explicit chlist attribute here,
+            // since the channels get created elswhere.
+        }
+    }
+    else if (auto v = py_cast<PyChromaticities>(object))
+    {
+        Chromaticities c(V2f(v->red_x, v->red_y),
+                         V2f(v->green_x, v->green_y),
+                         V2f(v->blue_x, v->blue_y),
+                         V2f(v->white_x, v->white_y));
+        header.insert(name, ChromaticitiesAttribute(c));
+    }
+    else if (auto v = py_cast<exr_compression_t>(object))
+        header.insert(name, CompressionAttribute(static_cast<Compression>(*v)));
+    else if (auto v = py_cast<exr_envmap_t>(object))
+        header.insert(name, EnvmapAttribute(static_cast<Envmap>(*v)));
+    else if (py::isinstance<py::float_>(object))
+        header.insert(name, FloatAttribute(py::cast<py::float_>(object)));
+    else if (py::isinstance<PyDouble>(object))
+        header.insert(name, DoubleAttribute(py::cast<PyDouble>(object).d));
+    else if (py::isinstance<py::int_>(object))
+        header.insert(name, IntAttribute(py::cast<py::int_>(object)));
+    else if (auto v = py_cast<KeyCode>(object))
+        header.insert(name, KeyCodeAttribute(*v));
+    else if (auto v = py_cast<exr_lineorder_t>(object))
+        header.insert(name, LineOrderAttribute(static_cast<LineOrder>(*v)));
+    else if (auto v = py_cast<M33f>(object))
+        header.insert(name, M33fAttribute(*v));
+    else if (auto v = py_cast<M33d>(object))
+        header.insert(name, M33dAttribute(*v));
+    else if (auto v = py_cast<M44f>(object))
+        header.insert(name, M44fAttribute(*v));
+    else if (auto v = py_cast<M44d>(object))
+        header.insert(name, M44dAttribute(*v));
+    else if (auto v = py_cast<PyPreviewImage>(object))
+    {
+        py::buffer_info buf = v->pixels.request();
+        auto pixels = static_cast<PreviewRgba*>(buf.ptr);
+        auto height = v->pixels.shape(0);
+        auto width = v->pixels.shape(1);
+        PreviewImage p(width, height, pixels);
+        header.insert(name, PreviewImageAttribute(p));
+    }
+    else if (auto v = py_cast<Rational>(object))
+        header.insert(name, RationalAttribute(*v));
+    else if (auto v = py_cast<TileDescription>(object))
+        header.insert(name, TileDescriptionAttribute(*v));
+    else if (auto v = py_cast<TimeCode>(object))
+        header.insert(name, TimeCodeAttribute(*v));
+    else if (auto v = py_cast<V2i>(object))
+        header.insert(name, V2iAttribute(*v));
+    else if (auto v = py_cast<V2f>(object))
+        header.insert(name, V2fAttribute(*v));
+    else if (auto v = py_cast<V2d>(object))
+        header.insert(name, V2dAttribute(*v));
+    else if (auto v = py_cast<V3i>(object))
+        header.insert(name, V3iAttribute(*v));
+    else if (auto v = py_cast<V3f>(object))
+        header.insert(name, V3fAttribute(*v));
+    else if (auto v = py_cast<V3d>(object))
+        header.insert(name, V3dAttribute(*v));
+    else if (auto v = py_cast<exr_storage_t>(object))
+    {
+        const char* type;
+        switch (*v)
+        {
+        case EXR_STORAGE_SCANLINE:
+            type = "scanlineimage";
+            break;
+        case EXR_STORAGE_TILED:
+            type = "tiledimage";
+            break;
+        case EXR_STORAGE_DEEP_SCANLINE:
+            type = "deepscanlineimage";
+            break;
+        case EXR_STORAGE_DEEP_TILED:
+            type = "deeptiledimage";
+            break;
+        case EXR_STORAGE_LAST_TYPE:
+        default:
+            throw std::runtime_error("unknown storage type");
+            break;
+        }
+        header.insert(name, StringAttribute(type));
+    }
+    else if (py::isinstance<py::str>(object))
+        header.insert(name, StringAttribute(py::str(object)));
+    else
+    {
+        std::stringstream s;
+        s << "unknown attribute type: " << py::str(object);
+        throw std::runtime_error(s.str());
+    }
+}
+
+
 void
 PyFile::multiPartInputFile(const char* filename)
 {
@@ -189,15 +623,10 @@ PyFile::multiPartInputFile(const char* filename)
 
         PyPart P;
 
-        if (header.hasName())
-            P.name = header.name();
-        else
-        {
-            std::stringstream s;
-            s << "Part" << part_index;
-            P.name = s.str();
-        }
-        
+        std::stringstream s;
+        s << "Part" << part_index;
+        P.name = s.str();
+
         P.part_index = part_index;
         
         const Box2i& dw = header.dataWindow();
@@ -211,51 +640,72 @@ PyFile::multiPartInputFile(const char* filename)
         else if (header.type() == "tiledimage")
             P.type = EXR_STORAGE_TILED;
         
+        for (auto a = header.begin(); a != header.end(); a++)
+        {
+            const char* name = a.name();
+            const Attribute& attribute = a.attribute();
+            P.header[name] = get_attribute_object(name, &attribute);
+            if (!strcmp(name, "name"))
+                P.name = header.name();
+        }
+
         std::vector<size_t> shape ({P.height, P.width});
 
-        FrameBuffer frameBuffer;
-        
         InputPart part (infile, part_index);
 
+        std::set<std::pair<int,int>> samplingFactors;
         for (auto c = header.channels().begin(); c != header.channels().end(); c++)
+            samplingFactors.insert(std::pair<int,int>(c.channel().xSampling, c.channel().ySampling));
+        for (auto s : samplingFactors)
         {
-            PyChannel C;
-            
-            C.name = c.name();
-            C.xSampling = c.channel().xSampling;
-            C.ySampling = c.channel().ySampling;
+            FrameBuffer frameBuffer;
 
-            const auto style = py::array::c_style | py::array::forcecast;
-
-            switch (c.channel().type)
+            for (auto c = header.channels().begin(); c != header.channels().end(); c++)
             {
-            case UINT:
-                C.pixels = py::array_t<uint32_t,style>(shape);
-                break;
-            case HALF:
-                C.pixels = py::array_t<half,style>(shape);
-                break;
-            case FLOAT:
-                C.pixels = py::array_t<float,style>(shape);
-                break;
-            default:
-                throw std::runtime_error("invalid pixel type");
-            } // switch c->type
+#if XXX
+                if (c.channel().xSampling != s.first ||
+                    c.channel().ySampling != s.second)
+                    continue;
+#endif                
+                PyChannel C;
+            
+                C.name = c.name();
+                C.xSampling = c.channel().xSampling;
+                C.ySampling = c.channel().ySampling;
+                C.pLinear = c.channel().pLinear;
+                
+                const auto style = py::array::c_style | py::array::forcecast;
 
-            py::buffer_info buf = C.pixels.request();
+                switch (c.channel().type)
+                {
+                case UINT:
+                    C.pixels = py::array_t<uint32_t,style>(shape);
+                    break;
+                case HALF:
+                    C.pixels = py::array_t<half,style>(shape);
+                    break;
+                case FLOAT:
+                    C.pixels = py::array_t<float,style>(shape);
+                    break;
+                default:
+                    throw std::runtime_error("invalid pixel type");
+                } // switch c->type
 
-            frameBuffer.insert (C.name,
-                                Slice::Make (c.channel().type,
-                                             (void*) buf.ptr,
-                                             dw, 0, 0,
-                                             C.xSampling,
-                                             C.ySampling));
-            P.channels[py::str(c.name())] = C;
-        } // for header.channels()
+                py::buffer_info buf = C.pixels.request();
 
-        part.setFrameBuffer (frameBuffer);
-        part.readPixels (dw.min.y, dw.max.y);
+                frameBuffer.insert (C.name,
+                                    Slice::Make (c.channel().type,
+                                                 (void*) buf.ptr,
+                                                 dw, 0, 0,
+                                                 C.xSampling,
+                                                 C.ySampling));
+                P.channels[py::str(c.name())] = C;
+            } // for header.channels()
 
+            part.setFrameBuffer (frameBuffer);
+            part.readPixels (dw.min.y, dw.max.y);
+        }
+        
         parts.append(py::cast<PyPart>(PyPart(P)));
     } // for parts
 }
@@ -276,10 +726,7 @@ PyFile::TiledRgbaInputFile(const char* filename)
     file.setFrameBuffer (&pixels[-dwy][-dwx], 1, width);
     file.readTiles (0, file.numXTiles () - 1, 0, file.numYTiles () - 1);
 
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-    std::cout << "height=" << height << " width=" << width << std::endl;
-
-//    const Rgba* p = &pixels[0][0];
+    std::cout << "TiledRgbaInputFile: height=" << height << " width=" << width << std::endl;
     for (int y=0; y<height; y++)
         for (int x=0; x<width; x++)
         {
@@ -306,10 +753,8 @@ PyFile::RgbaInputFile(const char* filename)
     file.setFrameBuffer(&pixels[0][0], 1, width);
     file.readPixels(dw.min.y, dw.max.y);
 
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-    std::cout << "height=" << height << " width=" << width << std::endl;
+    std::cout << "RgbaInputFile: height=" << height << " width=" << width << std::endl;
 
-//    const Rgba* p = &pixels[0][0];
     for (int y=0; y<height; y++)
         for (int x=0; x<width; x++)
         {
@@ -939,6 +1384,7 @@ PyPart::read_scanline_part (exr_context_t f)
                 C.name = outc.channel_name;
                 C.xSampling  = outc.x_samples;
                 C.ySampling  = outc.y_samples;
+                C.pLinear = outc.p_linear;
                 
                 std::vector<size_t> shape, strides;
                 shape.assign({ height, width });
@@ -1028,35 +1474,6 @@ PyPart::read_scanline_part (exr_context_t f)
             throw std::runtime_error("error in decoder");
     }
 
-#if XXX
-    auto R = py::cast<const PyChannel&>(channels[py::str("R")]);
-    py::buffer_info Rbuf = R.pixels.request();
-    half* Rpixels = static_cast<half*>(Rbuf.ptr);
-                                        
-    auto G = py::cast<const PyChannel&>(channels[py::str("G")]);
-    py::buffer_info Gbuf = G.pixels.request();
-    half* Gpixels = static_cast<half*>(Gbuf.ptr);
-                                        
-    auto B = py::cast<const PyChannel&>(channels[py::str("B")]);
-    py::buffer_info Bbuf = B.pixels.request();
-    half* Bpixels = static_cast<half*>(Bbuf.ptr);
-                                        
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-    std::cout << "height=" << height << " width=" << width << std::endl;
-    for (int y=0; y<height; y++)
-        for (int x=0; x<width; x++)
-        {
-            int i = y * width + x;
-            std::cout << i << " pixels["
-                      << y << "]["
-                      << x << "]=("
-                      << Rpixels[i] << ", "
-                      << Gpixels[i] << ", "
-                      << Bpixels[i] << ")"
-                      << std::endl;
-        }
-#endif
-    
     exr_decoding_destroy (f, &decoder);
 }
 
@@ -1820,6 +2237,7 @@ PyChannel::operator==(const PyChannel& other) const
     if (name == other.name && 
         xSampling == other.xSampling && 
         ySampling == other.ySampling &&
+        pLinear == other.pLinear &&
         pixels.ndim() == other.pixels.ndim() && 
         pixels.size() == other.pixels.size())
     {
@@ -2211,11 +2629,14 @@ PYBIND11_MODULE(OpenEXR, m)
     py::class_<PyChannel>(m, "Channel")
         .def(py::init())
         .def(py::init<int,int>())
+        .def(py::init<int,int,bool>())
         .def(py::init<py::array>())
         .def(py::init<py::array,int,int>())
+        .def(py::init<py::array,int,int,bool>())
         .def(py::init<const char*,int,int>())
+        .def(py::init<const char*,int,int,bool>())
         .def(py::init<const char*,py::array>())
-        .def(py::init<const char*,py::array,int,int>())
+        .def(py::init<const char*,py::array,int,int,bool>())
         .def("__repr__", [](const PyChannel& c) { return repr(c); })
         .def(py::self == py::self)
         .def(py::self != py::self)
@@ -2223,6 +2644,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("type", &PyChannel::pixelType) 
         .def_readwrite("xSampling", &PyChannel::xSampling)
         .def_readwrite("ySampling", &PyChannel::ySampling)
+        .def_readwrite("pLinear", &PyChannel::pLinear)
         .def_readwrite("pixels", &PyChannel::pixels)
         .def_readonly("channel_index", &PyChannel::channel_index)
         ;

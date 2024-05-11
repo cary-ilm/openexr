@@ -90,19 +90,19 @@ public:
     PyChannel()
         : xSampling(1), ySampling(1), channel_index(0) {}
 
-    PyChannel(int x, int y)
-        : xSampling(x), ySampling(y), channel_index(0) {}
+    PyChannel(int x, int y, bool pLinear = false)
+        : xSampling(x), ySampling(y), pLinear(pLinear), channel_index(0) {}
     PyChannel(const py::array& p)
-        : xSampling(1), ySampling(1), pixels(p), channel_index(0) { validate_pixel_array(); }
-    PyChannel(const py::array& p, int x, int y)
-        : xSampling(x), ySampling(y), pixels(p), channel_index(0) { validate_pixel_array(); }
+        : xSampling(1), ySampling(1), pLinear(pLinear), pixels(p), channel_index(0) { validate_pixel_array(); }
+    PyChannel(const py::array& p, int x, int y, bool pLinear = false)
+        : xSampling(x), ySampling(y), pLinear(pLinear), pixels(p), channel_index(0) { validate_pixel_array(); }
         
-    PyChannel(const char* n, int x = 1, int y = 1)
-        : name(n), xSampling(x), ySampling(y), channel_index(0) {}
+    PyChannel(const char* n, int x = 1, int y = 1, bool pLinear = false)
+        : name(n), xSampling(x), ySampling(y), pLinear(pLinear), channel_index(0) {}
     PyChannel(const char* n, const py::array& p)
-        : name(n), xSampling(1), ySampling(1), pixels(p), channel_index(0) { validate_pixel_array(); }
-    PyChannel(const char* n, const py::array& p, int x, int y)
-        : name(n), xSampling(x), ySampling(y), pixels(p), channel_index(0) { validate_pixel_array(); }
+        : name(n), xSampling(1), ySampling(1), pLinear(pLinear), pixels(p), channel_index(0) { validate_pixel_array(); }
+    PyChannel(const char* n, const py::array& p, int x, int y, bool pLinear)
+        : name(n), xSampling(x), ySampling(y), pLinear(pLinear), pixels(p), channel_index(0) { validate_pixel_array(); }
 
     bool operator==(const PyChannel& other) const;
     bool operator!=(const PyChannel& other) const { return !(*this == other); }
@@ -114,6 +114,7 @@ public:
     std::string           name;
     int                   xSampling;
     int                   ySampling;
+    int                   pLinear;
     py::array             pixels;
 
     size_t                channel_index;
@@ -163,7 +164,10 @@ operator<< (std::ostream& s, const PyPreviewImage& P)
     auto width = P.pixels.shape(1);
     auto height = P.pixels.shape(0);
     
-    s << "PreviewImage(" << width << ", " << height << "," << std::endl;
+    s << "PreviewImage(" << width
+      << ", " << height;
+#if PRINT_PIXELS
+    s << "," << std::endl;
     py::buffer_info buf = P.pixels.request();
     const PreviewRgba* rgba = static_cast<PreviewRgba*>(buf.ptr);
     for (decltype(height) y = 0; y<height; y++)
@@ -172,6 +176,8 @@ operator<< (std::ostream& s, const PyPreviewImage& P)
             s << rgba[y*width+x];
         s << std::endl;
     }
+#endif
+    s << ")";
     return s;
 }
     
