@@ -19,6 +19,7 @@ test_dir = os.path.dirname(__file__)
 
 outfilenames = []
 def mktemp_outfilename():
+#    return f"{test_dir}/out.exr"
     fd, outfilename = tempfile.mkstemp(".exr")
     os.close(fd)
     global outfilenames
@@ -30,7 +31,7 @@ def cleanup():
         if os.path.isfile(outfilename):
             print(f"deleting {outfilename}")
             os.unlink(outfilename)
-#atexit.register(cleanup)
+atexit.register(cleanup)
 
 
 def equalWithRelError (x1, x2, e):
@@ -156,6 +157,11 @@ class TestExceptions(unittest.TestCase):
 
         outfile = OpenEXR.File(outfilename)
     
+#        print("infile:")
+#        print_file(infile)
+#        print("outfile:")
+#        print_file(outfile)
+        
         assert outfile == infile
     
     def test_keycode(self):
@@ -294,6 +300,7 @@ class TestExceptions(unittest.TestCase):
 
         # validate the values are the same
         eps = 1e-5
+        mpar = m.parts[0].header["pixelAspectRatio"]
         assert equalWithRelError(m.parts[0].header["pixelAspectRatio"], par, eps)
         assert m.parts[0].header["foo"] == "bar"
         
@@ -386,7 +393,7 @@ class TestExceptions(unittest.TestCase):
 
         outfilename = mktemp_outfilename()
         outfile.write(outfilename)
-        
+
         # Verify reading it back gives the same data
         infile = OpenEXR.File(outfilename)
 

@@ -28,11 +28,6 @@ public:
     
     std::string  filename;
     py::list     parts;
-
-    void        RgbaInputFile(const char* filename);
-    void        TiledRgbaInputFile(const char* filename);
-    void        multiPartInputFile(const char* filename);
-    void        multiPartOutputFile(const char* filename);
 };
 
 //
@@ -88,21 +83,23 @@ class PyChannel
 public:
 
     PyChannel()
-        : xSampling(1), ySampling(1), channel_index(0) {}
+        : xSampling(1), ySampling(1), pLinear(false), channel_index(0) { init_valid(); }
 
     PyChannel(int x, int y, bool pLinear = false)
-        : xSampling(x), ySampling(y), pLinear(pLinear), channel_index(0) {}
+        : xSampling(x), ySampling(y), pLinear(pLinear), channel_index(0) { init_valid(); }
     PyChannel(const py::array& p)
-        : xSampling(1), ySampling(1), pLinear(pLinear), pixels(p), channel_index(0) { validate_pixel_array(); }
+        : xSampling(1), ySampling(1), pLinear(false), pixels(p), channel_index(0) { init_valid(); validate_pixel_array(); }
     PyChannel(const py::array& p, int x, int y, bool pLinear = false)
-        : xSampling(x), ySampling(y), pLinear(pLinear), pixels(p), channel_index(0) { validate_pixel_array(); }
+        : xSampling(x), ySampling(y), pLinear(pLinear), pixels(p), channel_index(0) { init_valid(); validate_pixel_array(); }
         
-    PyChannel(const char* n, int x = 1, int y = 1, bool pLinear = false)
-        : name(n), xSampling(x), ySampling(y), pLinear(pLinear), channel_index(0) {}
+    PyChannel(const char* n)
+        : name(n), xSampling(1), ySampling(1), pLinear(false), channel_index(0) { init_valid(); }
+    PyChannel(const char* n, int x, int y, bool pLinear = false)
+        : name(n), xSampling(x), ySampling(y), pLinear(pLinear), channel_index(0) { init_valid(); }
     PyChannel(const char* n, const py::array& p)
-        : name(n), xSampling(1), ySampling(1), pLinear(pLinear), pixels(p), channel_index(0) { validate_pixel_array(); }
-    PyChannel(const char* n, const py::array& p, int x, int y, bool pLinear)
-        : name(n), xSampling(x), ySampling(y), pLinear(pLinear), pixels(p), channel_index(0) { validate_pixel_array(); }
+        : name(n), xSampling(1), ySampling(1), pLinear(false), pixels(p), channel_index(0) { init_valid(); validate_pixel_array(); }
+    PyChannel(const char* n, const py::array& p, int x, int y, bool pLinear = false)
+        : name(n), xSampling(x), ySampling(y), pLinear(pLinear), pixels(p), channel_index(0) { init_valid(); validate_pixel_array(); }
 
     bool operator==(const PyChannel& other) const;
     bool operator!=(const PyChannel& other) const { return !(*this == other); }
@@ -118,6 +115,14 @@ public:
     py::array             pixels;
 
     size_t                channel_index;
+    
+    void init_valid()
+    {
+        valid = num_valid++;
+    }
+    
+    static int            num_valid;
+    int                   valid;
     
     void set_encoder_channel(exr_encode_pipeline_t& encoder, size_t y, size_t width, size_t scansperchunk) const;
 };
@@ -348,7 +353,7 @@ operator<< (std::ostream& s, const PyPart& P)
              << "\", type=" << py::cast(P.type) 
              << ", width=" << P.width
              << ", height=" << P.height
-             << ", compression=" << P.compression
+             << ", compression=" << py::cast(P.compression)
              << ")";
 }
 
