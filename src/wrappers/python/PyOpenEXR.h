@@ -16,18 +16,28 @@ public:
     PyFile() {}
     PyFile(const std::string& filename);
     PyFile(const py::dict& header, const py::dict& channels,
-           exr_storage_t type, exr_compression_t compression);
+           exr_storage_t type, Compression c);
     PyFile(const py::list& parts);
 
-    py::dict& header(int part_index = 0);
-    py::dict& channels(int part_index = 0);
+    py::dict&    header(int part_index = 0);
+    py::dict&    channels(int part_index = 0);
 
-    void      write(const char* filename);
+    void         write(const char* filename);
     
-    bool operator==(const PyFile& other) const;
+    bool         operator==(const PyFile& other) const;
+    bool         operator!=(const PyFile& other) const { return !(*this == other); }
     
     std::string  filename;
     py::list     parts;
+
+private:
+    
+    py::object   get_attribute_object(const char* name, const Attribute* a);
+    
+    void         insert_attribute(Header& header,
+                                  const std::string& name,
+                                  const py::object& object);
+
 };
 
 //
@@ -39,38 +49,24 @@ public:
 class PyPart
 {
   public:
-    PyPart()
-        : type(EXR_STORAGE_LAST_TYPE), width(0), height(0),
-        compression (EXR_COMPRESSION_LAST_TYPE), part_index(0) {}
-    PyPart(const char* name, const py::dict& a, const py::dict& channels,
-           exr_storage_t type, exr_compression_t c);
-    PyPart(exr_context_t f, int part_index);
+    PyPart() {}
+    PyPart(const py::dict& header, const py::dict& channels,
+           exr_storage_t type, Compression compression, const char* name);
     
     bool operator==(const PyPart& other) const;
+    bool operator!=(const PyPart& other) const { return !(*this == other); }
 
-    std::string           name;
-    exr_storage_t         type;
-    uint64_t              width;
-    uint64_t              height;
-    exr_compression_t     compression;
-
-    py::dict              header;
-    py::dict              channels;
-
-    int                   part_index;
+    std::string    name() const;
+    V2i            shape() const;
+    size_t         width() const;
+    size_t         height() const;
+    Compression    compression() const;
+    std::string    type() const;
     
-    void read_scanline_part (exr_context_t f);
-    void read_tiled_part (exr_context_t f);
+    py::dict       header;
+    py::dict       channels;
 
-    py::object get_attribute_object(exr_context_t f, int32_t attr_index, std::string& name);
-
-    void set_attributes(exr_context_t f); 
-    void set_attribute(exr_context_t f, const std::string& name, py::object object);
-    void add_channels(exr_context_t f);
-
-    void write(exr_context_t f);
-    void write_scanlines(exr_context_t f);
-    void write_tiles(exr_context_t f);
+    size_t         part_index;
 };
 
 //
@@ -83,30 +79,35 @@ class PyChannel
 public:
 
     PyChannel()
-        : xSampling(1), ySampling(1), pLinear(false), channel_index(0) { init_valid(); }
+        : xSampling(1), ySampling(1), pLinear(false), channel_index(0) {}
 
-    PyChannel(int x, int y, bool pLinear = false)
-        : xSampling(x), ySampling(y), pLinear(pLinear), channel_index(0) { init_valid(); }
+    PyChannel(int xSampling, int ySampling, bool pLinear = false)
+        : xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), channel_index(0) {}
     PyChannel(const py::array& p)
-        : xSampling(1), ySampling(1), pLinear(false), pixels(p), channel_index(0) { init_valid(); validate_pixel_array(); }
-    PyChannel(const py::array& p, int x, int y, bool pLinear = false)
-        : xSampling(x), ySampling(y), pLinear(pLinear), pixels(p), channel_index(0) { init_valid(); validate_pixel_array(); }
+        : xSampling(1), ySampling(1), pLinear(false), pixels(p),
+          channel_index(0) {validate_pixel_array(); }
+    PyChannel(const py::array& p, int xSampling, int ySampling, bool pLinear = false)
+        : xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), pixels(p),
+          channel_index(0) {validate_pixel_array(); }
         
     PyChannel(const char* n)
-        : name(n), xSampling(1), ySampling(1), pLinear(false), channel_index(0) { init_valid(); }
-    PyChannel(const char* n, int x, int y, bool pLinear = false)
-        : name(n), xSampling(x), ySampling(y), pLinear(pLinear), channel_index(0) { init_valid(); }
+        : name(n), xSampling(1), ySampling(1), pLinear(false), channel_index(0) {}
+    PyChannel(const char* n, int xSampling, int ySampling, bool pLinear = false)
+        : name(n), xSampling(xSampling), ySampling(ySampling), pLinear(pLinear),
+          channel_index(0) {}
     PyChannel(const char* n, const py::array& p)
-        : name(n), xSampling(1), ySampling(1), pLinear(false), pixels(p), channel_index(0) { init_valid(); validate_pixel_array(); }
-    PyChannel(const char* n, const py::array& p, int x, int y, bool pLinear = false)
-        : name(n), xSampling(x), ySampling(y), pLinear(pLinear), pixels(p), channel_index(0) { init_valid(); validate_pixel_array(); }
+        : name(n), xSampling(1), ySampling(1), pLinear(false), pixels(p),
+          channel_index(0) {validate_pixel_array(); }
+    PyChannel(const char* n, const py::array& p, int xSampling, int ySampling, bool pLinear = false)
+        : name(n), xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), pixels(p),
+          channel_index(0) {validate_pixel_array(); }
 
     bool operator==(const PyChannel& other) const;
     bool operator!=(const PyChannel& other) const { return !(*this == other); }
 
     void validate_pixel_array();
     
-    exr_pixel_type_t      pixelType() const;
+    PixelType             pixelType() const;
 
     std::string           name;
     int                   xSampling;
@@ -115,16 +116,6 @@ public:
     py::array             pixels;
 
     size_t                channel_index;
-    
-    void init_valid()
-    {
-        valid = num_valid++;
-    }
-    
-    static int            num_valid;
-    int                   valid;
-    
-    void set_encoder_channel(exr_encode_pipeline_t& encoder, size_t y, size_t width, size_t scansperchunk) const;
 };
     
 template <class T>
@@ -336,24 +327,29 @@ operator<< (std::ostream& s, const Box2f& v)
     return s;
 }
 
-
 inline std::ostream&
 operator<< (std::ostream& s, const PyChannel& C)
 {
-    return s << "Channel(\"" << C.name 
-             << "\", xSampling=" << C.xSampling 
-             << ", ySampling=" << C.ySampling
-             << ")";
+    s << "Channel(\"" << C.name 
+      << "\", xSampling=" << C.xSampling 
+      << ", ySampling=" << C.ySampling;
+    if (C.pLinear)
+        s << ", pLinear=True";
+    s << ")";
+    return s;
 }
 
 inline std::ostream&
 operator<< (std::ostream& s, const PyPart& P)
 {
-    return s << "Part(\"" << P.name 
-             << "\", type=" << py::cast(P.type) 
-             << ", width=" << P.width
-             << ", height=" << P.height
-             << ", compression=" << py::cast(P.compression)
-             << ")";
+    auto name = P.name();
+    s << "Part(";
+    if (name != "")
+        s << "\"" << name << "\"";
+    s << ", " << py::cast(P.compression())
+      << ", width=" << P.width()
+      << ", height=" << P.height()
+      << ")";
+    return s;
 }
 

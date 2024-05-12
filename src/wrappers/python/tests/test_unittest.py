@@ -191,6 +191,28 @@ class TestExceptions(unittest.TestCase):
         self.assertEqual(r.n, 1)
         self.assertEqual(r.d, 2)
 
+    def test_empty_header(self):
+
+        # Construct a file from scratch and write it.
+    
+        width = 5
+        height = 10
+        size = width * height
+        Z = np.array([i*5 for i in range(0,size)], dtype='uint32').reshape((height, width))
+        channels = {
+            "Z" : OpenEXR.Channel(Z, 1, 1),
+        }
+
+        header = {}
+
+        outfile = OpenEXR.File(header, channels)
+
+        outfilename = "out.exr" # mktemp_outfilename()
+        outfile.write(outfilename)
+
+        infile = OpenEXR.File(outfilename)
+        print_file(infile)
+
     def test_write_uint(self):
 
         # Construct a file from scratch and write it.
@@ -211,9 +233,9 @@ class TestExceptions(unittest.TestCase):
 
         header = {}
 
-        outfile = OpenEXR.File(header, channels,
-                               OpenEXR.scanlineimage, OpenEXR.ZIP_COMPRESSION)
+        outfile = OpenEXR.File(header, channels)
 
+        # confirm that the write assigned names to the channels
         self.assertEqual(outfile.channels()['A'].name, "A")
 
         outfilename = mktemp_outfilename()
