@@ -104,13 +104,6 @@ namespace {
 
 #include "PyOpenEXR.h"
     
-void
-diff(const char* func, int line)
-{
-    std::cout << func << " " << line << std::endl;
-}
-    
-
 //
 // Create a PyFile out of a list of parts (i.e. a multi-part file)
 //
@@ -136,7 +129,7 @@ PyFile::PyFile(const py::list& p)
 
 PyFile::PyFile(const py::dict& header, const py::dict& channels, exr_storage_t type, Compression compression)
 {
-    parts.append(py::cast<PyPart>(PyPart(header, channels, type, compression, nullptr)));
+    parts.append(py::cast<PyPart>(PyPart(header, channels, type, compression, "")));
 }
 
 //
@@ -158,19 +151,17 @@ PyFile::PyFile(const std::string& filename)
         P.part_index = part_index;
         
         const Box2i& dw = header.dataWindow();
-        auto width = P.width();
-        auto height = P.height();
-        auto type = P.type();
-        auto compression = P.compression();
-        
+        auto width = static_cast<size_t>(dw.max.x - dw.min.x + 1);
+        auto height = static_cast<size_t>(dw.max.y - dw.min.y + 1);
+
         for (auto a = header.begin(); a != header.end(); a++)
         {
-            const char* name = a.name();
+            std::string name = a.name();
             const Attribute& attribute = a.attribute();
-            P.header[name] = get_attribute_object(name, &attribute);
+            P.header[py::str(name)] = get_attribute_object(name, &attribute);
         }
 
-        std::vector<size_t> shape ({P.height(), P.width()});
+        std::vector<size_t> shape ({height, width});
 
         FrameBuffer frameBuffer;
 
@@ -215,7 +206,7 @@ PyFile::PyFile(const std::string& filename)
 
         part.setFrameBuffer (frameBuffer);
         part.readPixels (dw.min.y, dw.max.y);
-        
+
         parts.append(py::cast<PyPart>(PyPart(P)));
     } // for parts
 }
@@ -225,7 +216,6 @@ PyFile::operator==(const PyFile& other) const
 {
     if (parts.size() != other.parts.size())
     {
-//        diff(__PRETTY_FUNCTION__, __LINE__);
         std::cout << __PRETTY_FUNCTION__ << " #parts differs." << std::endl;
         return false;
     }
@@ -305,6 +295,12 @@ PyFile::write(const char* outfilename)
             insert_attribute(header, name, second);
         }
         
+        if (!P.header.contains("dataWindow"))
+        {
+            auto shape = P.shape();
+            header.dataWindow().max = V2i(shape[1]-1,shape[0]-1);
+        }
+        
         for (auto c : P.channels)
         {
             auto C = py::cast<PyChannel&>(c.second);
@@ -312,7 +308,7 @@ PyFile::write(const char* outfilename)
             header.channels ().insert(C.name, Channel (t, C.xSampling, C.ySampling, C.pLinear));
         }
 
-        header.setType(P.type());
+        header.setType(P.typeString());
 
         if (P.header.contains("tiles"))
         {
@@ -340,8 +336,8 @@ PyFile::write(const char* outfilename)
         auto header = headers[part_index];
         const Box2i& dw = header.dataWindow();
 
-        if (P.type() == SCANLINEIMAGE ||
-            P.type() == TILEDIMAGE)
+        if (P.type() == EXR_STORAGE_SCANLINE ||
+            P.type() == EXR_STORAGE_TILED)
         {
             FrameBuffer frameBuffer;
         
@@ -356,7 +352,7 @@ PyFile::write(const char* outfilename)
                                                  C.ySampling));
             }
                 
-            if (P.type() == SCANLINEIMAGE)
+            if (P.type() == EXR_STORAGE_SCANLINE)
             {
                 OutputPart part(outfile, part_index);
                 part.setFrameBuffer (frameBuffer);
@@ -369,8 +365,8 @@ PyFile::write(const char* outfilename)
                 part.writeTiles (0, part.numXTiles() - 1, 0, part.numYTiles() - 1);
             }
         }
-        else if (P.type() == DEEPSCANLINE ||
-                 P.type() == DEEPTILE)
+        else if (P.type() == EXR_STORAGE_DEEP_SCANLINE ||
+                 P.type() == EXR_STORAGE_DEEP_TILED)
         {
             DeepFrameBuffer frameBuffer;
         
@@ -385,7 +381,7 @@ PyFile::write(const char* outfilename)
                                                C.ySampling));
             }
         
-            if (P.type() == DEEPSCANLINE)
+            if (P.type() == EXR_STORAGE_DEEP_SCANLINE)
             {
                 DeepScanLineOutputPart part(outfile, part_index);
                 part.setFrameBuffer (frameBuffer);
@@ -398,6 +394,8 @@ PyFile::write(const char* outfilename)
                 part.writeTiles (0, part.numXTiles() - 1, 0, part.numYTiles() - 1);
             }
         }
+        else
+            throw std::runtime_error("invalid type");
     }
 
     filename = outfilename;
@@ -438,7 +436,7 @@ py_cast(const py::object& object)
 }
 
 py::object
-PyFile::get_attribute_object(const char* name, const Attribute* a)
+PyFile::get_attribute_object(const std::string& name, const Attribute* a)
 {
     if (auto v = dynamic_cast<const Box2iAttribute*> (a))
         return py::cast(Box2i(v->value()));
@@ -561,7 +559,7 @@ PyFile::get_attribute_object(const char* name, const Attribute* a)
 
     if (auto v = dynamic_cast<const StringAttribute*> (a))
     {
-        if (!strcmp(name, "type"))
+        if (name == "type")
         {
             //
             // The "type" attribute comes through as a string,
@@ -569,13 +567,13 @@ PyFile::get_attribute_object(const char* name, const Attribute* a)
             //
                   
             exr_storage_t t = EXR_STORAGE_LAST_TYPE;
-            if (v->value() == "scanlineimage")
+            if (v->value() == SCANLINEIMAGE) // "scanlineimage")
                 t = EXR_STORAGE_SCANLINE;
-            else if (v->value() == "tiledimage")
+            else if (v->value() == TILEDIMAGE) // "tiledimage")
                 t = EXR_STORAGE_TILED;
-            else if (v->value() == "deepscanline")
+            else if (v->value() == DEEPSCANLINE) // "deepscanline")
                 t = EXR_STORAGE_DEEP_SCANLINE;
-            else if (v->value() == "deeptile") 
+            else if (v->value() == DEEPTILE) // "deeptile") 
                 t = EXR_STORAGE_DEEP_TILED;
             else
                 throw std::invalid_argument("unrecognized image 'type' attribute");
@@ -724,20 +722,20 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
         header.insert(name, V3dAttribute(*v));
     else if (auto v = py_cast<exr_storage_t>(object))
     {
-        const char* type;
+        std::string type;
         switch (*v)
         {
         case EXR_STORAGE_SCANLINE:
-            type = "scanlineimage";
+            type = SCANLINEIMAGE;
             break;
         case EXR_STORAGE_TILED:
-            type = "tiledimage";
+            type = TILEDIMAGE;
             break;
         case EXR_STORAGE_DEEP_SCANLINE:
-            type = "deepscanlineimage";
+            type = DEEPSCANLINE;
             break;
         case EXR_STORAGE_DEEP_TILED:
-            type = "deeptiledimage";
+            type = DEEPTILE;
             break;
         case EXR_STORAGE_LAST_TYPE:
         default:
@@ -763,15 +761,20 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
 //
 
 PyPart::PyPart(const py::dict& header, const py::dict& channels,
-               exr_storage_t type, Compression compression, const char* name)
+               exr_storage_t type, Compression compression, const std::string& name)
     : header(header), channels(channels), part_index(0)
 {
+    if (name != "")
+        header[py::str("name")] = py::str(name);
+    
     if (type >= EXR_STORAGE_LAST_TYPE)
         throw std::invalid_argument("invalid storage type");
+    header[py::str("type")] = py::cast(type);
     
     if (compression >= NUM_COMPRESSION_METHODS)
         throw std::invalid_argument("invalid compression type");
-
+    header[py::str("compression")] = py::cast(compression);
+    
     for (auto a : header)
     {
         if (!py::isinstance<py::str>(a.first))
@@ -782,65 +785,27 @@ PyPart::PyPart(const py::dict& header, const py::dict& channels,
     }
     
     //
-    // Confirm all the channels have 2 dimensions and the same size
+    // Validate that all channel dict keys are strings, and initialze the
+    // channel name field.
     //
     
     for (auto c : channels)
     {
         if (!py::isinstance<py::str>(c.first))
             throw std::invalid_argument("channels key must be string (channel name)");
-        auto name = py::str(c.first);
 
-        if (!py::isinstance<const PyChannel&>(c.second))
-            throw std::invalid_argument("channels value must be a OpenEXR.Channel() object");
-
-        //
-        // Initialize the channel's name field to match the dict key.
-        //
-        
-        py::cast<PyChannel&>(channels[c.first]).name = name;
-
-#if XXX
-        std::string channel_name;
-        auto C = py::cast<const PyChannel&>(c.second);
-        if (C.pixels.ndim() == 2)
-        {
-            uint32_t w = C.pixels.shape(1);
-            uint32_t h = C.pixels.shape(0);
-
-            if (width == 0)
-                width = w;
-            if (height == 0)
-                height = h;
-            
-            if (w != width)
-            {
-                std::stringstream s;
-                s << "channel widths differ: " << channel_name << "=" << width << ", " << C.name << "=" << w;
-                throw std::invalid_argument(s.str());
-            }
-            if (h != height)
-            {
-                std::stringstream s;
-                s << "channel heights differ: " << channel_name << "=" << height << ", " << C.name << "=" << h;
-                throw std::invalid_argument(s.str());
-            }                
-            channel_name = C.name;
-        }
-        else
-            throw std::invalid_argument("error: channel must have a 2D array");
-#endif
+        c.second.cast<PyChannel&>().name = py::str(c.first);
     }
 
-#if XXX
+    auto s = shape();
+
     if (!header.contains("dataWindow"))
-        header["dataWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
+        header["dataWindow"] = py::cast(Box2i(V2i(0,0), V2i(s[1]-1,s[0]-1)));
 
     if (!header.contains("displayWindow"))
-        header["displayWindow"] = Box2i(V2i(0,0), V2i(width-1,height-1));
-#endif
+        header["displayWindow"] = py::cast(Box2i(V2i(0,0), V2i(s[1]-1,s[0]-1)));
 }
-    
+
 bool
 is_required_attribute(const std::string& name)
 {
@@ -892,7 +857,6 @@ equal_header(const py::dict& A, const py::dict& B)
         py::object b = B[py::str(name)];
         if (!a.equal(b))
         {
-            std::cout << "attribute " << name << " differ: " << py::str(a) << " " << py::str(b) << std::endl;
             if (py::isinstance<py::float_>(a))
             {                
                 float f = py::cast<py::float_>(a);
@@ -914,12 +878,6 @@ equal_header(const py::dict& A, const py::dict& B)
             }
             return false;
         }
-        else
-        {
-#if XXX
-            std::cout << "attribute " << name << " equal: " << py::str(a) << " " << py::str(b) << std::endl;
-#endif
-        }
     }
 
     return true;
@@ -929,58 +887,37 @@ equal_header(const py::dict& A, const py::dict& B)
 bool
 PyPart::operator==(const PyPart& other) const
 {
-#if XXX
-    if (name == other.name &&
-        type == other.type &&  
-        width == other.width &&
-        height == other.height)
+    if (!equal_header(header, other.header))
     {
-#endif
-        if (!equal_header(header, other.header))
-        {
-//            diff(__PRETTY_FUNCTION__, __LINE__);
-            std::cout << "PyPart: !equal_header" << std::endl;
-            return false;
-        }
-        
-        //
-        // The channel dicts might not be in alphabetical order
-        // (they're sorted on write), so don't just compare the dicts
-        // directly, compare each entry by key/name.
-        //
-        
-        if (channels.size() != other.channels.size())
-        {
-            std::cout << "PyPart: #channels differs." << std::endl;
-//            diff(__PRETTY_FUNCTION__, __LINE__);
-            return false;
-        }
-        
-        for (auto c : channels)
-        {
-            auto name = py::str(c.first);
-            auto C = c.second.cast<const PyChannel&>();
-            auto O = other.channels[py::str(name)].cast<const PyChannel&>();
-            if (!(C == O))
-            {
-                diff(__PRETTY_FUNCTION__, __LINE__);
-                std::cout << "channel " << name << " differs." << std::endl;
-                return false;
-            }
-        }
-        
-        return true;
-#if XXX
+        std::cout << "PyPart: !equal_header" << std::endl;
+        return false;
     }
+        
+    //
+    // The channel dicts might not be in alphabetical order
+    // (they're sorted on write), so don't just compare the dicts
+    // directly, compare each entry by key/name.
+    //
     
-    std::cout << "PyPart: basics differ." << std::endl;
-    
-    std::cout << *this << std::endl;
-    std::cout << "other:" << std::endl;
-    std::cout << other << std::endl;
-
-    return false;
-#endif
+    if (channels.size() != other.channels.size())
+    {
+        std::cout << "PyPart: #channels differs." << std::endl;
+        return false;
+    }
+        
+    for (auto c : channels)
+    {
+        auto name = py::str(c.first);
+        auto C = c.second.cast<const PyChannel&>();
+        auto O = other.channels[py::str(name)].cast<const PyChannel&>();
+        if (C != O)
+        {
+            std::cout << "channel " << name << " differs." << std::endl;
+            return false;
+        }
+    }
+        
+    return true;
 }
 
 template <class T>
@@ -1020,7 +957,6 @@ array_equals(const py::buffer_info& a, const py::buffer_info& b,
                           << "] = " << apixels[i]
                           << " b=" << bpixels[i]
                           << std::endl;
-                diff(__PRETTY_FUNCTION__, __LINE__);
                 return false;
             }
         }
@@ -1067,11 +1003,7 @@ PyChannel::operator==(const PyChannel& other) const
         if (py::isinstance<py::array_t<float>>(pixels) && py::isinstance<py::array_t<float>>(other.pixels))
             if (array_equals<float>(buf, obuf, name, width, height))
                 return true;
-        
-        diff(__PRETTY_FUNCTION__, __LINE__);
     }
-
-    diff(__PRETTY_FUNCTION__, __LINE__);
 
     return false;
 }
@@ -1079,20 +1011,37 @@ PyChannel::operator==(const PyChannel& other) const
 V2i
 PyPart::shape() const
 {
-    V2i s(0, 0);
+    V2i S(0, 0);
+        
+    std::string channel_name; // first channel name
+
     for (auto c : channels)
     {
         auto C = py::cast<PyChannel&>(c.second);
-        auto sy = C.pixels.shape(0);
-        if (s[0] == 0)
-            s[0] = sy;
-        auto sx = C.pixels.shape(1);
-        if (s[1] == 0)
-            s[1] = sx;
-        if (s[1] != sx || s[0] != sy)
-            throw std::runtime_error("bad width");
-    }
-    return s;
+
+        if (C.pixels.ndim() != 2)
+            throw std::invalid_argument("error: channel must have a 2D array");
+
+        V2i c_S(C.pixels.shape(0), C.pixels.shape(1));
+            
+        if (S == V2i(0, 0))
+        {
+            S = c_S;
+            channel_name = C.name;
+        }
+        
+        if (S != c_S)
+        {
+            std::stringstream s;
+            s << "channel shapes differ: " << channel_name
+              << "=" << S
+              << ", " << C.name
+              << "=" << c_S;
+            throw std::invalid_argument(s.str());
+        }
+    }                
+
+    return S;
 }
 
 size_t
@@ -1123,12 +1072,31 @@ PyPart::compression() const
     return ZIP_COMPRESSION;
 }
 
-std::string
+exr_storage_t
 PyPart::type() const
 {
     if (header.contains("type"))
-        return py::str(header["type"]);
-    return "";
+        return header[py::str("type")].cast<exr_storage_t>();
+    return EXR_STORAGE_SCANLINE;
+}
+
+std::string
+PyPart::typeString() const
+{
+    switch (type())
+    {
+      case EXR_STORAGE_SCANLINE:
+          return SCANLINEIMAGE;
+      case EXR_STORAGE_TILED:
+          return TILEDIMAGE;
+      case EXR_STORAGE_DEEP_SCANLINE:
+          return DEEPSCANLINE;
+      case EXR_STORAGE_DEEP_TILED:
+          return DEEPTILE;
+      default:
+          throw std::runtime_error("invalid type");
+    }       
+    return SCANLINEIMAGE;
 }
 
 PixelType
@@ -1486,11 +1454,11 @@ PYBIND11_MODULE(OpenEXR, m)
     
     py::class_<PyPart>(m, "Part")
         .def(py::init())
-        .def(py::init<py::dict,py::dict,exr_storage_t,Compression,const char*>(),
+        .def(py::init<py::dict,py::dict,exr_storage_t,Compression,std::string>(),
              py::arg("header"),
              py::arg("channels"),
              py::arg("type")=EXR_STORAGE_SCANLINE,
-             py::arg("compression")=EXR_COMPRESSION_ZIP,
+             py::arg("compression")=ZIP_COMPRESSION,
              py::arg("name")="")
         .def("__repr__", [](const PyPart& p) { return repr(p); })
         .def(py::self == py::self)
@@ -1511,7 +1479,7 @@ PYBIND11_MODULE(OpenEXR, m)
              py::arg("header"),
              py::arg("channels"),
              py::arg("type")=EXR_STORAGE_SCANLINE,
-             py::arg("compression")=EXR_COMPRESSION_ZIP)
+             py::arg("compression")=ZIP_COMPRESSION)
         .def(py::init<py::list>())
         .def(py::self == py::self)
         .def_readwrite("filename", &PyFile::filename)

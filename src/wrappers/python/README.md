@@ -72,24 +72,54 @@ for more information.
 The "hello, world" image writer:
 
     import OpenEXR
-    
-    width = 10
-    height = 10
-    size = width * height
-    
-    h = OpenEXR.Header(width,height)
-    h['channels'] = {'R' : Imath.Channel(FLOAT),
-                     'G' : Imath.Channel(FLOAT),
-                     'B' : Imath.Channel(FLOAT),
-                     'A' : Imath.Channel(FLOAT)} 
-    o = OpenEXR.OutputFile("hello.exr", h)
-    r = array('f', [n for n in range(size*0,size*1)]).tobytes()
-    g = array('f', [n for n in range(size*1,size*2)]).tobytes()
-    b = array('f', [n for n in range(size*2,size*3)]).tobytes()
-    a = array('f', [n for n in range(size*3,size*4)]).tobytes()
-    channels = {'R' : r, 'G' : g, 'B' : b, 'A' : a}
-    o.writePixels(channels)
-    o.close()
+    import numpy as np
+
+    width = 200
+    height = 100
+    R = np.array(dtype='uint32').reshape((height, width))
+    G = np.array(dtype='uint32').reshape((height, width))
+    B = np.array(dtype='uint32').reshape((height, width))
+    A = np.array(dtype='uint32').reshape((height, width))
+    for y in range(0, height):
+        for x in range(0, width):
+            R[y][x] = x/width
+            G[y][x] = x/width
+            B[y][x] = x/width
+            A[y][x] = x/width
+        
+    channels = {
+       "R" : OpenEXR.Channel(R),
+       "G" : OpenEXR.Channel(G),
+       "B" : OpenEXR.Channel(B),
+       "A" : OpenEXR.Channel(A),
+    }
+
+    header = {
+        { "compression" : OpenEXR.ZIP_COMPRESSION,
+          "type" : OpenEXR.scanlineimage
+        }
+    }
+
+    outfile = OpenEXR.File(header, channels)
+    outfile.write("out.exr")
+
+The corrsponding example of reading an image is:
+
+    infile = OpenEXR.File("out.exr")
+
+    h = infile.header()
+    print(f"type={header.type()}")
+    print(f"compression={header.compression()}")
+
+    R = infile.channels()["R"].pixels
+    G = infile.channels()["G"].pixels
+    B = infile.channels()["B"].pixels
+    A = infile.channels()["A"].pixels
+    for y in range(0, height):
+        for x in range(0, width):
+            print(f"pixel[{y}][{x}]=(R[y][x], G[y][x], B[y][x], A[y][x])"
+
+
 
 # Community
 

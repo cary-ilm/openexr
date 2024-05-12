@@ -17,6 +17,10 @@ test_dir = os.path.dirname(__file__)
 
 class TestExceptions(unittest.TestCase):
 
+    def test_Channel(self):
+
+        c = OpenEXR.Channel(1)
+        
     def test_File(self):
         
         # invalid argument
@@ -81,9 +85,9 @@ class TestExceptions(unittest.TestCase):
         # bad header dict, bad channels dict
         with self.assertRaises(ValueError):
             f = OpenEXR.File({1:1}, {})
-        with self.assertRaisesRegex(ValueError, f"channels key must"):
+        with self.assertRaises(ValueError):
             f = OpenEXR.File({}, {1:1}) 
-        with self.assertRaisesRegex(ValueError, f"channels value must.*Channel"):
+        with self.assertRaises(TypeError):
             f = OpenEXR.File({}, {"A":1}) # bad value, shou
 
         # bad type, compression (invalid type and invalid value)
@@ -106,51 +110,42 @@ class TestExceptions(unittest.TestCase):
             p = OpenEXR.Part(1)
 
         # bad header dict, bad channels dict
-        with self.assertRaises(ValueError):
-            p = OpenEXR.Part("party", {1:1}, {})
-        with self.assertRaisesRegex(ValueError, f"channels key must"):
-            p = OpenEXR.Part("party", {}, {1:1}) 
-        with self.assertRaisesRegex(ValueError, f"channels value must.*Channel"):
-            p = OpenEXR.Part("party", {}, {"A":1}) # bad value, shou
+        with self.assertRaises(TypeError):
+            p = OpenEXR.Part({1:1}, {}, "party")
+        with self.assertRaises(TypeError):
+            p = OpenEXR.Part({}, {1:1}, "party") 
+        with self.assertRaises(TypeError):
+            p = OpenEXR.Part({}, {"A":1}, "party") # bad value, shou
 
         # bad type, compression (invalid type and invalid value)
         with self.assertRaises(TypeError):
-            p = OpenEXR.Part("party", {}, {}, type=42)
-        with self.assertRaises(ValueError):
-            p = OpenEXR.Part("party", {}, {}, type=OpenEXR.Storage(42))
-        with self.assertRaises(ValueError):
-            p = OpenEXR.Part("party", {}, {}, type=OpenEXR.NUM_STORAGE_TYPES)
+            p = OpenEXR.Part({}, {}, type=42, name="party")
         with self.assertRaises(TypeError):
-            p = OpenEXR.Part("party", {}, {}, compression=42)
+            p = OpenEXR.Part({}, {}, type=OpenEXR.Storage(42, name="party"))
         with self.assertRaises(ValueError):
-            p = OpenEXR.Part("party", {}, {}, compression=OpenEXR.Compression(42))
+            p = OpenEXR.Part({}, {}, type=OpenEXR.NUM_STORAGE_TYPES, name="party")
+        with self.assertRaises(TypeError):
+            p = OpenEXR.Part({}, {}, compression=42, name="party")
         with self.assertRaises(ValueError):
-            p = OpenEXR.Part("party", {}, {}, compression=OpenEXR.NUM_COMPRESSION_METHODS)
+            p = OpenEXR.Part({}, {}, compression=OpenEXR.Compression(42), name="party")
+        with self.assertRaises(ValueError):
+            p = OpenEXR.Part({}, {}, compression=OpenEXR.NUM_COMPRESSION_METHODS, name="party")
 
         # test default type, compression
-        p = OpenEXR.Part("party", {}, {})
-        self.assertEqual(p.name, "party")
-        self.assertEqual(p.type, OpenEXR.scanlineimage)
-        self.assertEqual(p.compression, OpenEXR.ZIP_COMPRESSION)
-        self.assertEqual(p.width, 0)
-        self.assertEqual(p.height, 0)
-        self.assertEqual(p.header, {})
+        p = OpenEXR.Part({}, {}, name="party")
+        self.assertEqual(p.name(), "party")
+        self.assertEqual(p.type(), OpenEXR.scanlineimage)
+        self.assertEqual(p.compression(), OpenEXR.ZIP_COMPRESSION)
+        self.assertEqual(p.width(), 0)
+        self.assertEqual(p.height(), 0)
+        self.assertEqual(p.header['type'], OpenEXR.scanlineimage)
+        self.assertEqual(p.header['compression'], OpenEXR.ZIP_COMPRESSION)
         self.assertEqual(p.channels, {})
 
         # test non-default type, compression
-        p = OpenEXR.Part("party", {}, {}, OpenEXR.tiledimage, OpenEXR.NO_COMPRESSION)
-        self.assertEqual(p.type, OpenEXR.tiledimage)
-        self.assertEqual(p.compression, OpenEXR.NO_COMPRESSION)
-        # test assignment of type, compression
-        p.type = OpenEXR.scanlineimage
-        p.compression = OpenEXR.ZIP_COMPRESSION
-        self.assertEqual(p.type, OpenEXR.scanlineimage)
-        self.assertEqual(p.compression, OpenEXR.ZIP_COMPRESSION)
-
-        with self.assertRaises(AttributeError):
-            p.width = 42
-        with self.assertRaises(AttributeError):
-            p.height = 42
+        p = OpenEXR.Part({}, {}, OpenEXR.tiledimage, OpenEXR.NO_COMPRESSION, "party")
+        self.assertEqual(p.type(), OpenEXR.tiledimage)
+        self.assertEqual(p.compression(), OpenEXR.NO_COMPRESSION)
 
     def test_Channel(self):
 

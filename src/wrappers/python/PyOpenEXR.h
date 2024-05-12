@@ -32,7 +32,7 @@ public:
 
 private:
     
-    py::object   get_attribute_object(const char* name, const Attribute* a);
+    py::object   get_attribute_object(const std::string& name, const Attribute* a);
     
     void         insert_attribute(Header& header,
                                   const std::string& name,
@@ -51,7 +51,7 @@ class PyPart
   public:
     PyPart() {}
     PyPart(const py::dict& header, const py::dict& channels,
-           exr_storage_t type, Compression compression, const char* name);
+           exr_storage_t type, Compression compression, const std::string& name);
     
     bool operator==(const PyPart& other) const;
     bool operator!=(const PyPart& other) const { return !(*this == other); }
@@ -61,7 +61,8 @@ class PyPart
     size_t         width() const;
     size_t         height() const;
     Compression    compression() const;
-    std::string    type() const;
+    exr_storage_t  type() const;
+    std::string    typeString() const;
     
     py::dict       header;
     py::dict       channels;

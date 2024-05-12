@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-BUILD_TYPE="Release"
 BUILD_TYPE="Debug"
+BUILD_TYPE="Release"
 
 if [[ $OSTYPE == *darwin* ]]; then
     BUILD_ROOT=/Users/cary/builds/src/cary-ilm/openexr/pybind11-$BUILD_TYPE
@@ -18,7 +18,9 @@ set -x
 
 #env $ASAN_OPTIONS PYTHONPATH=$BUILD_ROOT/src/wrappers/python pytest -s `pwd`/src/wrappers/python/tests
 #env $ASAN_OPTIONS PYTHONPATH=$BUILD_ROOT/src/wrappers/python python3 ~/src/cary-ilm/openexr/src/wrappers/python/tests/test_images.py 
-env $ASAN_OPTIONS PYTHONPATH=$BUILD_ROOT/src/wrappers/python python3 ~/src/cary-ilm/openexr/src/wrappers/python/tests/test_unittest.py
-#env $ASAN_OPTIONS PYTHONPATH=$BUILD_ROOT/src/wrappers/python python3 ~/src/cary-ilm/openexr/src/wrappers/python/tests/test_exceptions.py 
+#env $ASAN_OPTIONS PYTHONPATH=$BUILD_ROOT/src/wrappers/python python3 ~/src/cary-ilm/openexr/src/wrappers/python/tests/test_exceptions.py TestExceptions.test_Part
+
+env $ASAN_OPTIONS PYTHONPATH=$BUILD_ROOT/src/wrappers/python python3 ~/src/cary-ilm/openexr/src/wrappers/python/tests/test_unittest.py 
+#env $ASAN_OPTIONS PYTHONPATH=$BUILD_ROOT/src/wrappers/python python3 ~/src/cary-ilm/openexr/src/wrappers/python/tests/test_images.py
 
 
