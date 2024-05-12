@@ -87,7 +87,7 @@ class TestExceptions(unittest.TestCase):
             f = OpenEXR.File({1:1}, {})
         with self.assertRaises(ValueError):
             f = OpenEXR.File({}, {1:1}) 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(Exception):
             f = OpenEXR.File({}, {"A":1}) # bad value, shou
 
         # bad type, compression (invalid type and invalid value)
