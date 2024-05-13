@@ -936,7 +936,7 @@ both_nans<half>(half a, half b)
 
 template <>
 bool
-both_nans<uint32_t>(unint32_t a, uint32_t b)
+both_nans<uint32_t>(uint32_t a, uint32_t b)
 {
     return false;
 }
