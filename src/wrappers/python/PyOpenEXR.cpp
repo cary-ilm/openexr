@@ -216,7 +216,7 @@ PyFile::operator==(const PyFile& other) const
 {
     if (parts.size() != other.parts.size())
     {
-        std::cout << __PRETTY_FUNCTION__ << " #parts differs." << std::endl;
+        std::cout << "PyFile:: #parts differs." << std::endl;
         return false;
     }
     
