@@ -934,6 +934,13 @@ both_nans<half>(half a, half b)
     return a.isNan() && b.isNan();
 }
 
+template <>
+bool
+both_nans<uint32_t>(unint32_t a, uint32_t b)
+{
+    return false;
+}
+
 template <class T>
 bool
 array_equals(const py::buffer_info& a, const py::buffer_info& b,
