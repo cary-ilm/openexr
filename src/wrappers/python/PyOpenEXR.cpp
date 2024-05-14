@@ -211,6 +211,200 @@ PyFile::PyFile(const std::string& filename)
     } // for parts
 }
 
+int
+rgba_channel(const Header& header, const std::string& name, std::string& py_channel_name, char& c)
+{
+    py_channel_name = name;
+    c = py_channel_name.back();
+    if (c == 'R' ||
+        c == 'G' ||
+        c == 'B' ||
+        c == 'A')
+    {
+        py_channel_name.pop_back();
+        if (py_channel_name.empty() || py_channel_name.back() == '.')
+            if (header.channels().findChannel(py_channel_name + "R") &&
+                header.channels().findChannel(py_channel_name + "G") &&
+                header.channels().findChannel(py_channel_name + "B"))
+            {
+                auto A = py_channel_name + "A";
+                if (!py_channel_name.empty())
+                    py_channel_name.pop_back();
+                if (py_channel_name.empty())
+                    py_channel_name = "RGBA";
+                if (header.channels().findChannel(A))
+                    return 4;
+                return 3;
+            }
+        py_channel_name = name;
+    }
+
+    return 0;
+}
+    
+PyRgbaFile::PyRgbaFile(const py::list& p)
+    : PyFile(p)
+{
+}
+    
+PyRgbaFile::PyRgbaFile(const py::dict& header, const py::dict& channels, exr_storage_t type, Compression compression)
+    : PyFile(header, channels,type, compression)
+{
+}
+
+PyRgbaFile::PyRgbaFile(const std::string& filename)
+{
+    this->filename = filename;
+
+    MultiPartInputFile infile(filename.c_str());
+
+    for (int part_index = 0; part_index < infile.parts(); part_index++)
+    {
+        const Header& header = infile.header(part_index);
+
+        PyPart P;
+
+        P.part_index = part_index;
+        
+        const Box2i& dw = header.dataWindow();
+        auto width = static_cast<size_t>(dw.max.x - dw.min.x + 1);
+        auto height = static_cast<size_t>(dw.max.y - dw.min.y + 1);
+
+        for (auto a = header.begin(); a != header.end(); a++)
+        {
+            std::string name = a.name();
+            const Attribute& attribute = a.attribute();
+            P.header[py::str(name)] = get_attribute_object(name, &attribute);
+        }
+
+        std::vector<size_t> shape ({height, width});
+
+        FrameBuffer frameBuffer;
+
+        std::set<std::string> rgba_channels;
+        for (auto c = header.channels().begin(); c != header.channels().end(); c++)
+        {
+            std::string py_channel_name;
+            char channel_name;
+            if (rgba_channel(header, c.name(), py_channel_name, channel_name))
+                rgba_channels.insert(c.name());
+        }
+        
+        for (auto c = header.channels().begin(); c != header.channels().end(); c++)
+        {
+            std::string py_channel_name; // "right"
+            char channel_name; // "R"
+            int nrgba = rgba_channel(header, c.name(), py_channel_name, channel_name);
+            
+            auto py_channel_name_str = py::str(py_channel_name);
+            
+            // R - py_channel_name=""
+            // G - py_channel_name=""
+            // B - py_channel_name=""
+            // A - py_channel_name=""
+            // right.R - py_channel_name="right"
+            // right.G - py_channel_name="right"
+            // right.B - py_channel_name="right"
+            // foo.R - py_channel_name="foo.R"
+            // foo.B - py_channel_name="foo.B"
+            if (!P.channels.contains(py_channel_name_str))
+            {
+                // We haven't add a PyChannel yet, so add one one.
+                
+                PyChannel C;
+
+                C.name = py_channel_name;
+                C.xSampling = c.channel().xSampling;
+                C.ySampling = c.channel().ySampling;
+                C.pLinear = c.channel().pLinear;
+                
+                const auto style = py::array::c_style | py::array::forcecast;
+
+                std::vector<size_t> c_shape = shape;
+
+                // If this channel belongs to one of the rgba's, give
+                // the PyChannel the proper shape
+                if (rgba_channels.find(c.name()) != rgba_channels.end())
+                    c_shape.push_back(nrgba);
+
+                switch (c.channel().type)
+                {
+                case UINT:
+                    C.pixels = py::array_t<uint32_t,style>(c_shape);
+                    break;
+                case HALF:
+                    C.pixels = py::array_t<half,style>(c_shape);
+                    break;
+                case FLOAT:
+                    C.pixels = py::array_t<float,style>(c_shape);
+                    break;
+                default:
+                    throw std::runtime_error("invalid pixel type");
+                } // switch c->type
+
+                P.channels[py_channel_name.c_str()] = C;
+
+                std::cout << ":: creating PyChannel name=" << C.name
+                          << " ndim=" << C.pixels.ndim()
+                          << " size=" << C.pixels.size()
+                          << " itemsize=" << C.pixels.dtype().itemsize()
+                          << std::endl;
+            }
+
+            auto v = P.channels[py_channel_name.c_str()];
+            auto C = v.cast<PyChannel&>();
+
+            py::buffer_info buf = C.pixels.request();
+            auto basePtr = static_cast<uint8_t*>(buf.ptr);
+            py::dtype dt = C.pixels.dtype();
+            size_t xStride = dt.itemsize();
+            if (nrgba > 0)
+            {
+                xStride *= nrgba;
+                switch (channel_name)
+                {
+                case 'R':
+                    break;
+                case 'G':
+                    basePtr += dt.itemsize();
+                    break;
+                case 'B':
+                    basePtr += 2 * dt.itemsize();
+                    break;
+                case 'A':
+                    basePtr += 3 * dt.itemsize();
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            size_t yStride = xStride * width;
+            
+            std::cout << "Creating slice from PyChannel name=" << C.name
+                      << " ndim=" << C.pixels.ndim()
+                      << " size=" << C.pixels.size()
+                      << " itemsize=" << C.pixels.dtype().itemsize()
+                      << " name=" << c.name()
+                      << " type=" << c.channel().type
+                      << std::endl;
+
+            frameBuffer.insert (c.name(),
+                                Slice::Make (c.channel().type,
+                                             (void*) basePtr,
+                                             dw, xStride, yStride,
+                                             C.xSampling,
+                                             C.ySampling));
+        } // for header.channels()
+
+        InputPart part (infile, part_index);
+
+        part.setFrameBuffer (frameBuffer);
+        part.readPixels (dw.min.y, dw.max.y);
+
+        parts.append(py::cast<PyPart>(PyPart(P)));
+    } // for parts
+}
 bool
 PyFile::operator==(const PyFile& other) const
 {
@@ -460,17 +654,7 @@ PyFile::get_attribute_object(const std::string& name, const Attribute* a)
     }
     
     if (auto v = dynamic_cast<const ChromaticitiesAttribute*> (a))
-    {
-        PyChromaticities c(v->value().red.x,
-                           v->value().red.y,
-                           v->value().green.x,
-                           v->value().green.y,
-                           v->value().blue.x,
-                           v->value().blue.y,
-                           v->value().white.x,
-                           v->value().white.y);
-        return py::cast(c);
-    }
+        return py::cast(v->value());
 
     if (auto v = dynamic_cast<const CompressionAttribute*> (a))
         return py::cast(v->value());
@@ -663,14 +847,8 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
             // since the channels get created elswhere.
         }
     }
-    else if (auto v = py_cast<PyChromaticities>(object))
-    {
-        Chromaticities c(V2f(v->red_x, v->red_y),
-                         V2f(v->green_x, v->green_y),
-                         V2f(v->blue_x, v->blue_y),
-                         V2f(v->white_x, v->white_y));
-        header.insert(name, ChromaticitiesAttribute(c));
-    }
+    else if (auto v = py_cast<Chromaticities>(object))
+        header.insert(name, ChromaticitiesAttribute(static_cast<Chromaticities>(*v)));
     else if (auto v = py_cast<Compression>(object))
         header.insert(name, CompressionAttribute(static_cast<Compression>(*v)));
     else if (auto v = py_cast<Envmap>(object))
@@ -1138,7 +1316,7 @@ PYBIND11_MODULE(OpenEXR, m)
 {
     using namespace py::literals;
 
-    m.doc() = "openexr doc";
+    m.doc() = "OpenEXR - read and write high-dynamic range image files";
     m.attr("__version__") = OPENEXR_VERSION_STRING;
     m.attr("OPENEXR_VERSION") = OPENEXR_VERSION_STRING;
 
@@ -1153,34 +1331,34 @@ PYBIND11_MODULE(OpenEXR, m)
     // Enums
     //
     
-    py::enum_<LevelRoundingMode>(m, "LevelRoundingMode")
+    py::enum_<LevelRoundingMode>(m, "LevelRoundingMode", "Rounding mode for tiled images")
         .value("ROUND_UP", ROUND_UP)
         .value("ROUND_DOWN", ROUND_DOWN)
         .value("NUM_ROUNDING_MODES", NUM_ROUNDINGMODES)
         .export_values();
 
-    py::enum_<LevelMode>(m, "LevelMode")
+    py::enum_<LevelMode>(m, "LevelMode", "Level mode for tiled images")
         .value("ONE_LEVEL", ONE_LEVEL)
         .value("MIPMAP_LEVELS", MIPMAP_LEVELS)
         .value("RIPMAP_LEVELS", RIPMAP_LEVELS)
         .value("NUM_LEVEL_MODES", NUM_LEVELMODES)
         .export_values();
 
-    py::enum_<LineOrder>(m, "LineOrder")
+    py::enum_<LineOrder>(m, "LineOrder", "Line order for scanline images")
         .value("INCREASING_Y", INCREASING_Y)
         .value("DECREASING_Y", DECREASING_Y)
         .value("RANDOM_Y", RANDOM_Y)
         .value("NUM_LINE_ORDERS", NUM_LINEORDERS)
         .export_values();
 
-    py::enum_<PixelType>(m, "PixelType")
-        .value("UINT", UINT)
+    py::enum_<PixelType>(m, "PixelType", "Data type for pixel arrays")
+        .value("UINT", UINT, "32-bit integer")
         .value("HALF", HALF)
         .value("FLOAT", FLOAT)
         .value("NUM_PIXELTYPES", NUM_PIXELTYPES)
         .export_values();
 
-    py::enum_<Compression>(m, "Compression")
+    py::enum_<Compression>(m, "Compression", "Compression method")
         .value("NO_COMPRESSION", NO_COMPRESSION)
         .value("RLE_COMPRESSION", RLE_COMPRESSION)
         .value("ZIPS_COMPRESSION", ZIPS_COMPRESSION)
@@ -1194,13 +1372,13 @@ PYBIND11_MODULE(OpenEXR, m)
         .value("NUM_COMPRESSION_METHODS", NUM_COMPRESSION_METHODS)
         .export_values();
     
-    py::enum_<Envmap>(m, "Envmap")
+    py::enum_<Envmap>(m, "Envmap", "Environment map type")
         .value("ENVMAP_LATLONG", ENVMAP_LATLONG)
         .value("ENVMAP_CUBE", ENVMAP_CUBE)    
         .value("NUM_ENVMAPTYPES", NUM_ENVMAPTYPES)
         .export_values();
 
-    py::enum_<exr_storage_t>(m, "Storage")
+    py::enum_<exr_storage_t>(m, "Storage", "Image storage format")
         .value("scanlineimage", EXR_STORAGE_SCANLINE)
         .value("tiledimage", EXR_STORAGE_TILED)
         .value("deepscanline", EXR_STORAGE_DEEP_SCANLINE)
@@ -1212,7 +1390,7 @@ PYBIND11_MODULE(OpenEXR, m)
     // Classes for attribute types
     //
     
-    py::class_<TileDescription>(m, "TileDescription")
+    py::class_<TileDescription>(m, "TileDescription", "Tile description for tiled images")
         .def(py::init())
         .def("__repr__", [](TileDescription& v) { return repr(v); })
         .def(py::self == py::self)
@@ -1222,7 +1400,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def_readwrite("roundingMode", &TileDescription::roundingMode)
         ;       
 
-    py::class_<Rational>(m, "Rational")
+    py::class_<Rational>(m, "Rational", "A number expressed as a ratio, n/d")
         .def(py::init())
         .def(py::init<int,unsigned int>())
         .def("__repr__", [](const Rational& v) { return repr(v); })
@@ -1231,7 +1409,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def_readwrite("d", &Rational::d)
         ;
     
-    py::class_<KeyCode>(m, "KeyCode")
+    py::class_<KeyCode>(m, "KeyCode", "Motion picture film characteristics")
         .def(py::init())
         .def(py::init<int,int,int,int,int,int,int>())
         .def(py::self == py::self)
@@ -1245,7 +1423,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def_property("perfsPerCount", &KeyCode::perfsPerCount, &KeyCode::setPerfsPerCount)
         ; 
 
-    py::class_<TimeCode>(m, "TimeCode")
+    py::class_<TimeCode>(m, "TimeCode", "Time and control code")
         .def(py::init())
         .def(py::init<int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int,int>())
         .def("__repr__", [](const TimeCode& v) { return repr(v); })
@@ -1266,21 +1444,17 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("setTimeAndFlags", &TimeCode::setTimeAndFlags)
         ;
 
-    py::class_<PyChromaticities>(m, "Chromaticities")
-        .def(py::init<float,float,float,float,float,float,float,float>())
+    py::class_<Chromaticities>(m, "Chromaticities", "CIE (x,y) chromaticities of the primaries and the white point")
+        .def(py::init<V2f,V2f,V2f,V2f>())
         .def(py::self == py::self)
-        .def("__repr__", [](const PyChromaticities& v) { return repr(v); })
-        .def_readwrite("red_x", &PyChromaticities::red_x)
-        .def_readwrite("red_y", &PyChromaticities::red_y)
-        .def_readwrite("green_x", &PyChromaticities::green_x)
-        .def_readwrite("green_y", &PyChromaticities::green_y)
-        .def_readwrite("blue_x", &PyChromaticities::blue_x)
-        .def_readwrite("blue_y", &PyChromaticities::blue_y)
-        .def_readwrite("white_x", &PyChromaticities::white_x)
-        .def_readwrite("white_y", &PyChromaticities::white_y)
+        .def("__repr__", [](const Chromaticities& v) { return repr(v); })
+        .def_readwrite("red", &Chromaticities::red)
+        .def_readwrite("green", &Chromaticities::green)
+        .def_readwrite("blue", &Chromaticities::blue)
+        .def_readwrite("white", &Chromaticities::white)
         ;
 
-    py::class_<PreviewRgba>(m, "PreviewRgba")
+    py::class_<PreviewRgba>(m, "PreviewRgba", "Pixel type for the preview image")
         .def(py::init())
         .def(py::init<unsigned char,unsigned char,unsigned char,unsigned char>())
         .def(py::self == py::self)
@@ -1292,7 +1466,7 @@ PYBIND11_MODULE(OpenEXR, m)
     
     PYBIND11_NUMPY_DTYPE(PreviewRgba, r, g, b, a);
     
-    py::class_<PyPreviewImage>(m, "PreviewImage")
+    py::class_<PyPreviewImage>(m, "PreviewImage", "Thumbnail version of the image")
         .def(py::init())
         .def(py::init<int,int>())
         .def(py::init<py::array_t<PreviewRgba>>())
@@ -1494,6 +1668,22 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("header", &PyFile::header, py::arg("part_index") = 0)
         .def("channels", &PyFile::channels, py::arg("part_index") = 0)
         .def("write", &PyFile::write)
+        ;
+    py::class_<PyRgbaFile>(m, "RgbaFile")
+        .def(py::init<>())
+        .def(py::init<std::string>())
+        .def(py::init<py::dict,py::dict,exr_storage_t,Compression>(),
+             py::arg("header"),
+             py::arg("channels"),
+             py::arg("type")=EXR_STORAGE_SCANLINE,
+             py::arg("compression")=ZIP_COMPRESSION)
+        .def(py::init<py::list>())
+        .def(py::self == py::self)
+        .def_readwrite("filename", &PyRgbaFile::filename)
+        .def_readwrite("parts", &PyRgbaFile::parts)
+        .def("header", &PyRgbaFile::header, py::arg("part_index") = 0)
+        .def("channels", &PyRgbaFile::channels, py::arg("part_index") = 0)
+        .def("write", &PyRgbaFile::write)
         ;
 }
 
