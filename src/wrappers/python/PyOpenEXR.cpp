@@ -1373,17 +1373,18 @@ array_equals(const py::buffer_info& a, const py::buffer_info& b,
             for (int j=0; j<depth; j++)
             {
                 int k = i + j;
-                if (!(apixels[k] == bpixels[k]))
+                if (both_nans(apixels[k], bpixels[k]))
+                    continue;
+                double ap = static_cast<double>(apixels[k]);
+                double bp = static_cast<double>(bpixels[k]);
+                if (!equalWithRelError(ap, bp, 1e-5))
                 {
-                    if (both_nans(apixels[k], bpixels[k]))
-                        continue;
-                
                     std::cout << "i=" << i
                               << " k=" << k
                               << " a[" << y
                               << "][" << x
                               << "][" << j
-                              << "] = " << apixels[k]
+                              << "]=" << apixels[k]
                               << " b=" << bpixels[k]
                               << std::endl;
                     return false;
