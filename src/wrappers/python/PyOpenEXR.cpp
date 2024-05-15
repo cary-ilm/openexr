@@ -1339,24 +1339,46 @@ PyPart::operator==(const PyPart& other) const
 
 template <class T>
 bool
-both_nans(T a, T b)
+py_nan(T a)
 {
-    return std::isnan(a) && std::isnan(b);
+    return std::isnan(a);
 }
 
 template <>
 bool
-both_nans<half>(half a, half b)
+py_nan<half>(half a)
 {
-    return a.isNan() && b.isNan();
+    return a.isNan();
 }
 
 template <>
 bool
-both_nans<uint32_t>(uint32_t a, uint32_t b)
+py_nan<uint32_t>(uint32_t a)
 {
     return false;
 }
+
+template <class T>
+bool
+py_inf(T a)
+{
+    return !std::isfinite(a);
+}
+
+template <>
+bool
+py_inf<half>(half a)
+{
+    return a.isInfinity();
+}
+
+template <>
+bool
+py_inf<uint32_t>(uint32_t a)
+{
+    return false;
+}
+
 
 template <class T>
 bool
@@ -1373,7 +1395,9 @@ array_equals(const py::buffer_info& a, const py::buffer_info& b,
             for (int j=0; j<depth; j++)
             {
                 int k = i + j;
-                if (both_nans(apixels[k], bpixels[k]))
+                if (py_nan(apixels[k]) && py_nan(bpixels[k]))
+                    continue;
+                if (py_inf(apixels[k]) && py_inf(bpixels[k]))
                     continue;
                 double ap = static_cast<double>(apixels[k]);
                 double bp = static_cast<double>(bpixels[k]);
