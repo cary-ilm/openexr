@@ -15,7 +15,7 @@ import numpy as np
 
 import OpenEXR
 
-def test_rgb(type):
+def test_rgb(array_dtype):
 
     # Construct an RGB channel
     
@@ -23,7 +23,7 @@ def test_rgb(type):
     width = 4
     nrgba = 3
     size = width * height * nrgba
-    RGB = np.array([i for i in range(0,size)], dtype=type).reshape((height, width, nrgba))
+    RGB = np.array([i for i in range(0,size)], dtype=array_dtype).reshape((height, width, nrgba))
     channels = { "RGB" : OpenEXR.Channel(RGB) }
 
     header = {}
@@ -67,7 +67,7 @@ def test_rgb(type):
     
     assert np.array_equal(inRGB, RGB)
 
-def test_rgba(type):
+def test_rgba(array_dtype):
 
     # Construct an RGB channel
     
@@ -75,7 +75,7 @@ def test_rgba(type):
     width = 5
     nrgba = 4
     size = width * height * nrgba
-    RGBA = np.array([i for i in range(0,size)], dtype=type).reshape((height, width, nrgba))
+    RGBA = np.array([i for i in range(0,size)], dtype=array_dtype).reshape((height, width, nrgba))
     channels = { "RGBA" : OpenEXR.Channel(RGBA) }
 
     header = {}
@@ -122,7 +122,7 @@ def test_rgba(type):
     
     assert np.array_equal(inRGBA, RGBA)
 
-def test_rgba_prefix(type):
+def test_rgba_prefix(array_dtype):
 
     # Construct an RGB channel
     
@@ -130,8 +130,8 @@ def test_rgba_prefix(type):
     width = 5
     nrgba = 4
     size = width * height
-    RGBA = np.array([i for i in range(0,size*nrgba)], dtype=type).reshape((height, width, nrgba))
-    Z = np.array([i for i in range(0,size)], dtype=type).reshape((height, width))
+    RGBA = np.array([i for i in range(0,size*nrgba)], dtype=array_dtype).reshape((height, width, nrgba))
+    Z = np.array([i for i in range(0,size)], dtype=array_dtype).reshape((height, width))
     channels = { "left" : OpenEXR.Channel(RGBA), "left.Z" : OpenEXR.Channel(Z) }
 
     header = {}
