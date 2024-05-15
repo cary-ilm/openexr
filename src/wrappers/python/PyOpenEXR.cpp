@@ -18,23 +18,17 @@
 
 #include "openexr.h"
 
-#include <ImfTileDescription.h>
-#include <ImfRational.h>
-#include <ImfKeyCode.h>
-#include <ImfPreviewImage.h>
-
-#include <ImfRgbaFile.h>
-#include <ImfTiledRgbaFile.h>
+#include <ImfHeader.h>
 #include <ImfMultiPartInputFile.h>
 #include <ImfMultiPartOutputFile.h>
 #include <ImfInputPart.h>
 #include <ImfOutputPart.h>
 #include <ImfTiledOutputPart.h>
 #include <ImfDeepScanLineOutputPart.h>
+#include <ImfDeepScanLineInputPart.h>
 #include <ImfDeepTiledOutputPart.h>
+#include <ImfDeepTiledInputPart.h>
 #include <ImfDeepFrameBuffer.h>
-#include <ImfChannelList.h>
-#include <ImfArray.h>
 #include <ImfPartType.h>
 
 #include <ImfBoxAttribute.h>
@@ -44,7 +38,6 @@
 #include <ImfDoubleAttribute.h>
 #include <ImfEnvmapAttribute.h>
 #include <ImfFloatAttribute.h>
-#include <ImfHeader.h>
 #include <ImfIntAttribute.h>
 #include <ImfKeyCodeAttribute.h>
 #include <ImfLineOrderAttribute.h>
@@ -57,11 +50,6 @@
 #include <ImfTileDescriptionAttribute.h>
 #include <ImfTimeCodeAttribute.h>
 #include <ImfVecAttribute.h>
-
-#include <ImathVec.h>
-#include <ImathMatrix.h>
-#include <ImathBox.h>
-#include <ImathMath.h>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -133,12 +121,24 @@ PyFile::PyFile(const py::dict& header, const py::dict& channels, exr_storage_t t
 }
 
 //
-// Read a PyFile from the given filename
+// Read a PyFile from the given filename.
+//
+// Create a 'Part' for each part in the file, even single-part files. The API
+// has convenience methods for accessing the first part's header and
+// channels, which for single-part files appears as the file's data.
+//
+// By default, read each channel into a numpy array of the appropriate pixel
+// type: uint32, half, or float.
+//
+// If 'rgba' is true, gather 'R', 'G', 'B', and 'A' channels and interleave
+// them into  a 3- or 4- (if 'A' is present) element numpy array. In the case
+// of raw 'R', 'G', 'B', and 'A' channels, the corresponding key in the
+// channels dict is "RGB" or "RGBA".  For channels with a prefix,
+// e.g. "left.R", "left.G", etc, the channel key is the prefix.
 //
 
-
-PyFile::PyFile(const std::string& filename)
-    : filename (filename)
+PyFile::PyFile(const std::string& filename, bool rgba, bool header_only)
+    : filename(filename), header_only(header_only)
 {
     MultiPartInputFile infile(filename.c_str());
 
@@ -154,6 +154,10 @@ PyFile::PyFile(const std::string& filename)
         auto width = static_cast<size_t>(dw.max.x - dw.min.x + 1);
         auto height = static_cast<size_t>(dw.max.y - dw.min.y + 1);
 
+        //
+        // Fill the header dict with attributes from the input file header
+        //
+        
         for (auto a = header.begin(); a != header.end(); a++)
         {
             std::string name = a.name();
@@ -161,250 +165,378 @@ PyFile::PyFile(const std::string& filename)
             P.header[py::str(name)] = get_attribute_object(name, &attribute);
         }
 
+        //
+        // If we're only reading the header, we're done.
+        //
+        
+        if (header_only)
+            continue;
+        
+        //
+        // If we're gathering RGB channels, identify which channels to gather
+        // by examining common prefixes.
+        //
+        
+        std::set<std::string> rgba_channels;
+        if (rgba)
+        {
+            for (auto c = header.channels().begin(); c != header.channels().end(); c++)
+            {
+                std::string py_channel_name;
+                char channel_name;
+                if (P.rgba_channel(header.channels(), c.name(), py_channel_name, channel_name))
+                    rgba_channels.insert(c.name());
+            }
+        }
+        
         std::vector<size_t> shape ({height, width});
 
-        FrameBuffer frameBuffer;
-
-        for (auto c = header.channels().begin(); c != header.channels().end(); c++)
+        //
+        // Read the channel data, different for image vs. deep
+        //
+        
+        auto type = header.type();
+        if (type == SCANLINEIMAGE || type == TILEDIMAGE)
         {
-            PyChannel C;
+            P.readPixels(infile, header.channels(), shape, rgba_channels, dw, rgba);
+        }
+        else if (type == DEEPSCANLINE || type == DEEPTILE)
+        {
+            P.readDeepPixels(infile, type, header.channels(), shape, rgba_channels, dw, rgba);
+        }
+        parts.append(py::cast<PyPart>(PyPart(P)));
+    } // for parts
+}
+
+void
+PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
+                   const std::vector<size_t>& shape, const std::set<std::string>& rgba_channels,
+                   const Box2i& dw, bool rgba)
+{
+    FrameBuffer frameBuffer;
+
+    for (auto c = channel_list.begin(); c != channel_list.end(); c++)
+    {
+        std::string py_channel_name = c.name();
+        char channel_name; 
+        int nrgba = 0;
+        if (rgba)
+            nrgba = rgba_channel(channel_list, c.name(), py_channel_name, channel_name);
             
-            C.name = c.name();
+        auto py_channel_name_str = py::str(py_channel_name);
+            
+        if (!channels.contains(py_channel_name_str))
+        {
+            //
+            // We haven't add a PyChannel yet, so add one now.
+            //
+            
+            PyChannel C;
+
+            C.name = py_channel_name;
             C.xSampling = c.channel().xSampling;
             C.ySampling = c.channel().ySampling;
             C.pLinear = c.channel().pLinear;
                 
             const auto style = py::array::c_style | py::array::forcecast;
 
+            std::vector<size_t> c_shape = shape;
+
+            //
+            // If this channel belongs to one of the rgba's, give
+            // the PyChannel the extra dimension and the proper shape.
+            // nrgba is 3 for RGB and 4 for RGBA.
+            //
+            
+            if (rgba_channels.find(c.name()) != rgba_channels.end())
+                c_shape.push_back(nrgba);
+
             switch (c.channel().type)
             {
-            case UINT:
-                C.pixels = py::array_t<uint32_t,style>(shape);
-                break;
-            case HALF:
-                C.pixels = py::array_t<half,style>(shape);
-                break;
-            case FLOAT:
-                C.pixels = py::array_t<float,style>(shape);
-                break;
-            default:
-                throw std::runtime_error("invalid pixel type");
+              case UINT:
+                  C.pixels = py::array_t<uint32_t,style>(c_shape);
+                  break;
+              case HALF:
+                  C.pixels = py::array_t<half,style>(c_shape);
+                  break;
+              case FLOAT:
+                  C.pixels = py::array_t<float,style>(c_shape);
+                  break;
+              default:
+                  throw std::runtime_error("invalid pixel type");
             } // switch c->type
 
-            py::buffer_info buf = C.pixels.request();
+            channels[py_channel_name.c_str()] = C;
 
-            frameBuffer.insert (C.name,
-                                Slice::Make (c.channel().type,
-                                             (void*) buf.ptr,
-                                             dw, 0, 0,
-                                             C.xSampling,
-                                             C.ySampling));
-            P.channels[py::str(c.name())] = C;
-        } // for header.channels()
+#if DEBUG_VERBOSE
+            std::cout << ":: creating PyChannel name=" << C.name
+                      << " ndim=" << C.pixels.ndim()
+                      << " size=" << C.pixels.size()
+                      << " itemsize=" << C.pixels.dtype().itemsize()
+                      << std::endl;
+#endif
+        }
 
-        InputPart part (infile, part_index);
+        //
+        // Add a slice to the framebuffer
+        //
+        
+        auto v = channels[py_channel_name.c_str()];
+        auto C = v.cast<PyChannel&>();
+
+        py::buffer_info buf = C.pixels.request();
+        auto basePtr = static_cast<uint8_t*>(buf.ptr);
+
+        //
+        // Offset the pointer for the channel
+        //
+        
+        py::dtype dt = C.pixels.dtype();
+        size_t xStride = dt.itemsize();
+        if (nrgba > 0)
+        {
+            xStride *= nrgba;
+            switch (channel_name)
+            {
+              case 'R':
+                  break;
+              case 'G':
+                  basePtr += dt.itemsize();
+                  break;
+              case 'B':
+                  basePtr += 2 * dt.itemsize();
+                  break;
+              case 'A':
+                  basePtr += 3 * dt.itemsize();
+                  break;
+              default:
+                  break;
+            }
+        }
+
+        size_t yStride = xStride * shape[1];
+            
+#if DEBUG_VERBOSE
+        std::cout << "Creating slice from PyChannel name=" << C.name
+                  << " ndim=" << C.pixels.ndim()
+                  << " size=" << C.pixels.size()
+                  << " itemsize=" << C.pixels.dtype().itemsize()
+                  << " name=" << c.name()
+                  << " type=" << c.channel().type
+                  << std::endl;
+#endif
+        
+        frameBuffer.insert (c.name(),
+                            Slice::Make (c.channel().type,
+                                         (void*) basePtr,
+                                         dw, xStride, yStride,
+                                         C.xSampling,
+                                         C.ySampling));
+    } // for header.channels()
+
+
+    //
+    // Read the pixels
+    //
+    
+    InputPart part (infile, part_index);
+
+    part.setFrameBuffer (frameBuffer);
+    part.readPixels (dw.min.y, dw.max.y);
+}
+
+// WIP
+void
+PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, const ChannelList& channel_list,
+                       const std::vector<size_t>& shape, const std::set<std::string>& rgba_channels,
+                       const Box2i& dw, bool rgba)
+{
+    DeepFrameBuffer frameBuffer;
+
+    for (auto c = channel_list.begin(); c != channel_list.end(); c++)
+    {
+        std::string py_channel_name = c.name();
+        char channel_name; 
+        int nrgba = 0;
+        if (rgba)
+            nrgba = rgba_channel(channel_list, c.name(), py_channel_name, channel_name);
+            
+        auto py_channel_name_str = py::str(py_channel_name);
+            
+        if (!channels.contains(py_channel_name_str))
+        {
+            // We haven't add a PyChannel yet, so add one one.
+                
+            PyChannel C;
+
+            C.name = py_channel_name;
+            C.xSampling = c.channel().xSampling;
+            C.ySampling = c.channel().ySampling;
+            C.pLinear = c.channel().pLinear;
+                
+            const auto style = py::array::c_style | py::array::forcecast;
+
+            std::vector<size_t> c_shape = shape;
+
+            // If this channel belongs to one of the rgba's, give
+            // the PyChannel the proper shape
+            if (rgba_channels.find(c.name()) != rgba_channels.end())
+                c_shape.push_back(nrgba);
+
+            switch (c.channel().type)
+            {
+              case UINT:
+                  C.pixels = py::array_t<uint32_t,style>(c_shape);
+                  break;
+              case HALF:
+                  C.pixels = py::array_t<half,style>(c_shape);
+                  break;
+              case FLOAT:
+                  C.pixels = py::array_t<float,style>(c_shape);
+                  break;
+              default:
+                  throw std::runtime_error("invalid pixel type");
+            } // switch c->type
+
+            channels[py_channel_name.c_str()] = C;
+
+#if DEBUG_VERBOSE
+            std::cout << ":: creating PyChannel name=" << C.name
+                      << " ndim=" << C.pixels.ndim()
+                      << " size=" << C.pixels.size()
+                      << " itemsize=" << C.pixels.dtype().itemsize()
+                      << std::endl;
+#endif
+        }
+
+        auto v = channels[py_channel_name.c_str()];
+        auto C = v.cast<PyChannel&>();
+
+        py::buffer_info buf = C.pixels.request();
+        auto basePtr = static_cast<uint8_t*>(buf.ptr);
+        py::dtype dt = C.pixels.dtype();
+        size_t xStride = dt.itemsize();
+        if (nrgba > 0)
+        {
+            xStride *= nrgba;
+            switch (channel_name)
+            {
+              case 'R':
+                  break;
+              case 'G':
+                  basePtr += dt.itemsize();
+                  break;
+              case 'B':
+                  basePtr += 2 * dt.itemsize();
+                  break;
+              case 'A':
+                  basePtr += 3 * dt.itemsize();
+                  break;
+              default:
+                  break;
+            }
+        }
+
+        size_t yStride = xStride * shape[1];
+        size_t sampleStride = 0;
+
+#if DEBUG_VERBOSE
+        std::cout << "Creating slice from PyChannel name=" << C.name
+                  << " ndim=" << C.pixels.ndim()
+                  << " size=" << C.pixels.size()
+                  << " itemsize=" << C.pixels.dtype().itemsize()
+                  << " name=" << c.name()
+                  << " type=" << c.channel().type
+                  << std::endl;
+#endif
+
+        frameBuffer.insert (c.name(),
+                            DeepSlice (c.channel().type,
+                                       (char*) basePtr,
+                                       xStride,
+                                       yStride,
+                                       sampleStride,
+                                       C.xSampling,
+                                       C.ySampling));
+    } // for header.channels()
+
+    if (type == DEEPSCANLINE)
+    {
+        DeepScanLineInputPart part (infile, part_index);
 
         part.setFrameBuffer (frameBuffer);
         part.readPixels (dw.min.y, dw.max.y);
-
-        parts.append(py::cast<PyPart>(PyPart(P)));
-    } // for parts
+    }
 }
 
+//
+// Return whether "name" corresponds to one of the 'R', 'G', 'B', or 'A'
+// channels in a "RGBA" tuple of channels. Return 4 if there's an 'A'
+// channel, 3 if it's just RGB, and 0 otherwise.
+//
+// py_channel_name is returned as either the prefix, e.g. "left" for
+// "left.R", "left.G", "left.B", or "RGBA" if the channel names are just 'R',
+// 'G', and 'B'.
+//
+// This means:
+//
+//     channels["left"] = np.array((height,width,3))
+// or:
+//     channels["RGB"] = np.array((height,width,3))
+//
+// channel_name is returned as the single character name of the channel
+//
+
 int
-rgba_channel(const Header& header, const std::string& name, std::string& py_channel_name, char& c)
+PyPart::rgba_channel(const ChannelList& channel_list, const std::string& name,
+                     std::string& py_channel_name, char& channel_name)
 {
     py_channel_name = name;
-    c = py_channel_name.back();
-    if (c == 'R' ||
-        c == 'G' ||
-        c == 'B' ||
-        c == 'A')
+    channel_name = py_channel_name.back();
+    if (channel_name == 'R' ||
+        channel_name == 'G' ||
+        channel_name == 'B' ||
+        channel_name == 'A')
     {
+        // has the right final character. The preceding character is either a
+        // '.' (in the case of "right.R", or empty (in the case of a channel
+        // called "R")
+        //
+        
         py_channel_name.pop_back();
         if (py_channel_name.empty() || py_channel_name.back() == '.')
-            if (header.channels().findChannel(py_channel_name + "R") &&
-                header.channels().findChannel(py_channel_name + "G") &&
-                header.channels().findChannel(py_channel_name + "B"))
+        {
+            //
+            // It matches the pattern, but are the other channels also
+            // present? It's ony "RGBA" if it has all three of 'R', 'G', and
+            // 'B'.
+            //
+            
+            if (channel_list.findChannel(py_channel_name + "R") &&
+                channel_list.findChannel(py_channel_name + "G") &&
+                channel_list.findChannel(py_channel_name + "B"))
             {
                 auto A = py_channel_name + "A";
                 if (!py_channel_name.empty())
                     py_channel_name.pop_back();
                 if (py_channel_name.empty())
-                    py_channel_name = "RGBA";
-                if (header.channels().findChannel(A))
+                {
+                    py_channel_name = "RGB";
+                    if (channel_list.findChannel(A))
+                        py_channel_name += "A";
+                }
+
+                if (channel_list.findChannel(A))
                     return 4;
                 return 3;
             }
+        }
         py_channel_name = name;
     }
 
     return 0;
 }
-    
-PyRgbaFile::PyRgbaFile(const py::list& p)
-    : PyFile(p)
-{
-}
-    
-PyRgbaFile::PyRgbaFile(const py::dict& header, const py::dict& channels, exr_storage_t type, Compression compression)
-    : PyFile(header, channels,type, compression)
-{
-}
 
-PyRgbaFile::PyRgbaFile(const std::string& filename)
-{
-    this->filename = filename;
-
-    MultiPartInputFile infile(filename.c_str());
-
-    for (int part_index = 0; part_index < infile.parts(); part_index++)
-    {
-        const Header& header = infile.header(part_index);
-
-        PyPart P;
-
-        P.part_index = part_index;
-        
-        const Box2i& dw = header.dataWindow();
-        auto width = static_cast<size_t>(dw.max.x - dw.min.x + 1);
-        auto height = static_cast<size_t>(dw.max.y - dw.min.y + 1);
-
-        for (auto a = header.begin(); a != header.end(); a++)
-        {
-            std::string name = a.name();
-            const Attribute& attribute = a.attribute();
-            P.header[py::str(name)] = get_attribute_object(name, &attribute);
-        }
-
-        std::vector<size_t> shape ({height, width});
-
-        FrameBuffer frameBuffer;
-
-        std::set<std::string> rgba_channels;
-        for (auto c = header.channels().begin(); c != header.channels().end(); c++)
-        {
-            std::string py_channel_name;
-            char channel_name;
-            if (rgba_channel(header, c.name(), py_channel_name, channel_name))
-                rgba_channels.insert(c.name());
-        }
-        
-        for (auto c = header.channels().begin(); c != header.channels().end(); c++)
-        {
-            std::string py_channel_name; // "right"
-            char channel_name; // "R"
-            int nrgba = rgba_channel(header, c.name(), py_channel_name, channel_name);
-            
-            auto py_channel_name_str = py::str(py_channel_name);
-            
-            // R - py_channel_name=""
-            // G - py_channel_name=""
-            // B - py_channel_name=""
-            // A - py_channel_name=""
-            // right.R - py_channel_name="right"
-            // right.G - py_channel_name="right"
-            // right.B - py_channel_name="right"
-            // foo.R - py_channel_name="foo.R"
-            // foo.B - py_channel_name="foo.B"
-            if (!P.channels.contains(py_channel_name_str))
-            {
-                // We haven't add a PyChannel yet, so add one one.
-                
-                PyChannel C;
-
-                C.name = py_channel_name;
-                C.xSampling = c.channel().xSampling;
-                C.ySampling = c.channel().ySampling;
-                C.pLinear = c.channel().pLinear;
-                
-                const auto style = py::array::c_style | py::array::forcecast;
-
-                std::vector<size_t> c_shape = shape;
-
-                // If this channel belongs to one of the rgba's, give
-                // the PyChannel the proper shape
-                if (rgba_channels.find(c.name()) != rgba_channels.end())
-                    c_shape.push_back(nrgba);
-
-                switch (c.channel().type)
-                {
-                case UINT:
-                    C.pixels = py::array_t<uint32_t,style>(c_shape);
-                    break;
-                case HALF:
-                    C.pixels = py::array_t<half,style>(c_shape);
-                    break;
-                case FLOAT:
-                    C.pixels = py::array_t<float,style>(c_shape);
-                    break;
-                default:
-                    throw std::runtime_error("invalid pixel type");
-                } // switch c->type
-
-                P.channels[py_channel_name.c_str()] = C;
-
-                std::cout << ":: creating PyChannel name=" << C.name
-                          << " ndim=" << C.pixels.ndim()
-                          << " size=" << C.pixels.size()
-                          << " itemsize=" << C.pixels.dtype().itemsize()
-                          << std::endl;
-            }
-
-            auto v = P.channels[py_channel_name.c_str()];
-            auto C = v.cast<PyChannel&>();
-
-            py::buffer_info buf = C.pixels.request();
-            auto basePtr = static_cast<uint8_t*>(buf.ptr);
-            py::dtype dt = C.pixels.dtype();
-            size_t xStride = dt.itemsize();
-            if (nrgba > 0)
-            {
-                xStride *= nrgba;
-                switch (channel_name)
-                {
-                case 'R':
-                    break;
-                case 'G':
-                    basePtr += dt.itemsize();
-                    break;
-                case 'B':
-                    basePtr += 2 * dt.itemsize();
-                    break;
-                case 'A':
-                    basePtr += 3 * dt.itemsize();
-                    break;
-                default:
-                    break;
-                }
-            }
-
-            size_t yStride = xStride * width;
-            
-            std::cout << "Creating slice from PyChannel name=" << C.name
-                      << " ndim=" << C.pixels.ndim()
-                      << " size=" << C.pixels.size()
-                      << " itemsize=" << C.pixels.dtype().itemsize()
-                      << " name=" << c.name()
-                      << " type=" << c.channel().type
-                      << std::endl;
-
-            frameBuffer.insert (c.name(),
-                                Slice::Make (c.channel().type,
-                                             (void*) basePtr,
-                                             dw, xStride, yStride,
-                                             C.xSampling,
-                                             C.ySampling));
-        } // for header.channels()
-
-        InputPart part (infile, part_index);
-
-        part.setFrameBuffer (frameBuffer);
-        part.readPixels (dw.min.y, dw.max.y);
-
-        parts.append(py::cast<PyPart>(PyPart(P)));
-    } // for parts
-}
 bool
 PyFile::operator==(const PyFile& other) const
 {
@@ -482,6 +614,10 @@ PyFile::write(const char* outfilename)
 
         header.setName (P.name());
 
+        //
+        // Add attributes from the py::dict to the output header
+        //
+        
         for (auto a : P.header)
         {
             auto name = py::str(a.first);
@@ -489,25 +625,31 @@ PyFile::write(const char* outfilename)
             insert_attribute(header, name, second);
         }
         
+        //
+        // Add required attributes to the header
+        //
+        
+        header.setType(P.typeString());
+
         if (!P.header.contains("dataWindow"))
         {
             auto shape = P.shape();
             header.dataWindow().max = V2i(shape[1]-1,shape[0]-1);
         }
-        
-        for (auto c : P.channels)
+
+        if (!P.header.contains("displayWindow"))
         {
-            auto C = py::cast<PyChannel&>(c.second);
-            auto t = static_cast<PixelType>(C.pixelType());
-            header.channels ().insert(C.name, Channel (t, C.xSampling, C.ySampling, C.pLinear));
+            auto shape = P.shape();
+            header.displayWindow().max = V2i(shape[1]-1,shape[0]-1);
         }
 
-        header.setType(P.typeString());
-
-        if (P.header.contains("tiles"))
+        if (P.type() == EXR_STORAGE_TILED || P.type() == EXR_STORAGE_DEEP_TILED)
         {
-            auto td = P.header["tiles"].cast<const TileDescription&>();
-            header.setTileDescription (td);
+            if (P.header.contains("tiles"))
+            {       
+                auto td = P.header["tiles"].cast<const TileDescription&>();
+                header.setTileDescription (td);
+            }
         }
 
         if (P.header.contains("lineOrder"))
@@ -517,12 +659,50 @@ PyFile::write(const char* outfilename)
         }
 
         header.compression() = P.compression();
+        
+        //
+        // Add channels to the output header
+        //
+        
+        for (auto c : P.channels)
+        {
+            auto C = py::cast<PyChannel&>(c.second);
+            auto t = static_cast<PixelType>(C.pixelType());
+
+            if (C.pixels.ndim() == 3)
+            {
+                //
+                // The py::dict has a single "RGB" or "RGBA" numpy array, but
+                // the output file gets separate channels
+                //
+                
+                std::string name_prefix;
+                if (C.name == "RGB" || C.name == "RGBA")
+                    name_prefix = "";
+                else
+                    name_prefix = C.name + ".";
+
+                header.channels ().insert(name_prefix + "R", Channel (t, C.xSampling, C.ySampling, C.pLinear));
+                header.channels ().insert(name_prefix + "G", Channel (t, C.xSampling, C.ySampling, C.pLinear));
+                header.channels ().insert(name_prefix + "B", Channel (t, C.xSampling, C.ySampling, C.pLinear));
+                int nrgba = C.pixels.shape(2);
+                if (nrgba > 3)
+                    header.channels ().insert(name_prefix + "A", Channel (t, C.xSampling, C.ySampling, C.pLinear));
+            }
+            else
+                header.channels ().insert(C.name, Channel (t, C.xSampling, C.ySampling, C.pLinear));
+        }
+
 
         headers.push_back (header);
     }
 
     MultiPartOutputFile outfile(outfilename, headers.data(), headers.size());
 
+    //
+    // Write the channel data: add slices to the framebuffer and write.
+    //
+    
     for (size_t part_index = 0; part_index < parts.size(); part_index++)
     {
         const PyPart& P = parts[part_index].cast<const PyPart&>();
@@ -538,12 +718,71 @@ PyFile::write(const char* outfilename)
             for (auto c : P.channels)
             {
                 auto C = c.second.cast<const PyChannel&>();
-                frameBuffer.insert (C.name,
-                                    Slice::Make (static_cast<PixelType>(C.pixelType()),
-                                                 static_cast<void*>(C.pixels.request().ptr),
-                                                 dw, 0, 0,
-                                                 C.xSampling,
-                                                 C.ySampling));
+
+                if (C.pixels.ndim() == 3)
+                {
+                    //
+                    // The py::dict has RGB or RGBA channels, but the
+                    // framebuffer needs a slice per dimension
+                    //
+                    
+                    std::string name_prefix;
+                    if (C.name == "RGB" || C.name == "RGBA")
+                        name_prefix = "";
+                    else
+                        name_prefix = C.name + ".";
+                
+                    py::buffer_info buf = C.pixels.request();
+                    auto basePtr = static_cast<uint8_t*>(buf.ptr);
+                    py::dtype dt = C.pixels.dtype();
+                    int nrgba = C.pixels.shape(2);
+                    size_t xStride = dt.itemsize() * nrgba;
+                    size_t yStride = xStride * P.width();
+                    
+                    auto rPtr = basePtr;
+                    frameBuffer.insert (name_prefix + "R",
+                                        Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                                     static_cast<void*>(rPtr),
+                                                     dw, xStride, yStride,
+                                                     C.xSampling,
+                                                     C.ySampling));
+
+                    auto gPtr = &basePtr[dt.itemsize()];
+                    frameBuffer.insert (name_prefix + "G",
+                                        Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                                     static_cast<void*>(gPtr),
+                                                     dw, xStride, yStride,
+                                                     C.xSampling,
+                                                     C.ySampling));
+
+                    auto bPtr = &basePtr[2*dt.itemsize()];
+                    frameBuffer.insert (name_prefix + "B",
+                                        Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                                     static_cast<void*>(bPtr),
+                                                     dw, xStride, yStride,
+                                                     C.xSampling,
+                                                     C.ySampling));
+
+                    if (nrgba == 4)
+                    {
+                        auto aPtr = &basePtr[3*dt.itemsize()];
+                        frameBuffer.insert (name_prefix + "A",
+                                            Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                                         static_cast<void*>(aPtr),
+                                                         dw, xStride, yStride,
+                                                         C.xSampling,
+                                                         C.ySampling));
+                    }
+                }
+                else
+                {
+                    frameBuffer.insert (C.name,
+                                        Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                                     static_cast<void*>(C.pixels.request().ptr),
+                                                     dw, 0, 0,
+                                                     C.xSampling,
+                                                     C.ySampling));
+                }
             }
                 
             if (P.type() == EXR_STORAGE_SCANLINE)
@@ -1122,7 +1361,7 @@ both_nans<uint32_t>(uint32_t a, uint32_t b)
 template <class T>
 bool
 array_equals(const py::buffer_info& a, const py::buffer_info& b,
-             const std::string& name, int width, int height)
+             const std::string& name, int width, int height, int depth = 1)
 {
     const T* apixels = static_cast<const T*>(a.ptr);
     const T* bpixels = static_cast<const T*>(b.ptr);
@@ -1130,19 +1369,25 @@ array_equals(const py::buffer_info& a, const py::buffer_info& b,
     for (int y=0; y<height; y++)
         for (int x=0; x<width; x++)
         {
-            int i = y * width + x;
-            if (!(apixels[i] == bpixels[i]))
+            int i = (y * width + x) * depth;
+            for (int j=0; j<depth; j++)
             {
-                if (both_nans(apixels[i], bpixels[i]))
-                    continue;
+                int k = i + j;
+                if (!(apixels[k] == bpixels[k]))
+                {
+                    if (both_nans(apixels[k], bpixels[k]))
+                        continue;
                 
-                std::cout << "i=" << i
-                          << " a[" << y
-                          << "][" << x
-                          << "] = " << apixels[i]
-                          << " b=" << bpixels[i]
-                          << std::endl;
-                return false;
+                    std::cout << "i=" << i
+                              << " k=" << k
+                              << " a[" << y
+                              << "][" << x
+                              << "][" << j
+                              << "] = " << apixels[k]
+                              << " b=" << bpixels[k]
+                              << std::endl;
+                    return false;
+                }
             }
         }
 
@@ -1157,8 +1402,8 @@ PyChannel::validate_pixel_array()
           py::isinstance<py::array_t<float>>(pixels)))
         throw std::invalid_argument("invalid pixel array: unrecognized type: must be uint32, half, or float");
 
-    if (pixels.ndim() != 2)
-        throw std::invalid_argument("invalid pixel array: must be 2D numpy array");
+    if (pixels.ndim() < 2 ||  pixels.ndim() > 3)
+        throw std::invalid_argument("invalid pixel array: must be 2D or 3D numpy array");
 }
 
 bool
@@ -1179,14 +1424,16 @@ PyChannel::operator==(const PyChannel& other) const
 
         int width = pixels.shape(1);
         int height = pixels.shape(0);
+        int depth = pixels.ndim() == 3 ? pixels.shape(2) : 1;
+        
         if (py::isinstance<py::array_t<uint32_t>>(pixels) && py::isinstance<py::array_t<uint32_t>>(other.pixels))
-            if (array_equals<uint32_t>(buf, obuf, name, width, height))
+            if (array_equals<uint32_t>(buf, obuf, name, width, height, depth))
                 return true;
         if (py::isinstance<py::array_t<half>>(pixels) && py::isinstance<py::array_t<half>>(other.pixels))
-            if (array_equals<half>(buf, obuf, name, width, height))
+            if (array_equals<half>(buf, obuf, name, width, height, depth))
                 return true;
         if (py::isinstance<py::array_t<float>>(pixels) && py::isinstance<py::array_t<float>>(other.pixels))
-            if (array_equals<float>(buf, obuf, name, width, height))
+            if (array_equals<float>(buf, obuf, name, width, height, depth))
                 return true;
     }
 
@@ -1204,8 +1451,8 @@ PyPart::shape() const
     {
         auto C = py::cast<PyChannel&>(c.second);
 
-        if (C.pixels.ndim() != 2)
-            throw std::invalid_argument("error: channel must have a 2D array");
+        if (C.pixels.ndim() < 2 ||  C.pixels.ndim() > 3)
+            throw std::invalid_argument("error: channel must have a 2D or 3D array");
 
         V2i c_S(C.pixels.shape(0), C.pixels.shape(1));
             
@@ -1317,6 +1564,7 @@ PYBIND11_MODULE(OpenEXR, m)
     using namespace py::literals;
 
     m.doc() = "OpenEXR - read and write high-dynamic range image files";
+    
     m.attr("__version__") = OPENEXR_VERSION_STRING;
     m.attr("OPENEXR_VERSION") = OPENEXR_VERSION_STRING;
 
@@ -1655,7 +1903,10 @@ PYBIND11_MODULE(OpenEXR, m)
 
     py::class_<PyFile>(m, "File")
         .def(py::init<>())
-        .def(py::init<std::string>())
+        .def(py::init<std::string,bool,bool>(),
+             py::arg("filename"),
+             py::arg("rgba")=false,
+             py::arg("header_only")=false)
         .def(py::init<py::dict,py::dict,exr_storage_t,Compression>(),
              py::arg("header"),
              py::arg("channels"),
@@ -1668,22 +1919,6 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("header", &PyFile::header, py::arg("part_index") = 0)
         .def("channels", &PyFile::channels, py::arg("part_index") = 0)
         .def("write", &PyFile::write)
-        ;
-    py::class_<PyRgbaFile>(m, "RgbaFile")
-        .def(py::init<>())
-        .def(py::init<std::string>())
-        .def(py::init<py::dict,py::dict,exr_storage_t,Compression>(),
-             py::arg("header"),
-             py::arg("channels"),
-             py::arg("type")=EXR_STORAGE_SCANLINE,
-             py::arg("compression")=ZIP_COMPRESSION)
-        .def(py::init<py::list>())
-        .def(py::self == py::self)
-        .def_readwrite("filename", &PyRgbaFile::filename)
-        .def_readwrite("parts", &PyRgbaFile::parts)
-        .def("header", &PyRgbaFile::header, py::arg("part_index") = 0)
-        .def("channels", &PyRgbaFile::channels, py::arg("part_index") = 0)
-        .def("write", &PyRgbaFile::write)
         ;
 }
 

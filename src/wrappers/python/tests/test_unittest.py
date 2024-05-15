@@ -377,7 +377,10 @@ class TestOpenEXR(unittest.TestCase):
         header = {}
         header["floatvector"] = [1.0, 2.0, 3.0]
         header["stringvector"] = ["do", "re", "me"]
-        header["chromaticities"] = OpenEXR.Chromaticities(1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)
+        header["chromaticities"] = OpenEXR.Chromaticities(OpenEXR.V2f(1.0,2.0),
+                                                          OpenEXR.V2f(3.0,4.0),
+                                                          OpenEXR.V2f(5.0,6.0),
+                                                          OpenEXR.V2f(7.0,8.0))
         header["box2i"] = OpenEXR.Box2i(OpenEXR.V2i(0,1),OpenEXR.V2i(2,3))
         header["box2f"] = OpenEXR.Box2f(OpenEXR.V2f(0,1),OpenEXR.V2f(2,3))
         header["compression"] = OpenEXR.ZIPS_COMPRESSION
@@ -450,7 +453,10 @@ class TestOpenEXR(unittest.TestCase):
             header["floatvector"] = [1.0, 2.0, 3.0]
             return header
             header["stringvector"] = ["do", "re", "me"]
-            header["chromaticities"] = OpenEXR.Chromaticities(1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)
+            header["chromaticities"] = OpenEXR.Chromaticities(OpenEXR.V2f(1.0,2.0),
+                                                              OpenEXR.V2f(3.0,4.0),
+                                                              OpenEXR.V2f(5.0,6.0),
+                                                              OpenEXR.V2f(7.0,8.0))
             header["box2i"] = OpenEXR.Box2i(OpenEXR.V2i(0,1),OpenEXR.V2i(2,3))
             header["box2f"] = OpenEXR.Box2f(OpenEXR.V2f(0,1),OpenEXR.V2f(2,3))
             header["compression"] = OpenEXR.ZIPS_COMPRESSION

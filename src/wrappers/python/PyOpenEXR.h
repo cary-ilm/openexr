@@ -14,7 +14,7 @@ class PyFile
 {
 public:
     PyFile() {}
-    PyFile(const std::string& filename);
+    PyFile(const std::string& filename, bool rgba = false, bool header_only = false);
     PyFile(const py::dict& header, const py::dict& channels,
            exr_storage_t type, Compression c);
     PyFile(const py::list& parts);
@@ -32,22 +32,14 @@ public:
 
 protected:
     
+    bool         header_only;
+    
     py::object   get_attribute_object(const std::string& name, const Attribute* a);
     
     void         insert_attribute(Header& header,
                                   const std::string& name,
                                   const py::object& object);
 
-};
-
-class PyRgbaFile : public PyFile
-{
-public:
-    PyRgbaFile() {}
-    PyRgbaFile(const std::string& filename);
-    PyRgbaFile(const py::dict& header, const py::dict& channels,
-           exr_storage_t type, Compression c);
-    PyRgbaFile(const py::list& parts);
 };
 
 //
@@ -78,6 +70,16 @@ class PyPart
     py::dict       channels;
 
     size_t         part_index;
+
+    void           readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
+                              const std::vector<size_t>& shape, const std::set<std::string>& rgba_channels,
+                              const Box2i& dw, bool rgba);
+    void           readDeepPixels(MultiPartInputFile& infile, const std::string& type, const ChannelList& channel_list,
+                                  const std::vector<size_t>& shape, const std::set<std::string>& rgba_channels,
+                                  const Box2i& dw, bool rgba);
+    int            rgba_channel(const ChannelList& channel_list, const std::string& name,
+                                std::string& py_channel_name, char& channel_name);
+    
 };
 
 //
