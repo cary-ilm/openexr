@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 
 #
@@ -15,182 +16,193 @@ import numpy as np
 
 import OpenEXR
 
-def test_rgb(array_dtype):
+class TestRGBA(unittest.TestCase):
 
-    # Construct an RGB channel
+    def do_rgb(self, array_dtype):
+
+        # Construct an RGB channel
     
-    height = 5
-    width = 4
-    nrgba = 3
-    size = width * height * nrgba
-    RGB = np.array([i for i in range(0,size)], dtype=array_dtype).reshape((height, width, nrgba))
-    channels = { "RGB" : OpenEXR.Channel(RGB) }
+        height = 5
+        width = 4
+        nrgba = 3
+        size = width * height * nrgba
+        RGB = np.array([i for i in range(0,size)], dtype=array_dtype).reshape((height, width, nrgba))
+        channels = { "RGB" : OpenEXR.Channel(RGB) }
 
-    header = {}
-    outfile = OpenEXR.File(header, channels)
+        header = {}
+        outfile = OpenEXR.File(header, channels)
 
-    outfile.write("out.exr")
+        outfile.write("out.exr")
 
-    # 
-    # Read as separate channels
-    #
-    
-    infile = OpenEXR.File("out.exr")
+        # 
+        # Read as separate channels
+        #
+        
+        infile = OpenEXR.File("out.exr")
 
-    R = infile.channels()["R"].pixels
-    G = infile.channels()["G"].pixels
-    B = infile.channels()["B"].pixels
-
-    shape = R.shape
-    width = shape[1]
-    height = shape[0]
-    for y in range(0,height):
-        for x in range(0,width):
-            r = R[y][x]
-            g = G[y][x]
-            b = B[y][x]
-            assert r == RGB[y][x][0]
-            assert g == RGB[y][x][1]
-            assert b == RGB[y][x][2]
+        R = infile.channels()["R"].pixels
+        G = infile.channels()["G"].pixels
+        B = infile.channels()["B"].pixels
+        
+        shape = R.shape
+        width = shape[1]
+        height = shape[0]
+        for y in range(0,height):
+            for x in range(0,width):
+                r = R[y][x]
+                g = G[y][x]
+                b = B[y][x]
+                self.assertEqual(r, RGB[y][x][0])
+                self.assertEqual(g, RGB[y][x][1])
+                self.assertEqual(b, RGB[y][x][2])
             
-    #
-    # Read as RGB channel
-    #
+        #
+        # Read as RGB channel
+        #
     
-    infile = OpenEXR.File("out.exr", rgba=True)
+        infile = OpenEXR.File("out.exr", rgba=True)
 
-    inRGB = infile.channels()["RGB"].pixels
-    shape = inRGB.shape
-    width = shape[1]
-    height = shape[0]
-    assert shape[2] == 3
+        inRGB = infile.channels()["RGB"].pixels
+        shape = inRGB.shape
+        width = shape[1]
+        height = shape[0]
+        self.assertEqual(shape[2], 3)
     
-    assert np.array_equal(inRGB, RGB)
+        self.assertTrue(np.array_equal(inRGB, RGB))
 
-def test_rgba(array_dtype):
+    def do_rgba(self, array_dtype):
 
-    # Construct an RGB channel
+        # Construct an RGB channel
     
-    height = 6
-    width = 5
-    nrgba = 4
-    size = width * height * nrgba
-    RGBA = np.array([i for i in range(0,size)], dtype=array_dtype).reshape((height, width, nrgba))
-    channels = { "RGBA" : OpenEXR.Channel(RGBA) }
+        height = 6
+        width = 5
+        nrgba = 4
+        size = width * height * nrgba
+        RGBA = np.array([i for i in range(0,size)], dtype=array_dtype).reshape((height, width, nrgba))
+        channels = { "RGBA" : OpenEXR.Channel(RGBA) }
 
-    header = {}
-    outfile = OpenEXR.File(header, channels)
+        header = {}
+        outfile = OpenEXR.File(header, channels)
 
-    outfile.write("out.exr")
+        outfile.write("out.exr")
 
-    # 
-    # Read as separate channels
-    #
+        # 
+        # Read as separate channels
+        #
     
-    infile = OpenEXR.File("out.exr")
+        infile = OpenEXR.File("out.exr")
 
-    R = infile.channels()["R"].pixels
-    G = infile.channels()["G"].pixels
-    B = infile.channels()["B"].pixels
-    A = infile.channels()["A"].pixels
+        R = infile.channels()["R"].pixels
+        G = infile.channels()["G"].pixels
+        B = infile.channels()["B"].pixels
+        A = infile.channels()["A"].pixels
 
-    shape = R.shape
-    width = shape[1]
-    height = shape[0]
-    for y in range(0,height):
-        for x in range(0,width):
-            r = R[y][x]
-            g = G[y][x]
-            b = B[y][x]
-            a = A[y][x]
-            assert r == RGBA[y][x][0]
-            assert g == RGBA[y][x][1]
-            assert b == RGBA[y][x][2]
-            assert a == RGBA[y][x][3]
-            
-    #
-    # Read as RGBA channel
-    #
+        shape = R.shape
+        width = shape[1]
+        height = shape[0]
+        for y in range(0,height):
+            for x in range(0,width):
+                r = R[y][x]
+                g = G[y][x]
+                b = B[y][x]
+                a = A[y][x]
+                self.assertEqual(r, RGBA[y][x][0])
+                self.assertEqual(g, RGBA[y][x][1])
+                self.assertEqual(b, RGBA[y][x][2])
+                self.assertEqual(a, RGBA[y][x][3])
+                
+        #
+        # Read as RGBA channel
+        #
     
-    infile = OpenEXR.File("out.exr", rgba=True)
+        infile = OpenEXR.File("out.exr", rgba=True)
 
-    inRGBA = infile.channels()["RGBA"].pixels
-    shape = inRGBA.shape
-    width = shape[1]
-    height = shape[0]
-    assert shape[2] == 4
+        inRGBA = infile.channels()["RGBA"].pixels
+        shape = inRGBA.shape
+        width = shape[1]
+        height = shape[0]
+        self.assertEqual(shape[2], 4)
+        
+        self.assertTrue(np.array_equal(inRGBA, RGBA))
+
+    def do_rgba_prefix(self, array_dtype):
+
+        # Construct an RGB channel
     
-    assert np.array_equal(inRGBA, RGBA)
+        height = 6
+        width = 5
+        nrgba = 4
+        size = width * height
+        RGBA = np.array([i for i in range(0,size*nrgba)], dtype=array_dtype).reshape((height, width, nrgba))
+        Z = np.array([i for i in range(0,size)], dtype=array_dtype).reshape((height, width))
+        channels = { "left" : OpenEXR.Channel(RGBA), "left.Z" : OpenEXR.Channel(Z) }
 
-def test_rgba_prefix(array_dtype):
+        header = {}
+        outfile = OpenEXR.File(header, channels)
 
-    # Construct an RGB channel
+        print(f"write out.exr")
+        outfile.write("out.exr")
+
+        # 
+        # Read as separate channels
+        #
+
+        print(f"read out.exr as single channels")
+        infile = OpenEXR.File("out.exr")
+
+        R = infile.channels()["left.R"].pixels
+        G = infile.channels()["left.G"].pixels
+        B = infile.channels()["left.B"].pixels
+        A = infile.channels()["left.A"].pixels
+        Z = infile.channels()["left.Z"].pixels
+
+        shape = R.shape
+        width = shape[1]
+        height = shape[0]
+        for y in range(0,height):
+            for x in range(0,width):
+                r = R[y][x]
+                g = G[y][x]
+                b = B[y][x]
+                a = A[y][x]
+                self.assertEqual(r, RGBA[y][x][0])
+                self.assertEqual(g, RGBA[y][x][1])
+                self.assertEqual(b, RGBA[y][x][2])
+                self.assertEqual(a, RGBA[y][x][3])
+                
+        #
+        # Read as RGBA channel
+        #
     
-    height = 6
-    width = 5
-    nrgba = 4
-    size = width * height
-    RGBA = np.array([i for i in range(0,size*nrgba)], dtype=array_dtype).reshape((height, width, nrgba))
-    Z = np.array([i for i in range(0,size)], dtype=array_dtype).reshape((height, width))
-    channels = { "left" : OpenEXR.Channel(RGBA), "left.Z" : OpenEXR.Channel(Z) }
+        print(f"read out.exr as rgba channels")
+        infile = OpenEXR.File("out.exr", rgba=True)
 
-    header = {}
-    outfile = OpenEXR.File(header, channels)
+        inRGBA = infile.channels()["left"].pixels
+        shape = inRGBA.shape
+        width = shape[1]
+        height = shape[0]
+        self.assertEqual(shape[2], 4)
+        inZ = infile.channels()["left.Z"].pixels
+        
+        self.assertTrue(np.array_equal(inRGBA, RGBA))
 
-    print(f"write out.exr")
-    outfile.write("out.exr")
+    def test_rgb_uint32(self):
+        self.do_rgb('uint32')
 
-    # 
-    # Read as separate channels
-    #
+    def test_rgb_f(self):
+        self.do_rgb('f')
 
-    print(f"read out.exr as single channels")
-    infile = OpenEXR.File("out.exr")
+    def test_rgba_uint32(self):
+        self.do_rgba('uint32')
 
-    R = infile.channels()["left.R"].pixels
-    G = infile.channels()["left.G"].pixels
-    B = infile.channels()["left.B"].pixels
-    A = infile.channels()["left.A"].pixels
-    Z = infile.channels()["left.Z"].pixels
+    def test_rgba_prefix_uint32(self):
+        self.do_rgba_prefix('uint32')
 
-    shape = R.shape
-    width = shape[1]
-    height = shape[0]
-    for y in range(0,height):
-        for x in range(0,width):
-            r = R[y][x]
-            g = G[y][x]
-            b = B[y][x]
-            a = A[y][x]
-            assert r == RGBA[y][x][0]
-            assert g == RGBA[y][x][1]
-            assert b == RGBA[y][x][2]
-            assert a == RGBA[y][x][3]
-            
-    #
-    # Read as RGBA channel
-    #
-    
-    print(f"read out.exr as rgba channels")
-    infile = OpenEXR.File("out.exr", rgba=True)
+    def test_rgba_f(self):
+        self.do_rgba('f')
 
-    inRGBA = infile.channels()["left"].pixels
-    shape = inRGBA.shape
-    width = shape[1]
-    height = shape[0]
-    assert shape[2] == 4
-    inZ = infile.channels()["left.Z"].pixels
-    
-    assert np.array_equal(inRGBA, RGBA)
-
-
-test_rgba_prefix('uint32')
-test_rgba('uint32')
-test_rgba('f')
-test_rgb('uint32')
-test_rgb('f')
-
-print("OK")
-
+if __name__ == '__main__':
+    unittest.main()
+    print("OK")
 
 
