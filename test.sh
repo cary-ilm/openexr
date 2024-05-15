@@ -20,8 +20,9 @@ SRC_ROOT=$HOME/$REPO
 TEST_ROOT=$SRC_ROOT/src/wrappers/python/tests
 PYTHONPATH=$BUILD_ROOT/src/wrappers/python
 
-OPENEXR_TEST_IMAGE_REPO="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images"
-OPENEXR_TEST_IMAGE_REPO="file:///$HOME/src/cary-ilm/openexr-images"
+OPENEXR_TEST_IMAGE_REPO="https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main"
+
+#OPENEXR_TEST_IMAGE_REPO="file:///$HOME/src/cary-ilm/openexr-images"
 
 set -x
 
@@ -29,9 +30,9 @@ set -x
 #env $ASAN_OPTIONS PYTHONPATH=$PYTHONPATH python3 $TEST_ROOT/test_images.py 
 #env $ASAN_OPTIONS PYTHONPATH=$PYTHONPATH python3 $TEST_ROOT/test_exceptions.py 
 #env $ASAN_OPTIONS PYTHONPATH=$PYTHONPATH python3 $TEST_ROOT/test_unittest.py 
-env $ASAN_OPTIONS PYTHONPATH=$PYTHONPATH python3 $TEST_ROOT/test_rgba.py 
+#env $ASAN_OPTIONS PYTHONPATH=$PYTHONPATH python3 $TEST_ROOT/test_rgba.py 
 
-#env $ASAN_OPTIONS PYTHONPATH=$PYTHONPATH OPENEXR_TEST_IMAGE_REPO=$OPENEXR_TEST_IMAGE_REPO python3 $TEST_ROOT/test_images.py 
+env $ASAN_OPTIONS PYTHONPATH=$PYTHONPATH OPENEXR_TEST_IMAGE_REPO=$OPENEXR_TEST_IMAGE_REPO python3 $TEST_ROOT/test_images.py 
 
 
 

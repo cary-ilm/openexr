@@ -65,6 +65,7 @@ jobs:
           # Also skip the PyPy builds, since they fail the unit tests
           CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
           CIBW_TEST_SKIP: "*-macosx*arm64"
+          OPENEXR_TEST_IMAGE_REPO: "https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
