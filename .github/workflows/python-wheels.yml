@@ -17,6 +17,7 @@ on:
     branches-ignore:
       - RB-*
     paths:
+      - 'src/lib/**'
       - 'src/wrappers/python/**'
       - 'pyproject.toml'
       - '.github/workflows/python-wheels.yml'
@@ -24,6 +25,7 @@ on:
     branches-ignore:
       - RB-*
     paths:
+      - 'src/lib/**'
       - 'src/wrappers/python/**'
       - 'pyproject.toml'
       - '.github/workflows/python-wheels.yml'
@@ -63,6 +65,7 @@ jobs:
           # Also skip the PyPy builds, since they fail the unit tests
           CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
           CIBW_TEST_SKIP: "*-macosx*arm64"
+          OPENEXR_TEST_IMAGE_REPO: "https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main"
 
       - name: Upload artifact
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
