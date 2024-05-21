@@ -18,6 +18,9 @@ public:
     PyFile(const py::dict& header, const py::dict& channels);
     PyFile(const py::list& parts);
 
+    py::object   __enter__();
+    void         __exit__(py::args args);
+    
     py::dict&    header(int part_index = 0);
     py::dict&    channels(int part_index = 0);
 
@@ -125,6 +128,9 @@ public:
     int                   ySampling;
     int                   pLinear;
     py::array             pixels;
+
+    Array2D<char*>*       _deep_sample_ptrs;
+    PixelType             _type;
 
     size_t                channel_index;
 };

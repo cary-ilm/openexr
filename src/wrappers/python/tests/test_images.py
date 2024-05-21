@@ -138,6 +138,11 @@ bug_files = [
     "Chromaticities/XYZ_YC.exr",  # channel BY differs.
 ]
 
+exr_files = [
+    "v2/LeftView/Trunks.exr",
+]
+bug_files = []
+
 class TestImages(unittest.TestCase):
 
     def download_file(self, url, output_file):
@@ -175,7 +180,7 @@ class TestImages(unittest.TestCase):
 
         # Set the type and tile description (default)
         for P in f.parts:
-            P.header["compression"] = OpenEXR.NO_COMPRESSION
+            P.header["compression"] = OpenEXR.ZIP_COMPRESSION
             P.header["type"] = OpenEXR.tiledimage
             if "tiles" not in P.header:
                 P.header["tiles"] = OpenEXR.TileDescription()
@@ -215,8 +220,8 @@ class TestImages(unittest.TestCase):
         # Write it out
 
         print(f"Writing separate_channels.exr...")
-        for P in separate_channels.parts:
-            P.header["compression"] = OpenEXR.ZIP_COMPRESSION
+#        for P in separate_channels.parts:
+#            P.header["compression"] = OpenEXR.ZIP_COMPRESSION
         separate_channels.write("separate_channels.exr")
 
         # Read the file that was just written

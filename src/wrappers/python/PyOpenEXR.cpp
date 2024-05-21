@@ -3,7 +3,7 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
-//#define DEBUG_VERBOSE 1
+#define DEBUG_VERBOSE 1
 
 #define PYBIND11_DETAILED_ERROR_MESSAGES 1
 
@@ -14,9 +14,6 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl_bind.h>
 #include <pybind11/operators.h>
-
-#include <typeinfo>
-#include <sys/types.h>
 
 #include "openexr.h"
 
@@ -32,6 +29,7 @@
 #include <ImfDeepTiledInputPart.h>
 #include <ImfDeepFrameBuffer.h>
 #include <ImfPartType.h>
+#include <ImfArray.h>
 
 #include <ImfBoxAttribute.h>
 #include <ImfChannelListAttribute.h>
@@ -52,6 +50,9 @@
 #include <ImfTileDescriptionAttribute.h>
 #include <ImfTimeCodeAttribute.h>
 #include <ImfVecAttribute.h>
+
+#include <typeinfo>
+#include <sys/types.h>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -93,7 +94,7 @@ namespace detail {
 namespace {
 
 #include "PyOpenEXR.h"
-    
+
 //
 // Create a PyFile out of a list of parts (i.e. a multi-part file)
 //
@@ -347,13 +348,24 @@ PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
     part.readPixels (dw.min.y, dw.max.y);
 }
 
-// WIP
 void
 PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, const ChannelList& channel_list,
                        const std::vector<size_t>& shape, const std::set<std::string>& rgba_channels,
                        const Box2i& dw, bool rgba)
 {
+#if XXX
     DeepFrameBuffer frameBuffer;
+
+    size_t width  = dw.max.x - dw.min.x + 1;
+    size_t height = dw.max.y - dw.min.y + 1;
+
+    Array2D<unsigned int> sampleCount (height, width);
+
+    frameBuffer.insertSampleCountSlice (Slice (
+                                            UINT,
+                                            (char*) (&sampleCount[0][0] - dw.min.x - dw.min.y * width),
+                                            sizeof (unsigned int) * 1,       // xStride
+                                            sizeof (unsigned int) * width)); // yStride
 
     for (auto c = channel_list.begin(); c != channel_list.end(); c++)
     {
@@ -375,38 +387,18 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
             C.xSampling = c.channel().xSampling;
             C.ySampling = c.channel().ySampling;
             C.pLinear = c.channel().pLinear;
-                
+            C._type = c.channel().type;
+            
             const auto style = py::array::c_style | py::array::forcecast;
 
-            std::vector<size_t> c_shape = shape;
-
-            // If this channel belongs to one of the rgba's, give
-            // the PyChannel the proper shape
-            if (rgba_channels.find(c.name()) != rgba_channels.end())
-                c_shape.push_back(nrgba);
-
-            switch (c.channel().type)
-            {
-              case UINT:
-                  C.pixels = py::array_t<uint32_t,style>(c_shape);
-                  break;
-              case HALF:
-                  C.pixels = py::array_t<half,style>(c_shape);
-                  break;
-              case FLOAT:
-                  C.pixels = py::array_t<float,style>(c_shape);
-                  break;
-              default:
-                  throw std::runtime_error("invalid pixel type");
-            } // switch c->type
-
+            C.pixels = py::array_t<py::array,style>(shape);
+            C._deep_sample_ptrs = new Array2D<char*>(width, height);
+                    
             channels[py_channel_name.c_str()] = C;
 
 #if DEBUG_VERBOSE
-            std::cout << ":: creating PyChannel name=" << C.name
-                      << " ndim=" << C.pixels.ndim()
-                      << " size=" << C.pixels.size()
-                      << " itemsize=" << C.pixels.dtype().itemsize()
+            std::cout << ":: creating deep PyChannel name=" << C.name
+                      << " type=" << C._type
                       << std::endl;
 #endif
         }
@@ -414,47 +406,36 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
         auto v = channels[py_channel_name.c_str()];
         auto C = v.cast<PyChannel&>();
 
-        py::buffer_info buf = C.pixels.request();
-        auto basePtr = static_cast<uint8_t*>(buf.ptr);
-        py::dtype dt = C.pixels.dtype();
-        size_t xStride = dt.itemsize();
-        if (nrgba > 0)
-        {
-            xStride *= nrgba;
-            switch (channel_name)
-            {
-              case 'R':
-                  break;
-              case 'G':
-                  basePtr += dt.itemsize();
-                  break;
-              case 'B':
-                  basePtr += 2 * dt.itemsize();
-                  break;
-              case 'A':
-                  basePtr += 3 * dt.itemsize();
-                  break;
-              default:
-                  break;
-            }
-        }
-
+        size_t xStride = sizeof(void*);
         size_t yStride = xStride * shape[1];
-        size_t sampleStride = 0;
-
+        size_t sampleStride;
+        switch (c.channel().type)
+        {
+        case UINT:
+            sampleStride = sizeof(uint32_t);
+            break;
+        case HALF:
+            sampleStride = sizeof(half);
+            break;
+        case FLOAT:
+            sampleStride = sizeof(float);
+            break;
+        default:
+            sampleStride = 0;
+            break;
+        }
+            
+        auto basePtr = &(*C._deep_sample_ptrs)[0][0];
+        
 #if DEBUG_VERBOSE
-        std::cout << "Creating slice from PyChannel name=" << C.name
-                  << " ndim=" << C.pixels.ndim()
+        std::cout << "Creating deep slice from PyChannel name=" << C.name
                   << " size=" << C.pixels.size()
-                  << " itemsize=" << C.pixels.dtype().itemsize()
-                  << " name=" << c.name()
-                  << " type=" << c.channel().type
                   << std::endl;
 #endif
 
         frameBuffer.insert (c.name(),
                             DeepSlice (c.channel().type,
-                                       (char*) basePtr,
+                                       (char*) basePtr - dw.min.x - dw.min.y * width,
                                        xStride,
                                        yStride,
                                        sampleStride,
@@ -467,8 +448,50 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
         DeepScanLineInputPart part (infile, part_index);
 
         part.setFrameBuffer (frameBuffer);
+        part.readPixelSampleCounts (dw.min.y, dw.max.y);
+
+        const auto style = py::array::c_style | py::array::forcecast;
+        std::vector<size_t> shape(1);
+
+        for (auto c : channels)
+        {
+            auto C = c.second.cast<const PyChannel&>();
+            for (size_t y=0; y<height; y++)
+                for (size_t x=0; x<width; x++)
+                {
+                    shape[0] = sampleCount[y][x];
+                    py::buffer_info buf = C.pixels.request();
+                    size_t i = y * width + x;
+                    auto optr = static_cast<py::object*>(buf.ptr);
+                    switch (C._type)
+                    {
+                    case UINT:
+                        optr[i] = py::array_t<uint32_t,style>(shape);
+                        break;
+                    case HALF:
+                        optr[i] = py::array_t<half,style>(shape);
+                        break;
+                    case FLOAT:
+                        optr[i] = py::array_t<float,style>(shape);
+                        break;
+                    default:
+                        throw std::runtime_error("invalid pixel type");
+                    } // switch c->type
+
+                    (*C._deep_sample_ptrs)[y][x] = static_cast<char*>(buf.ptr);
+                }
+        }
+        
         part.readPixels (dw.min.y, dw.max.y);
+
+        for (auto c : channels)
+        {
+            auto C = c.second.cast<const PyChannel&>();
+            delete C._deep_sample_ptrs;
+            C._deep_sample_ptrs = 0;
+        }
     }
+#endif
 }
 
 //
@@ -537,6 +560,17 @@ PyPart::rgba_channel(const ChannelList& channel_list, const std::string& name,
     }
 
     return 0;
+}
+
+py::object
+PyFile::__enter__()
+{
+    return py::cast(this);
+}
+
+void
+PyFile::__exit__(py::args args)
+{
 }
 
 bool
@@ -1213,7 +1247,18 @@ PyPart::PyPart(const py::dict& header, const py::dict& channels, const std::stri
         if (!py::isinstance<py::str>(c.first))
             throw std::invalid_argument("channels key must be string (channel name)");
 
-        c.second.cast<PyChannel&>().name = py::str(c.first);
+        //
+        // Accept a py::array as the py::dict value, but replace it with a PyChannel object.
+        //
+        
+        if (py::isinstance<py::array>(c.second))
+        {
+            std::string channel_name = py::str(c.first);
+            py::array a = c.second.cast<py::array>();
+            channels[channel_name.c_str()] = PyChannel(channel_name.c_str(), a);
+        }
+        else if (!py::isinstance<PyChannel>(c.second))
+            throw std::invalid_argument("Channel value must be a Channel() object or a numpy pixel array");
     }
 
     auto s = shape();
@@ -1609,6 +1654,9 @@ repr(const T& v)
     return s.str();
 }
 
+#if DEEP_EXAMPLE
+#include "deepExample.cpp"
+#endif
 
 } // namespace
 
@@ -1846,6 +1894,9 @@ PYBIND11_MODULE(OpenEXR, m)
     py::class_<Box2i>(m, "Box2i")
         .def(py::init())
         .def(py::init<V2i,V2i>())
+        .def(py::init([](std::tuple<int, int> min, std::tuple<int, int> max) {
+            return new Box2i(V2i(std::get<0>(min), std::get<1>(min)),
+                             V2i(std::get<0>(max), std::get<1>(max))); }))
         .def("__repr__", [](const Box2i& v) { return repr(v); })
         .def(py::self == py::self)
         .def_readwrite("min", &Box2i::min)
@@ -1855,6 +1906,9 @@ PYBIND11_MODULE(OpenEXR, m)
     py::class_<Box2f>(m, "Box2f")
         .def(py::init())
         .def(py::init<V2f,V2f>())
+        .def(py::init([](std::tuple<float, float> min, std::tuple<float, float> max) {
+            return new Box2f(V2f(std::get<0>(min), std::get<1>(min)),
+                             V2f(std::get<0>(max), std::get<1>(max))); }))
         .def("__repr__", [](const Box2f& v) { return repr(v); })
         .def(py::self == py::self)
         .def_readwrite("min", &Box2f::min)
@@ -1966,6 +2020,8 @@ PYBIND11_MODULE(OpenEXR, m)
              py::arg("channels"))
         .def(py::init<py::list>(),
              py::arg("parts"))
+        .def("__enter__", &PyFile::__enter__)
+        .def("__exit__", &PyFile::__exit__)
         .def(py::self == py::self)
         .def_readwrite("filename", &PyFile::filename)
         .def_readwrite("parts", &PyFile::parts)
@@ -1973,5 +2029,10 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("channels", &PyFile::channels, py::arg("part_index") = 0)
         .def("write", &PyFile::write)
         ;
+
+#if DEEP_EXAMPLE
+    m.def("writeDeepExample", &writeDeepExample);
+    m.def("readDeepExample", &readDeepExample);
+#endif
 }
 
