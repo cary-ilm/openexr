@@ -139,7 +139,7 @@ def preview_pixels_equal(a, b):
 
     return True
 
-class TestOpenEXR(unittest.TestCase):
+class TestUnittest(unittest.TestCase):
 
     def test_read_write(self):
 

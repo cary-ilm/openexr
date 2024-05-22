@@ -29,6 +29,8 @@ public:
     bool         operator==(const PyFile& other) const;
     bool         operator!=(const PyFile& other) const { return !(*this == other); }
     
+    std::string  diff(const PyFile& other) const;
+
     std::string  filename;
     py::list     parts;
 
@@ -58,6 +60,8 @@ class PyPart
     
     bool operator==(const PyPart& other) const;
     bool operator!=(const PyPart& other) const { return !(*this == other); }
+
+    std::string  diff(const PyPart& other) const;
 
     std::string    name() const;
     V2i            shape() const;
@@ -119,6 +123,8 @@ public:
     bool operator==(const PyChannel& other) const;
     bool operator!=(const PyChannel& other) const { return !(*this == other); }
 
+    std::string  diff(const PyChannel& other) const;
+
     void validate_pixel_array();
     
     PixelType             pixelType() const;
@@ -129,7 +135,7 @@ public:
     int                   pLinear;
     py::array             pixels;
 
-    Array2D<char*>*       _deep_sample_ptrs;
+    Array2D<void*>*       deep_samples;
     PixelType             _type;
 
     size_t                channel_index;

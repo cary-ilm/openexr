@@ -138,10 +138,10 @@ bug_files = [
     "Chromaticities/XYZ_YC.exr",  # channel BY differs.
 ]
 
-exr_files = [
-    "v2/LeftView/Trunks.exr",
-]
-bug_files = []
+#exr_files = [
+#    "v2/LeftView/Trunks.exr",
+#]
+#bug_files = []
 
 class TestImages(unittest.TestCase):
 
@@ -220,8 +220,8 @@ class TestImages(unittest.TestCase):
         # Write it out
 
         print(f"Writing separate_channels.exr...")
-#        for P in separate_channels.parts:
-#            P.header["compression"] = OpenEXR.ZIP_COMPRESSION
+        for P in separate_channels.parts:
+            P.header["compression"] = OpenEXR.ZIP_COMPRESSION
         separate_channels.write("separate_channels.exr")
 
         # Read the file that was just written

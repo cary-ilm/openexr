@@ -353,7 +353,6 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
                        const std::vector<size_t>& shape, const std::set<std::string>& rgba_channels,
                        const Box2i& dw, bool rgba)
 {
-#if XXX
     DeepFrameBuffer frameBuffer;
 
     size_t width  = dw.max.x - dw.min.x + 1;
@@ -379,7 +378,7 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
             
         if (!channels.contains(py_channel_name_str))
         {
-            // We haven't add a PyChannel yet, so add one one.
+            // We haven't add a PyChannel yet, so add one now.
                 
             PyChannel C;
 
@@ -389,10 +388,7 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
             C.pLinear = c.channel().pLinear;
             C._type = c.channel().type;
             
-            const auto style = py::array::c_style | py::array::forcecast;
-
-            C.pixels = py::array_t<py::array,style>(shape);
-            C._deep_sample_ptrs = new Array2D<char*>(width, height);
+            C.deep_samples = new Array2D<void*>(width, height);
                     
             channels[py_channel_name.c_str()] = C;
 
@@ -424,18 +420,23 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
             sampleStride = 0;
             break;
         }
+
             
-        auto basePtr = &(*C._deep_sample_ptrs)[0][0];
+        auto &S = *C.deep_samples;
+        auto basePtr = &S[0][0];
         
 #if DEBUG_VERBOSE
         std::cout << "Creating deep slice from PyChannel name=" << C.name
                   << " size=" << C.pixels.size()
+                  << " xStride=" << xStride
+                  << " yStride=" << yStride
+                  << " sampleStride=" << sampleStride
                   << std::endl;
 #endif
 
         frameBuffer.insert (c.name(),
                             DeepSlice (c.channel().type,
-                                       (char*) basePtr - dw.min.x - dw.min.y * width,
+                                       (char*) (basePtr - dw.min.x - dw.min.y * width),
                                        xStride,
                                        yStride,
                                        sampleStride,
@@ -448,10 +449,77 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
         DeepScanLineInputPart part (infile, part_index);
 
         part.setFrameBuffer (frameBuffer);
-        part.readPixelSampleCounts (dw.min.y, dw.max.y);
 
-        const auto style = py::array::c_style | py::array::forcecast;
-        std::vector<size_t> shape(1);
+        std::cout << "part.readPixelSampleCounts..." << std::endl;
+        part.readPixelSampleCounts (dw.min.y, dw.max.y);
+        std::cout << "part.readPixelSampleCounts...done." << std::endl;
+
+        for (auto c : channels)
+        {
+            std::cout << "allocating..." << std::endl;
+
+            auto C = c.second.cast<const PyChannel&>();
+            auto &S = *C.deep_samples;
+            for (size_t y=0; y<height; y++)
+                for (size_t x=0; x<width; x++)
+                {
+                    auto size = sampleCount[y][x];
+                    std::cout << "sampleCount[" << y << "][" << x << "]=" << sampleCount[y][x] << std::endl;
+                    switch (C._type)
+                    {
+                      case UINT:
+                          S[y][x] = static_cast<void*>(new uint32_t[size]);
+                          break;
+                      case HALF:
+                          S[y][x] = static_cast<void*>(new half[size]);
+                        break;
+                      case FLOAT:
+                          S[y][x] = static_cast<void*>(new float[size]);
+                          break;
+                      default:
+                          throw std::runtime_error("invalid pixel type");
+                    } // switch c->type
+                }
+
+
+            std::cout << "clearing..." << std::endl;
+            
+            for (size_t y=0; y<height; y++)
+                for (size_t x=0; x<width; x++)
+                {
+                    auto size = sampleCount[y][x];
+                    switch (C._type)
+                    {
+                      case UINT:
+                          for (int i=0; i<size; i++)
+                          {
+                              auto s = static_cast<uint32_t*>(S[y][x]);
+                              s[i] = 0;
+                          }
+                          break;
+                      case HALF:
+                          for (int i=0; i<size; i++)
+                          {
+                              auto s = static_cast<half*>(S[y][x]);
+                              s[i] = 0;
+                          }
+                          break;
+                      case FLOAT:
+                          for (int i=0; i<size; i++)
+                          {
+                              auto s = static_cast<float*>(S[y][x]);
+                              s[i] = 0;
+                          }
+                          break;
+                      default:
+                          throw std::runtime_error("invalid pixel type");
+                    } // switch c->type
+                }
+        }
+        
+        std::cout << "part.readPixels..." << std::endl;
+        part.readPixels (dw.min.y, dw.max.y);
+        std::cout << "part.readPixels...done." << std::endl;
 
         for (auto c : channels)
         {
@@ -459,39 +527,37 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
             for (size_t y=0; y<height; y++)
                 for (size_t x=0; x<width; x++)
                 {
-                    shape[0] = sampleCount[y][x];
-                    py::buffer_info buf = C.pixels.request();
-                    size_t i = y * width + x;
-                    auto optr = static_cast<py::object*>(buf.ptr);
+                    auto size = sampleCount[y][x];
+                    auto &S = *C.deep_samples;
                     switch (C._type)
                     {
-                    case UINT:
-                        optr[i] = py::array_t<uint32_t,style>(shape);
-                        break;
-                    case HALF:
-                        optr[i] = py::array_t<half,style>(shape);
-                        break;
-                    case FLOAT:
-                        optr[i] = py::array_t<float,style>(shape);
-                        break;
-                    default:
-                        throw std::runtime_error("invalid pixel type");
+                      case UINT:
+                          for (int i=0; i<size; i++)
+                          {
+                              auto s = static_cast<uint32_t*>(S[y][x]);
+                              std::cout << "sample: " << C.name << "[" << y << "][" << x << "][" << i << "]=" << s[i] << std::endl;
+                          }
+                          break;
+                      case HALF:
+                          for (int i=0; i<size; i++)
+                          {
+                              auto s = static_cast<half*>(S[y][x]);
+                              std::cout << "sample: " << C.name << "[" << y << "][" << x << "][" << i << "]=" << s[i] << std::endl;
+                          }
+                          break;
+                      case FLOAT:
+                          for (int i=0; i<size; i++)
+                          {
+                              auto s = static_cast<float*>(S[y][x]);
+                              std::cout << "sample: " << C.name << "[" << y << "][" << x << "][" << i << "]=" << s[i] << std::endl;
+                          }
+                          break;
+                      default:
+                          throw std::runtime_error("invalid pixel type");
                     } // switch c->type
-
-                    (*C._deep_sample_ptrs)[y][x] = static_cast<char*>(buf.ptr);
                 }
         }
-        
-        part.readPixels (dw.min.y, dw.max.y);
-
-        for (auto c : channels)
-        {
-            auto C = c.second.cast<const PyChannel&>();
-            delete C._deep_sample_ptrs;
-            C._deep_sample_ptrs = 0;
-        }
     }
-#endif
 }
 
 //
@@ -576,24 +642,32 @@ PyFile::__exit__(py::args args)
 bool
 PyFile::operator==(const PyFile& other) const
 {
+    auto s = diff(other);
+    if (!s.empty())
+        std::cout << "PyFile::diff: " << s << std::endl;
+    return s.empty();
+}
+
+std::string
+PyFile::diff(const PyFile& other) const
+{
     if (parts.size() != other.parts.size())
     {
-        std::cout << "PyFile:: #parts differs." << std::endl;
-        return false;
+        std::stringstream s;
+        s << "#parts differs:" << parts.size() << " vs. " << other.parts.size() << std::endl;
+        return s.str();
     }
     
     for (size_t part_index = 0; part_index<parts.size(); part_index++)
     {
         auto a = parts[part_index].cast<const PyPart&>();
         auto b = other.parts[part_index].cast<const PyPart&>();
-        if (a != b)
-        {
-            std::cout << "PyFile: part " << part_index << " differs." << std::endl;
-            return false;
-        }
+        auto s = a.diff(b);
+        if (!s.empty())
+            return s;
     }
     
-    return true;
+    return "";
 }       
 
 void
@@ -693,8 +767,6 @@ PyFile::write(const char* outfilename)
                 auto td = P.header["tiles"].cast<const TileDescription&>();
                 header.setTileDescription (td);
             }
-            else
-                std::cout << "> no tile description" << std::endl;
         }
 
         if (P.header.contains("lineOrder"))
@@ -1257,7 +1329,11 @@ PyPart::PyPart(const py::dict& header, const py::dict& channels, const std::stri
             py::array a = c.second.cast<py::array>();
             channels[channel_name.c_str()] = PyChannel(channel_name.c_str(), a);
         }
-        else if (!py::isinstance<PyChannel>(c.second))
+        else if (py::isinstance<PyChannel>(c.second))
+        {
+            c.second.cast<PyChannel&>().name = py::str(c.first);
+        }
+        else
             throw std::invalid_argument("Channel value must be a Channel() object or a numpy pixel array");
     }
 
@@ -1288,37 +1364,16 @@ is_required_attribute(const std::string& name)
             name == "chunkCount");
 }
             
-bool
-equal_header(const py::dict& A, const py::dict& B)
+std::string
+diff_header(const py::dict& A, const py::dict& B)
 {
     std::set<std::string> names;
     
-#if DEBUG_VERBOSE
-    std::cout << "A:";
-#endif
     for (auto a : A)
-    {
-#if DEBUG_VERBOSE
-        std::cout << " " << py::str(a.first);
-#endif
         names.insert(py::str(a.first));
-    }
-#if DEBUG_VERBOSE
-    std::cout << std::endl;
-
-    std::cout << "B:";
-#endif
     for (auto b : B)
-    {
-#if DEBUG_VERBOSE
-        std::cout << " " << py::str(b.first);
-#endif
         names.insert(py::str(b.first));
-    }
-#if DEBUG_VERBOSE
-    std::cout << std::endl;
-#endif
-    
+
     for (auto name : names)
     {
         if (name == "channels")
@@ -1328,16 +1383,18 @@ equal_header(const py::dict& A, const py::dict& B)
         {
             if (is_required_attribute(name))
                 continue;
-            std::cout << "lhs part does not contain " << name << std::endl;
-            return false;
+            std::stringstream s;
+            s << "lhs part does not contain " << name << std::endl;
+            return s.str();
         }
 
         if (!B.contains(name))
         {
             if (is_required_attribute(name))
                 continue;
-            std::cout << "rhs part does not contain " << name << std::endl;
-            return false;
+            std::stringstream s;
+            s << "rhs part does not contain " << name << std::endl;
+            return s.str();
         }
             
         py::object a = A[py::str(name)];
@@ -1349,38 +1406,37 @@ equal_header(const py::dict& A, const py::dict& B)
                 float f = py::cast<py::float_>(a);
                 float of = py::cast<py::float_>(b);
                 if (f == of)
-                    return true;
+                    return "";
                 
                 if (equalWithRelError(f, of, 1e-8f))
-                {
-                    float df = f - of;
-                    std::cout << "float values are very close: "
-                              << std::scientific << std::setprecision(12)
-                              << f << " "
-                              << of << " ("
-                              << df << ")"
-                              << std::endl;
-                    return true;
-                }
+                    return "";
             }
-            std::cout << "attribute values differ: " << name << " lhs='" << py::str(a) << "' rhs='" << py::str(b) << "'" << std::endl;
-            return false;
+            std::stringstream s;
+            s << "attribute values differ: " << name << " lhs='" << py::str(a) << "' rhs='" << py::str(b) << "'" << std::endl;
+            return s.str();
         }
     }
-    
 
-    return true;
+    return "";
 }
     
 
 bool
 PyPart::operator==(const PyPart& other) const
 {
-    if (!equal_header(header, other.header))
-    {
-        std::cout << "PyPart: !equal_header" << std::endl;
-        return false;
-    }
+    auto s = diff(other);
+    if (!s.empty())
+        std::cout << "PyPart::diff: " << s << std::endl;
+
+    return s.empty();
+}
+
+std::string
+PyPart::diff(const PyPart& other) const
+{
+    auto s = diff_header(header, other.header);
+    if (!s.empty())
+        return s;
         
     //
     // The channel dicts might not be in alphabetical order
@@ -1390,8 +1446,9 @@ PyPart::operator==(const PyPart& other) const
     
     if (channels.size() != other.channels.size())
     {
-        std::cout << "PyPart: #channels differs." << std::endl;
-        return false;
+        std::stringstream s;
+        s << "PyPart: #channels differs:" << channels.size() << " vs. " << other.channels.size();
+        return s.str();
     }
         
     for (auto c : channels)
@@ -1399,14 +1456,12 @@ PyPart::operator==(const PyPart& other) const
         auto name = py::str(c.first);
         auto C = c.second.cast<const PyChannel&>();
         auto O = other.channels[py::str(name)].cast<const PyChannel&>();
-        if (C != O)
-        {
-            std::cout << "channel " << name << " differs." << std::endl;
-            return false;
-        }
+        auto s = C.diff(O);
+        if (!s.empty())
+            return s;
     }
         
-    return true;
+    return s;
 }
 
 template <class T>
@@ -1453,9 +1508,9 @@ py_inf<uint32_t>(uint32_t a)
 
 
 template <class T>
-bool
-array_equals(const py::buffer_info& a, const py::buffer_info& b,
-             const std::string& name, int width, int height, int depth = 1)
+std::string
+array_diff(const py::buffer_info& a, const py::buffer_info& b,
+           const std::string& name, int width, int height, int depth = 1)
 {
     const T* apixels = static_cast<const T*>(a.ptr);
     const T* bpixels = static_cast<const T*>(b.ptr);
@@ -1475,21 +1530,22 @@ array_equals(const py::buffer_info& a, const py::buffer_info& b,
                 double bp = static_cast<double>(bpixels[k]);
                 if (!equalWithRelError(ap, bp, 1e-5))
                 {
-                    std::cout << " a[" << y
-                              << "][" << x
-                              << "][" << j
-                              << "]=" << apixels[k]
-                              << " b=[" << y
-                              << "][" << x
-                              << "][" << j
-                              << "]=" << bpixels[k]
-                              << std::endl;
-                    return false;
+                    std::stringstream s;
+                    s << " a[" << y
+                      << "][" << x
+                      << "][" << j
+                      << "]=" << apixels[k]
+                      << " b=[" << y
+                      << "][" << x
+                      << "][" << j
+                      << "]=" << bpixels[k]
+                      << std::endl;
+                    return s.str();
                 }
             }
         }
 
-    return true;
+    return "";
 }
 
 void
@@ -1507,35 +1563,64 @@ PyChannel::validate_pixel_array()
 bool
 PyChannel::operator==(const PyChannel& other) const
 {
-    if (name == other.name && 
-        xSampling == other.xSampling && 
-        ySampling == other.ySampling &&
-        pLinear == other.pLinear &&
-        pixels.ndim() == other.pixels.ndim() && 
-        pixels.size() == other.pixels.size())
-    {
-        if (pixels.size() == 0)
-            return true;
-        
-        py::buffer_info buf = pixels.request();
-        py::buffer_info obuf = other.pixels.request();
+    auto s = diff(other);
+    if (!s.empty())
+        std::cout << "PyChannel::diff: " << s << std::endl;
+    return s.empty();
+}
 
-        int width = pixels.shape(1);
-        int height = pixels.shape(0);
-        int depth = pixels.ndim() == 3 ? pixels.shape(2) : 1;
-        
-        if (py::isinstance<py::array_t<uint32_t>>(pixels) && py::isinstance<py::array_t<uint32_t>>(other.pixels))
-            if (array_equals<uint32_t>(buf, obuf, name, width, height, depth))
-                return true;
-        if (py::isinstance<py::array_t<half>>(pixels) && py::isinstance<py::array_t<half>>(other.pixels))
-            if (array_equals<half>(buf, obuf, name, width, height, depth))
-                return true;
-        if (py::isinstance<py::array_t<float>>(pixels) && py::isinstance<py::array_t<float>>(other.pixels))
-            if (array_equals<float>(buf, obuf, name, width, height, depth))
-                return true;
+std::string
+PyChannel::diff(const PyChannel& other) const
+{
+    std::stringstream ss;
+    if (name != other.name)
+    {
+        ss << "channel names differ: " << name << " vs. " << other.name;
+        return ss.str();
+    }
+    
+    if (xSampling != other.xSampling ||
+        ySampling != other.ySampling ||
+        pLinear != other.pLinear)
+    {
+        ss << "channel sampling differs: " << xSampling
+           << ", " << ySampling
+           << ", " << pLinear
+           << " vs. " << other.xSampling
+           << ", " << other.ySampling
+           << ", " << other.pLinear;
+        return ss.str();
     }
 
-    return false;
+    if (pixels.ndim() != other.pixels.ndim())
+    {
+        ss << "pixel.ndim differs: " << pixels.ndim() << " vs. " << other.pixels.ndim();
+        return ss.str();
+    }
+
+    for (size_t i=0; i<pixels.ndim(); i++)
+        if (pixels.shape(i) != other.pixels.shape(i))
+        {
+            ss << "pixel.shape(" << i << ") differs: " << pixels.shape(i) << " vs. " << other.pixels.shape(i);
+            return ss.str();
+        }
+
+    py::buffer_info buf = pixels.request();
+    py::buffer_info obuf = other.pixels.request();
+
+    int width = pixels.shape(1);
+    int height = pixels.shape(0);
+    int depth = pixels.ndim() == 3 ? pixels.shape(2) : 1;
+        
+    std::string s;
+    if (py::isinstance<py::array_t<uint32_t>>(pixels) && py::isinstance<py::array_t<uint32_t>>(other.pixels))
+        s = array_diff<uint32_t>(buf, obuf, name, width, height, depth);
+    else if (py::isinstance<py::array_t<half>>(pixels) && py::isinstance<py::array_t<half>>(other.pixels))
+        s = array_diff<half>(buf, obuf, name, width, height, depth);
+    else if (py::isinstance<py::array_t<float>>(pixels) && py::isinstance<py::array_t<float>>(other.pixels))
+        s = array_diff<float>(buf, obuf, name, width, height, depth);
+
+    return s;
 }
         
 V2i
@@ -1654,11 +1739,13 @@ repr(const T& v)
     return s.str();
 }
 
+} // namespace
+
+#define DEEP_EXAMPLE 1
+
 #if DEEP_EXAMPLE
 #include "deepExample.cpp"
 #endif
-
-} // namespace
 
 PYBIND11_MODULE(OpenEXR, m)
 {

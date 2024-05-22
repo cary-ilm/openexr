@@ -4,6 +4,7 @@
 #include <ImfDeepScanLineOutputFile.h>
 #include <ImfHeader.h>
 #include <ImfDeepFrameBuffer.h>
+#include <ImfStdIO.h>
 
 #include <cfloat>
 #include <ImathBox.h>
