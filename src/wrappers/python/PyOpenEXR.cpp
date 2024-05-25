@@ -15,6 +15,10 @@
 #include <pybind11/stl_bind.h>
 #include <pybind11/operators.h>
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <Python.h>
+#include <numpy/arrayobject.h>
+
 #include "openexr.h"
 
 #include <ImfHeader.h>
@@ -369,11 +373,13 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
     for (auto c = channel_list.begin(); c != channel_list.end(); c++)
     {
         std::string py_channel_name = c.name();
+#if XXX
         char channel_name; 
         int nrgba = 0;
         if (rgba)
             nrgba = rgba_channel(channel_list, c.name(), py_channel_name, channel_name);
-            
+#endif
+        
         auto py_channel_name_str = py::str(py_channel_name);
             
         if (!channels.contains(py_channel_name_str))
@@ -388,7 +394,7 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
             C.pLinear = c.channel().pLinear;
             C._type = c.channel().type;
             
-            C.deep_samples = new Array2D<void*>(width, height);
+            C.deep_samples = new Array2D<void*>(height, width);
                     
             channels[py_channel_name.c_str()] = C;
 
@@ -491,21 +497,21 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
                     switch (C._type)
                     {
                       case UINT:
-                          for (int i=0; i<size; i++)
+                          for (size_t i=0; i<size; i++)
                           {
                               auto s = static_cast<uint32_t*>(S[y][x]);
                               s[i] = 0;
                           }
                           break;
                       case HALF:
-                          for (int i=0; i<size; i++)
+                          for (size_t i=0; i<size; i++)
                           {
                               auto s = static_cast<half*>(S[y][x]);
                               s[i] = 0;
                           }
                           break;
                       case FLOAT:
-                          for (int i=0; i<size; i++)
+                          for (size_t i=0; i<size; i++)
                           {
                               auto s = static_cast<float*>(S[y][x]);
                               s[i] = 0;
@@ -532,21 +538,21 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
                     switch (C._type)
                     {
                       case UINT:
-                          for (int i=0; i<size; i++)
+                          for (size_t i=0; i<size; i++)
                           {
                               auto s = static_cast<uint32_t*>(S[y][x]);
                               std::cout << "sample: " << C.name << "[" << y << "][" << x << "][" << i << "]=" << s[i] << std::endl;
                           }
                           break;
                       case HALF:
-                          for (int i=0; i<size; i++)
+                          for (size_t i=0; i<size; i++)
                           {
                               auto s = static_cast<half*>(S[y][x]);
                               std::cout << "sample: " << C.name << "[" << y << "][" << x << "][" << i << "]=" << s[i] << std::endl;
                           }
                           break;
                       case FLOAT:
-                          for (int i=0; i<size; i++)
+                          for (size_t i=0; i<size; i++)
                           {
                               auto s = static_cast<float*>(S[y][x]);
                               std::cout << "sample: " << C.name << "[" << y << "][" << x << "][" << i << "]=" << s[i] << std::endl;
@@ -1598,7 +1604,7 @@ PyChannel::diff(const PyChannel& other) const
         return ss.str();
     }
 
-    for (size_t i=0; i<pixels.ndim(); i++)
+    for (ssize_t i=0; i<pixels.ndim(); i++)
         if (pixels.shape(i) != other.pixels.shape(i))
         {
             ss << "pixel.shape(" << i << ") differs: " << pixels.shape(i) << " vs. " << other.pixels.shape(i);
@@ -1740,6 +1746,66 @@ repr(const T& v)
 }
 
 } // namespace
+
+
+// Helper function to create a 1D NumPy array of integers
+static PyObject* create_1d_array(int size) {
+    npy_intp dims[1] = {size};
+    PyObject *array = PyArray_SimpleNew(1, dims, NPY_INT);
+    int *data = (int *)PyArray_DATA((PyArrayObject *)array);
+    for (int i = 0; i < size; ++i) {
+        data[i] = i;
+    }
+    return array;
+}
+
+// Main function to create the 2D array of arrays
+static PyObject* create_2d_array_of_arrays(void) {
+
+    Py_Initialize();
+    import_array(); // Initialize NumPy
+
+    npy_intp dims[2] = {3, 3};
+    PyObject *array_of_arrays = PyArray_SimpleNew(2, dims, NPY_OBJECT);
+
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            int size = i * 3 + j;
+            PyObject *subarray = create_1d_array(size);
+            // Get a pointer to the element in the 2D array and set the subarray
+            *(PyObject **)PyArray_GETPTR2((PyArrayObject *)array_of_arrays, i, j) = subarray;
+        }
+    }
+
+    return array_of_arrays;
+}
+
+py::object
+py_create_2d_array_of_arrays(void)
+{
+    auto py_obj = create_2d_array_of_arrays();
+    return py::reinterpret_borrow<py::object>(py_obj);
+}
+
+#if XXX
+int main(int argc, char *argv[]) {
+    // Initialize the Python interpreter
+    Py_Initialize();
+    import_array(); // Initialize NumPy
+
+    // Create the 2D array of arrays
+    PyObject *array_of_arrays = create_2d_array_of_arrays();
+
+    // Print the result (optional, for verification)
+    PyObject_Print(array_of_arrays, stdout, 0);
+    printf("\n");
+
+    // Clean up and exit
+    Py_DECREF(array_of_arrays);
+    Py_Finalize();
+    return 0;
+}
+#endif
 
 #define DEEP_EXAMPLE 1
 
@@ -2069,6 +2135,7 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("__repr__", [](const PyChannel& c) { return repr(c); })
         .def(py::self == py::self)
         .def(py::self != py::self)
+        .def("diff", &PyChannel::diff)
         .def_readwrite("name", &PyChannel::name)
         .def("type", &PyChannel::pixelType)
         .def_readwrite("xSampling", &PyChannel::xSampling)
@@ -2086,6 +2153,8 @@ PYBIND11_MODULE(OpenEXR, m)
              py::arg("name")="")
         .def("__repr__", [](const PyPart& p) { return repr(p); })
         .def(py::self == py::self)
+        .def(py::self != py::self)
+        .def("diff", &PyPart::diff)
         .def("name", &PyPart::name)
         .def("type", &PyPart::type)
         .def("width", &PyPart::width)
@@ -2110,6 +2179,8 @@ PYBIND11_MODULE(OpenEXR, m)
         .def("__enter__", &PyFile::__enter__)
         .def("__exit__", &PyFile::__exit__)
         .def(py::self == py::self)
+        .def(py::self != py::self)
+        .def("diff", &PyFile::diff)
         .def_readwrite("filename", &PyFile::filename)
         .def_readwrite("parts", &PyFile::parts)
         .def("header", &PyFile::header, py::arg("part_index") = 0)
@@ -2118,6 +2189,9 @@ PYBIND11_MODULE(OpenEXR, m)
         ;
 
 #if DEEP_EXAMPLE
+//    import_array();
+    
+    m.def("create_2d_array_of_arrays", &py_create_2d_array_of_arrays);
     m.def("writeDeepExample", &writeDeepExample);
     m.def("readDeepExample", &readDeepExample);
 #endif

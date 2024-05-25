@@ -21,7 +21,7 @@ class TestDeep(unittest.TestCase):
 
 #        OpenEXR.writeDeepExample()
 #        OpenEXR.readDeepExample()
-#        f = OpenEXR.File("test.deep.exr")
+        f = OpenEXR.File("test.deep.exr")
         print("ok")
         
 if __name__ == '__main__':
