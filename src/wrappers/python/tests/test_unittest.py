@@ -141,6 +141,52 @@ def preview_pixels_equal(a, b):
 
 class TestUnittest(unittest.TestCase):
 
+    def test_tuple(self):
+
+        width = 5
+        height = 10
+        size = width * height
+        Z = np.array([i for i in range(0,size)], dtype='uint32').reshape((height, width))
+        channels = { "Z" : Z }
+
+        header = {}
+        header["t2i"] = (0,1)
+        header["t2f"] = (2.3,4.5)
+        header["t2x"] = (6,7.8)
+        header["t3i"] = (0,1,2)
+        header["t3f"] = (3.4,5.6,7.8)
+        header["t3x"] = (9,10.11,12.13)
+
+        header["a2i"] = np.array([0,1], 'float32')
+        header["a2f"] = np.array([2.3,4.5], 'float32')
+        header["a2x"] = np.array([6,7.8], 'float32')
+        header["a3i"] = np.array([0,1,2], 'float32')
+        header["a3f"] = np.array([3.4,5.6,7.8], 'float32')
+        header["a3x"] = np.array([9,10.11,12.13], 'float32')
+
+        header["a33f"] = np.identity(3, 'float32') 
+        header["a33d"] = np.identity(3, 'double') 
+        header["a44f"] = np.identity(4, 'float32') 
+        header["a44d"] = np.identity(4, 'double') 
+
+        outfilename = mktemp_outfilename()
+        outfilename = "tuple.exr"
+        with OpenEXR.File(header, channels) as outfile:
+            outfile.write(outfilename)
+
+            with OpenEXR.File(outfilename) as infile:
+
+                for n,v in header.items():
+                    vv = infile.header()[n]
+                    print(f"header[{n}] {v} {vv}")
+
+                self.assertTrue(infile == outfile)
+                
+        with self.assertRaises(Exception):
+            header["v"] = (0,"x")
+            with OpenEXR.File(header, channels) as outfile:
+                outfile.write(outfilename)
+
     def test_read_write(self):
 
         #

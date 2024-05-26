@@ -1154,32 +1154,353 @@ PyFile::get_attribute_object(const std::string& name, const Attribute* a)
         return py::cast(v->value());
 
     if (auto v = dynamic_cast<const V2iAttribute*> (a))
-        return py::cast(V2i(v->value().x, v->value().y));
+        return py::array_t<int>(2, static_cast<const int*>(&v->value().x));
 
     if (auto v = dynamic_cast<const V2fAttribute*> (a))
-        return py::cast(V2f(v->value().x, v->value().y));
+        return py::array_t<float>(2, static_cast<const float*>(&v->value().x));
 
     if (auto v = dynamic_cast<const V2dAttribute*> (a))
-        return py::cast(V2d(v->value().x, v->value().y));
+        return py::array_t<double>(2, static_cast<const double*>(&v->value().x));
 
     if (auto v = dynamic_cast<const V3iAttribute*> (a))
-        return py::cast(V3i(v->value().x, v->value().y, v->value().z));
+        return py::array_t<int>(3, static_cast<const int*>(&v->value().x));
     
     if (auto v = dynamic_cast<const V3fAttribute*> (a))
-        return py::cast(V3f(v->value().x, v->value().y, v->value().z));
+        return py::array_t<float>(3, static_cast<const float*>(&v->value().x));
     
     if (auto v = dynamic_cast<const V3dAttribute*> (a))
-        return py::cast(V3d(v->value().x, v->value().y, v->value().z));
+        return py::array_t<double>(3, static_cast<const double*>(&v->value().x));
     
     throw std::runtime_error("unrecognized attribute type");
     
     return py::none();
 }
     
+bool
+is_float(const py::object& object, float& f)
+{
+    if (py::isinstance<py::float_>(object))
+    {
+        f = py::float_(object);
+        return true;
+    }
+    if (py::isinstance<py::int_>(object))
+    {
+        int i = py::int_(object);
+        f = static_cast<float>(i);
+        return true;
+    }
+    return false;
+}
+        
+bool
+is_v2i(const py::tuple& tup, V2i& v)
+{
+    if (tup.size() == 2 &&
+        py::isinstance<py::int_>(tup[0]) &&
+        py::isinstance<py::int_>(tup[1]))
+    {       
+        v.x = py::int_(tup[0]);
+        v.y = py::int_(tup[1]);
+        return true;
+    }
+
+    return false;
+}
+
+bool
+is_v2f(const py::tuple& tup, V2f& v)
+{
+    if (tup.size() == 2)
+    {
+        if (py::isinstance<py::float_>(tup[0]) &&
+            py::isinstance<py::float_>(tup[1]))
+        {       
+            v.x = py::float_(tup[0]);
+            v.y = py::float_(tup[1]);
+            return true;
+        }
+
+        if (is_float(tup[0], v.x) && is_float(tup[1], v.y))
+            return true;
+    }
+    
+    return false;
+}
+
+bool
+is_v3i(const py::tuple& tup, V3i& v)
+{
+    if (tup.size() == 3 &&
+        py::isinstance<py::int_>(tup[0]) &&
+        py::isinstance<py::int_>(tup[1]) &&
+        py::isinstance<py::int_>(tup[2]))
+    {       
+        v.x = py::int_(tup[0]);
+        v.y = py::int_(tup[1]);
+        v.z = py::int_(tup[2]);
+        return true;
+    }
+
+    return false;
+}
+
+bool
+is_v3f(const py::tuple& tup, V3f& v)
+{
+    if (tup.size() == 3)
+    {
+        if (py::isinstance<py::float_>(tup[0]) &&
+            py::isinstance<py::float_>(tup[1]) &&
+            py::isinstance<py::float_>(tup[2]))
+        {       
+            v.x = py::float_(tup[0]);
+            v.y = py::float_(tup[1]);
+            v.z = py::float_(tup[2]);
+            return true;
+        }
+
+        if (is_float(tup[0], v.x) && is_float(tup[1], v.y) && is_float(tup[1], v.z))
+            return true;
+    }
+    
+    return false;
+}
+
+bool
+is_box2i(const py::tuple& tup, Box2i& b)
+{
+    if (tup.size() == 2 &&
+        py::isinstance<py::tuple>(tup[0]) &&
+        py::isinstance<py::tuple>(tup[1]))
+    {
+        auto t0 = py::cast<py::tuple>(tup[0]);
+        auto t1 = py::cast<py::tuple>(tup[1]);
+        if (is_v2i(t0, b.min) && is_v2i(t1, b.max))
+            return true;
+    }
+
+    return false;
+}
+         
+bool
+is_box2f(const py::tuple& tup, Box2f& b)
+{
+    if (tup.size() == 2 &&
+        py::isinstance<py::tuple>(tup[0]) &&
+        py::isinstance<py::tuple>(tup[1]))
+    {
+        auto t0 = py::cast<py::tuple>(tup[0]);
+        auto t1 = py::cast<py::tuple>(tup[1]);
+        if (is_v2f(t0, b.min) && is_v2f(t1, b.max))
+            return true;
+    }
+
+    return false;
+}
+         
+template <class T>
+Vec2<T>
+get_v2(const py::array& a)
+{
+    py::buffer_info buf = a.request();
+    auto v = static_cast<const T*>(buf.ptr);
+    return Vec2<T>(v[0], v[1]);
+}
+
+template <class T>
+Vec3<T>
+get_v3(const py::array& a)
+{
+    py::buffer_info buf = a.request();
+    auto v = static_cast<const T*>(buf.ptr);
+    return Vec3<T>(v[0], v[1], v[2]);
+}
+
+template <class T>
+Matrix33<T>
+get_m33(const py::array& a)
+{
+    py::buffer_info buf = a.request();
+    auto v = static_cast<const T*>(buf.ptr);
+    return Matrix33<T>(v[0], v[1], v[2],
+                       v[3], v[4], v[5],
+                       v[6], v[7], v[8]);
+}
+
+template <class T>
+Matrix44<T>
+get_m44(const py::array& a)
+{
+    py::buffer_info buf = a.request();
+    auto v = static_cast<const T*>(buf.ptr);
+    return Matrix44<T>(v[0], v[1], v[2], v[3],
+                       v[4], v[5], v[6], v[7],
+                       v[8], v[9], v[10], v[11],
+                       v[12], v[13], v[14], v[15]);
+}
+
 void
 PyFile::insert_attribute(Header& header, const std::string& name, const py::object& object)
 {
-    if (auto v = py_cast<Box2i>(object))
+    //
+    // If the value is a tuple, promote it to the proper Imath type, or throw
+    // an exception if its type does not jive with the standard attribute.
+    //
+    
+    if (py::isinstance<py::tuple>(object))
+    {
+        py::tuple tup = object.cast<py::tuple>();
+
+        if (name == "dataWindow" ||
+            name == "displayWindow" ||
+            name == "originalDataWindow" ||
+            name == "sensorAcquisitionRectangle")
+        {
+            Box2i b;
+            if (is_box2i(tup, b))
+            {
+                header.insert(name, Box2iAttribute(b));
+                return;
+            }
+            std::stringstream s;
+            s << "invalid value for " << name << ": expected a Box2i";
+            throw std::invalid_argument(s.str());
+        }
+
+        if (name == "worldToCamera" ||
+            name == "worldToNDC")
+        {
+            // M44f
+        }
+        if (name == "screenWindowCenter" ||
+            name == "sensorCenterOffset" ||
+            name == "sensorOverallDimensions" ||
+            name == "cameraColorBalance" ||
+            name == "adoptedNeutral")
+        {
+            V2f v;
+            if (is_v2f(tup, v))
+            {
+                header.insert(name, V2fAttribute(v));
+                return;
+            }
+            std::stringstream s;
+            s << "invalid value for " << name << ": expected a v2f";
+            throw std::invalid_argument(s.str());
+        }
+
+        V2i v2i;
+        if (is_v2i(tup, v2i))
+        {       
+            header.insert(name, V2iAttribute(v2i));
+            return;
+        }
+
+        V2f v2f;
+        if (is_v2f(tup, v2f))
+        {       
+            header.insert(name, V2fAttribute(v2f));
+            return;
+        }
+
+        V3i v3i;
+        if (is_v3i(tup, v3i))
+        {       
+            header.insert(name, V3iAttribute(v3i));
+            return;
+        }
+
+        V3f v3f;
+        if (is_v3f(tup, v3f))
+        {       
+            header.insert(name, V3fAttribute(v3f));
+            return;
+        }
+
+        Box2i box2i;
+        if (is_box2i(tup, box2i))
+        {       
+            header.insert(name, Box2iAttribute(box2i));
+            return;
+        }
+
+        Box2f box2f;
+        if (is_box2f(tup, box2f))
+        {       
+            header.insert(name, Box2fAttribute(box2f));
+            return;
+        }
+    }
+
+    if (py::isinstance<py::array>(object))
+    {
+        auto a = object.cast<py::array>();
+        if (a.ndim() == 1)
+        {
+            auto len = a.shape(0);
+            if (len == 2)
+            {
+                if (a.dtype().is(py::dtype::of<int>()))
+                    header.insert(name, V2iAttribute(get_v2<int>(a)));
+                else if (a.dtype().is(py::dtype::of<float>()))
+                    header.insert(name, V2fAttribute(get_v2<float>(a)));
+                else if (a.dtype().is(py::dtype::of<double>()))
+                    header.insert(name, V2dAttribute(get_v2<double>(a)));
+            }
+            else if (len == 3)
+            {
+                if (a.dtype().is(py::dtype::of<int>()))
+                    header.insert(name, V3iAttribute(get_v3<int>(a)));
+                else if (a.dtype().is(py::dtype::of<float>()))
+                    header.insert(name, V3fAttribute(get_v3<float>(a)));
+                else if (a.dtype().is(py::dtype::of<double>()))
+                    header.insert(name, V3dAttribute(get_v3<double>(a)));
+            }
+        }
+        else if (a.ndim() == 2)
+        {
+            if (a.shape(0) == 3 && a.shape(1) == 3)
+            {
+                if (a.dtype().is(py::dtype::of<float>()))
+                    header.insert(name, M33fAttribute(get_m33<float>(a)));
+                else if (a.dtype().is(py::dtype::of<double>()))
+                    header.insert(name, M33dAttribute(get_m33<double>(a)));
+                else
+                {
+                    std::stringstream s;
+                    s << "invalid matrix type: expected float or double";
+                    throw std::invalid_argument(s.str());
+                }
+            }
+            else if (a.shape(0) == 4 && a.shape(1) == 4)
+            {
+                if (a.dtype().is(py::dtype::of<float>()))
+                    header.insert(name, M44fAttribute(get_m44<float>(a)));
+                else if (a.dtype().is(py::dtype::of<double>()))
+                    header.insert(name, M44dAttribute(get_m44<double>(a)));
+                else
+                {
+                    std::stringstream s;
+                    s << "invalid matrix type: expected float or double";
+                    throw std::invalid_argument(s.str());
+                }
+            }
+            else
+            {
+                std::stringstream s;
+                s << "invalid matrix dimension " << a.shape(0) << "x" << a.shape(1) << ": expecting either 3x3 or 4x4";
+                throw std::invalid_argument(s.str());
+            }
+        }
+        else
+        {
+            std::stringstream s;
+            s << "invalid array dimension " << a.ndim() << ": expecting either vector or matrix";
+            throw std::invalid_argument(s.str());
+        }
+    }
+    else if (auto v = py_cast<Box2i>(object))
         header.insert(name, Box2iAttribute(*v));
     else if (auto v = py_cast<Box2f>(object))
         header.insert(name, Box2fAttribute(*v));
@@ -1248,6 +1569,7 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
         header.insert(name, TileDescriptionAttribute(*v));
     else if (auto v = py_cast<TimeCode>(object))
         header.insert(name, TimeCodeAttribute(*v));
+#if XXX
     else if (auto v = py_cast<V2i>(object))
         header.insert(name, V2iAttribute(*v));
     else if (auto v = py_cast<V2f>(object))
@@ -1260,6 +1582,7 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
         header.insert(name, V3fAttribute(*v));
     else if (auto v = py_cast<V3d>(object))
         header.insert(name, V3dAttribute(*v));
+#endif
     else if (auto v = py_cast<exr_storage_t>(object))
     {
         std::string type;
@@ -1986,7 +2309,7 @@ PYBIND11_MODULE(OpenEXR, m)
     //
     // Stand-in Imath classes - these should really come from the Imath module.
     //
-    
+#if XXX    
     py::class_<V2i>(m, "V2i")
         .def(py::init())
         .def(py::init<int,int>())
@@ -2043,7 +2366,8 @@ PYBIND11_MODULE(OpenEXR, m)
         .def_readwrite("y", &Imath::V3d::y)
         .def_readwrite("z", &Imath::V3d::z)
         ;
-
+#endif
+    
     py::class_<Box2i>(m, "Box2i")
         .def(py::init())
         .def(py::init<V2i,V2i>())
