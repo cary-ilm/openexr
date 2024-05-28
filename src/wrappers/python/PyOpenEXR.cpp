@@ -1693,6 +1693,47 @@ is_required_attribute(const std::string& name)
             name == "chunkCount");
 }
             
+template <class T>
+bool
+array_equal(const py::array_t<T>& a, const py::array_t<T>& b)
+{
+    auto aa = static_cast<const T*>(a.request().ptr);
+    auto bb = static_cast<const T*>(b.request().ptr);
+    for (int i = 0; i<a.size(); i++)
+        if (aa[i] != bb[i])
+            return false;
+    return true;
+}
+
+bool
+array_equal(const py::array& a, const py::array& b)
+{
+    if (a.ndim() != b.ndim())
+        return false;
+
+    for (int i = 0; i<a.ndim(); i++)
+        if (a.shape(i) != b.shape(i))
+            return false;
+    
+    if (!a.dtype().is(b.dtype()))
+        return false;
+
+    if (py::isinstance<py::array_t<int>>(a))
+        return array_equal(a.cast<const py::array_t<int>&>(), b.cast<const py::array_t<int>&>());
+    if (py::isinstance<py::array_t<float>>(a))
+        return array_equal(a.cast<const py::array_t<float>&>(), b.cast<const py::array_t<float>&>());
+    if (py::isinstance<py::array_t<double>>(a))
+        return array_equal(a.cast<const py::array_t<double>&>(), b.cast<const py::array_t<double>&>());
+
+    return false;
+}
+
+bool
+array_equal(const py::array& a, const py::tuple& b)
+{
+    return array_equal(a, py::array(b));
+}
+
 std::string
 diff_header(const py::dict& A, const py::dict& B)
 {
@@ -1728,6 +1769,30 @@ diff_header(const py::dict& A, const py::dict& B)
             
         py::object a = A[py::str(name)];
         py::object b = B[py::str(name)];
+
+        if (py::isinstance<py::array>(a))
+        {
+            if (py::isinstance<py::array>(b))
+            {
+                if (array_equal(a.cast<py::array>(), b.cast<py::array>()))
+                    return "";
+                return "array/array not equal";
+            }
+            if (py::isinstance<py::tuple>(b))
+                if (array_equal(a.cast<py::array>(), b.cast<py::tuple>()))
+                    return "";
+            return "array/tuple not equal";
+        }
+
+        if (py::isinstance<py::tuple>(a))
+            if (py::isinstance<py::array>(b))
+            {
+                if (array_equal(b.cast<py::array>(), a.cast<py::tuple>()))
+                    return "";
+                return "tuple/array not equal";
+            }
+        
+            
         if (!a.equal(b))
         {
             if (py::isinstance<py::float_>(a))
