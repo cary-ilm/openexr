@@ -1439,6 +1439,8 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
         if (a.ndim() == 1)
         {
             auto len = a.shape(0);
+
+            std::cout << "insert_attribute: array, ndim=1, len=" << len << std::endl;
             if (len == 2)
             {
                 if (a.dtype().is(py::dtype::of<int>()))
@@ -1447,6 +1449,12 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
                     header.insert(name, V2fAttribute(get_v2<float>(a)));
                 else if (a.dtype().is(py::dtype::of<double>()))
                     header.insert(name, V2dAttribute(get_v2<double>(a)));
+                else
+                {
+                    std::stringstream s;
+                    s << "invalid attribute type: array dtype " << py::str(a.dtype()) << std::endl;
+                    throw std::invalid_argument(s.str());
+                }
             }
             else if (len == 3)
             {
@@ -1456,6 +1464,12 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
                     header.insert(name, V3fAttribute(get_v3<float>(a)));
                 else if (a.dtype().is(py::dtype::of<double>()))
                     header.insert(name, V3dAttribute(get_v3<double>(a)));
+                else
+                {
+                    std::stringstream s;
+                    s << "invalid attribute type: array dtype " << py::str(a.dtype()) << std::endl;
+                    throw std::invalid_argument(s.str());
+                }
             }
         }
         else if (a.ndim() == 2)
@@ -1735,6 +1749,61 @@ array_equal(const py::array& a, const py::tuple& b)
 }
 
 std::string
+diff_object(const std::string& name, const py::object& a, const py::object& b)
+{
+    std::cout << "diff_object " << name << std::endl;
+
+    if (py::isinstance<py::array>(a))
+    {
+        if (py::isinstance<py::array>(b))
+        {
+            py::module_ np = py::module_::import("numpy");
+            bool ab_equal = np.attr("array_equal")(a, b).cast<bool>();
+            std::cout << "> np.array_equal" << std::endl;
+            if (!ab_equal)
+                return "array/array not equal";
+        }
+        if (py::isinstance<py::tuple>(b))
+        {
+            if (!array_equal(a.cast<py::array>(), b.cast<py::tuple>()))
+                return "array/tuple not equal";
+            std::cout << "> array_equal (b tuple)" << std::endl;
+        }
+    }
+    else if (py::isinstance<py::tuple>(a))
+    {
+        if (py::isinstance<py::array>(b))
+        {
+            if (!array_equal(b.cast<py::array>(), a.cast<py::tuple>()))
+                return "tuple/array not equal";
+
+            std::cout << "> array_equal (a tuple)" << std::endl;
+        }
+    }
+    
+    std::cout << "> object." << std::endl;
+        
+    if (!a.equal(b))
+    {
+        if (py::isinstance<py::float_>(a))
+        {                
+            float f = py::cast<py::float_>(a);
+            float of = py::cast<py::float_>(b);
+            if (f == of)
+                return "";
+            
+            if (equalWithRelError(f, of, 1e-8f))
+                return "";
+        }
+        std::stringstream s;
+        s << "attribute values differ: " << name << " lhs='" << py::str(a) << "' rhs='" << py::str(b) << "'" << std::endl;
+        return s.str();
+    }
+
+    return "";
+}
+
+std::string
 diff_header(const py::dict& A, const py::dict& B)
 {
     std::set<std::string> names;
@@ -1770,50 +1839,11 @@ diff_header(const py::dict& A, const py::dict& B)
         py::object a = A[py::str(name)];
         py::object b = B[py::str(name)];
 
-        if (py::isinstance<py::array>(a))
-        {
-            if (py::isinstance<py::array>(b))
-            {
-                if (array_equal(a.cast<py::array>(), b.cast<py::array>()))
-                    return "";
-                return "array/array not equal";
-            }
-            if (py::isinstance<py::tuple>(b))
-                if (array_equal(a.cast<py::array>(), b.cast<py::tuple>()))
-                    return "";
-            return "array/tuple not equal";
-        }
-
-        if (py::isinstance<py::tuple>(a))
-            if (py::isinstance<py::array>(b))
-            {
-                if (array_equal(b.cast<py::array>(), a.cast<py::tuple>()))
-                    return "";
-                return "tuple/array not equal";
-            }
-        
-            
-        if (!a.equal(b))
-        {
-            if (py::isinstance<py::float_>(a))
-            {                
-                float f = py::cast<py::float_>(a);
-                float of = py::cast<py::float_>(b);
-                if (f == of)
-                    return "";
-                
-                if (equalWithRelError(f, of, 1e-8f))
-                    return "";
-            }
-            std::stringstream s;
-            s << "attribute values differ: " << name << " lhs='" << py::str(a) << "' rhs='" << py::str(b) << "'" << std::endl;
-            return s.str();
-        }
+        auto d = diff_object(name, a, b);
+        if (!d.empty())
+            return d;
     }
-
-    return "";
 }
-    
 
 bool
 PyPart::operator==(const PyPart& other) const

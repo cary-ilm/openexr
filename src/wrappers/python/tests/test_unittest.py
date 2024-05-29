@@ -157,12 +157,12 @@ class TestUnittest(unittest.TestCase):
         header["t3f"] = (3.4,5.6,7.8)
         header["t3x"] = (9,10.11,12.13)
 
-        header["a2i"] = np.array([0,1], 'float32')
+        header["a2i"] = np.array([0,1], 'int32')
         header["a2f"] = np.array([2.3,4.5], 'float32')
-        header["a2x"] = np.array([6,7.8], 'float32')
-        header["a3i"] = np.array([0,1,2], 'float32')
+        header["a2d"] = np.array([2.3,4.5], 'float64')
+        header["a3i"] = np.array([0,1,2], 'int32')
         header["a3f"] = np.array([3.4,5.6,7.8], 'float32')
-        header["a3x"] = np.array([9,10.11,12.13], 'float32')
+        header["a3d"] = np.array([9,10.11,12.13], 'float64')
 
         header["a33f"] = np.identity(3, 'float32') 
         header["a33d"] = np.identity(3, 'double') 
@@ -172,13 +172,18 @@ class TestUnittest(unittest.TestCase):
         outfilename = mktemp_outfilename()
         outfilename = "tuple.exr"
         with OpenEXR.File(header, channels) as outfile:
+
+            for n,v in outfile.header().items():
+                vv = outfile.header()[n]
+                print(f"outfile.header[{n}] {v} {vv}")
+
             outfile.write(outfilename)
 
             with OpenEXR.File(outfilename) as infile:
 
-                for n,v in header.items():
+                for n,v in infile.header().items():
                     vv = infile.header()[n]
-                    print(f"header[{n}] {v} {vv}")
+                    print(f"infile.header[{n}] {v} {vv}")
 
                 self.assertTrue(infile == outfile)
                 
