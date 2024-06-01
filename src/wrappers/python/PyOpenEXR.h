@@ -26,11 +26,6 @@ public:
 
     void         write(const char* filename);
     
-    bool         operator==(const PyFile& other) const;
-    bool         operator!=(const PyFile& other) const { return !(*this == other); }
-    
-    std::string  diff(const PyFile& other) const;
-
     std::string  filename;
     py::list     parts;
 
@@ -58,11 +53,6 @@ class PyPart
     PyPart() {}
     PyPart(const py::dict& header, const py::dict& channels, const std::string& name);
     
-    bool operator==(const PyPart& other) const;
-    bool operator!=(const PyPart& other) const { return !(*this == other); }
-
-    std::string  diff(const PyPart& other) const;
-
     std::string    name() const;
     V2i            shape() const;
     size_t         width() const;
@@ -119,11 +109,6 @@ public:
     PyChannel(const char* n, const py::array& p, int xSampling, int ySampling, bool pLinear = false)
         : name(n), xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), pixels(p),
           channel_index(0) {validate_pixel_array(); }
-
-    bool operator==(const PyChannel& other) const;
-    bool operator!=(const PyChannel& other) const { return !(*this == other); }
-
-    std::string  diff(const PyChannel& other) const;
 
     void validate_pixel_array();
     
