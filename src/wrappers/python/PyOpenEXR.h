@@ -200,26 +200,6 @@ PyPreviewImage::operator==(const PyPreviewImage& other) const
 }
 
 
-//
-// PyDouble supports the "double" attribute.
-//
-// When reading an attribute of type "double", a python object of type
-// PyDouble is created, so that when the header is written, it will be
-// of type double, since python makes no distinction between float and
-// double numerical types.
-//
-
-class PyDouble
-{
-public:
-    PyDouble(double x) : d(x)  {}
-
-    bool operator==(const PyDouble& other) const { return d == other.d; }
-    
-    double d;
-};
-                         
-
 inline std::ostream&
 operator<< (std::ostream& s, const Chromaticities& c)
 {

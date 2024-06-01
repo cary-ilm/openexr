@@ -12,6 +12,7 @@ import tempfile
 import atexit
 import unittest
 import numpy as np
+import fractions
 
 import OpenEXR
 
@@ -222,13 +223,6 @@ class TestUnittest(unittest.TestCase):
                 k.perfOffset == perfOffset and
                 k.perfsPerFrame == perfsPerFrame and
                 k.perfsPerCount == perfsPerCount)
-
-    def test_rational(self):
-
-        r = OpenEXR.Rational(1,2)
-
-        self.assertEqual(r.n, 1)
-        self.assertEqual(r.d, 2)
 
     def test_empty_header(self):
 
@@ -451,7 +445,7 @@ class TestUnittest(unittest.TestCase):
         header["box2i"] = ((0,1), (2,3))
         header["box2f"] = ((0,1), (2,3))
         header["compression"] = OpenEXR.ZIPS_COMPRESSION
-        header["double"] = OpenEXR.Double(42000)
+        header["double"] = np.array([42000.0], 'float64')
         header["float"] = 4.2
         header["int"] = 42
         header["keycode"] = OpenEXR.KeyCode(0,0,0,0,0,4,64)
@@ -460,7 +454,7 @@ class TestUnittest(unittest.TestCase):
         header["m33d"] = np.identity(3, 'float64') 
         header["m44f"] = np.identity(4, 'float32') 
         header["m44d"] = np.identity(4, 'float64') 
-        header["rational"] = OpenEXR.Rational(1,3)
+        header["rational"] = fractions.Fraction(1,3)
         header["string"] = "stringy"
         header["timecode"] = OpenEXR.TimeCode(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)
         header["v2i"] = (1,2)
@@ -520,7 +514,7 @@ class TestUnittest(unittest.TestCase):
             header["box2i"] = ((0,1),(2,3))
             header["box2f"] = ((0,1),(2,3))
             header["compression"] = OpenEXR.ZIPS_COMPRESSION
-            header["double"] = OpenEXR.Double(42000)
+            header["double"] = np.array([42000.0], 'float64')
             header["float"] = 4.2
             header["int"] = 42
             header["keycode"] = OpenEXR.KeyCode(0,0,0,0,0,4,64)
@@ -530,7 +524,7 @@ class TestUnittest(unittest.TestCase):
             header["m44f"] = np.identity(4, 'float32')
             header["m44d"] = np.identity(4, 'float64')
             header["preview"] = OpenEXR.PreviewImage(P)
-            header["rational"] = OpenEXR.Rational(1,3)
+            header["rational"] = fractions.Fraction(1,3)
             header["string"] = "stringy"
             header["timecode"] = OpenEXR.TimeCode(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)
             header["v2i"] = (1,2)

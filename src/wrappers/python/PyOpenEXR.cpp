@@ -960,6 +960,26 @@ py_cast(const py::object& object)
     return nullptr;
 }
 
+template <>
+const double*
+py_cast(const py::object& object)
+{
+    //
+    // Recognize a 1-element array of double as a DoubleAttribute
+    //
+    
+    if (py::isinstance<py::array_t<double>>(object))
+    {
+        auto a = object.cast<py::array_t<double>>();
+        if (a.size() == 1)
+        {
+            py::buffer_info buf = a.request();
+            return static_cast<const double*>(buf.ptr);
+        }
+    }
+    return nullptr;
+}
+
 template <class T>
 py::array
 make_v2(const Vec2<T>& v)
@@ -1031,8 +1051,13 @@ PyFile::get_attribute_object(const std::string& name, const Attribute* a)
     if (auto v = dynamic_cast<const CompressionAttribute*> (a))
         return py::cast(v->value());
 
+    //
+    // Convert Double attribute to a single-element numpy array, so
+    // its type is preserved.
+    //
+    
     if (auto v = dynamic_cast<const DoubleAttribute*> (a))
-        return py::cast(PyDouble(v->value()));
+        return py::array_t<double>(1, &v->value());
 
     if (auto v = dynamic_cast<const EnvmapAttribute*> (a))
         return py::cast(v->value());
@@ -1183,7 +1208,11 @@ PyFile::get_attribute_object(const std::string& name, const Attribute* a)
     }
 
     if (auto v = dynamic_cast<const RationalAttribute*> (a))
-        return py::cast(v->value());
+    {
+        py::module fractions = py::module::import("fractions");
+        py::object Fraction = fractions.attr("Fraction");
+        return Fraction(v->value().n, v->value().d);
+    }
 
     if (auto v = dynamic_cast<const TileDescriptionAttribute*> (a))
         return py::cast(v->value());
@@ -1209,7 +1238,9 @@ PyFile::get_attribute_object(const std::string& name, const Attribute* a)
     if (auto v = dynamic_cast<const V3dAttribute*> (a))
         return make_v3(v->value());
     
-    throw std::runtime_error("unrecognized attribute type");
+    std::stringstream err;
+    err << "unsupported attribute type: " << a->typeName();
+    throw std::runtime_error(err.str());
     
     return py::none();
 }
@@ -1441,6 +1472,7 @@ is_chromaticities(const py::object& object, Chromaticities& v)
     return false;
 }
 
+#if XXX
 
 template <class T>
 Vec2<T>
@@ -1482,6 +1514,7 @@ get_m44(const py::array& a)
                        v[8], v[9], v[10], v[11],
                        v[12], v[13], v[14], v[15]);
 }
+#endif
 
 void
 PyFile::insert_attribute(Header& header, const std::string& name, const py::object& object)
@@ -1492,7 +1525,11 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
     
     std::stringstream err;
     
-    // Required to be Box2i?
+    //
+    // If the attribute is standard/required, its type is fixed, so
+    // cast the rhs to the appropriate type if possible, or reject it
+    // as an error if not.
+    //
         
     if (name == "dataWindow" ||
         name == "displayWindow" ||
@@ -1540,6 +1577,10 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
         err << "invalid value for attribute '" << name << "': expected a 6-tuple, got " << py::str(object);
         throw std::invalid_argument(err.str());
     }
+    
+    //
+    // Recognize tuples and arrays as V2/V3 i/f/d or M33/M44 f/d
+    //
     
     V2i v2i;
     if (is_v2i(object, v2i))
@@ -1611,6 +1652,10 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
         return;
     }
 
+    //
+    // Recognize 2-tuples of 2-vectors as boxes
+    //
+    
     Box2i box2i;
     if (is_box2i(object, box2i))
     {       
@@ -1625,12 +1670,23 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
         return;
     }
 
+    //
+    // Recognize an 8-tuple as chromaticities
+    //
+    
     Chromaticities c;
     if (is_chromaticities(object, c))
     {
         header.insert(name, ChromaticitiesAttribute(c));
         return;
     }
+
+    //
+    // Inspect the rhs type
+    //
+    
+    py::module fractions = py::module::import("fractions");
+    py::object Fraction = fractions.attr("Fraction");
 
     if (py::isinstance<py::list>(object))
     {
@@ -1662,12 +1718,12 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
         header.insert(name, CompressionAttribute(static_cast<Compression>(*v)));
     else if (auto v = py_cast<Envmap>(object))
         header.insert(name, EnvmapAttribute(static_cast<Envmap>(*v)));
-    else if (py::isinstance<py::float_>(object))
-        header.insert(name, FloatAttribute(py::cast<py::float_>(object)));
-    else if (py::isinstance<PyDouble>(object))
-        header.insert(name, DoubleAttribute(py::cast<PyDouble>(object).d));
     else if (py::isinstance<py::int_>(object))
         header.insert(name, IntAttribute(py::cast<py::int_>(object)));
+    else if (py::isinstance<py::float_>(object))
+        header.insert(name, FloatAttribute(py::cast<py::float_>(object)));
+    else if (auto v = py_cast<double>(object))
+        header.insert(name, DoubleAttribute(*v));
     else if (auto v = py_cast<KeyCode>(object))
         header.insert(name, KeyCodeAttribute(*v));
     else if (auto v = py_cast<LineOrder>(object))
@@ -1681,8 +1737,6 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
         PreviewImage p(width, height, pixels);
         header.insert(name, PreviewImageAttribute(p));
     }
-    else if (auto v = py_cast<Rational>(object))
-        header.insert(name, RationalAttribute(*v));
     else if (auto v = py_cast<TileDescription>(object))
         header.insert(name, TileDescriptionAttribute(*v));
     else if (auto v = py_cast<TimeCode>(object))
@@ -1713,10 +1767,17 @@ PyFile::insert_attribute(Header& header, const std::string& name, const py::obje
     }
     else if (py::isinstance<py::str>(object))
         header.insert(name, StringAttribute(py::str(object)));
+    else if (py::isinstance(object, Fraction))
+    {
+        int n = py::int_(object.attr("numerator"));
+        int d = py::int_(object.attr("denominator"));
+        Rational r(n, d);
+        header.insert(name, RationalAttribute(r));
+    }
     else
     {
         auto t = py::str(object.attr("__class__").attr("__name__"));
-        err << "unrecognized type of attribute '" << name << "': " << t << " " << py::str(object);
+        err << "unrecognized type of attribute '" << name << "': type=" << t << " value=" << py::str(object);
         if (py::isinstance<py::array>(object))
         {
             auto a = object.cast<py::array>();
@@ -2155,12 +2216,6 @@ PYBIND11_MODULE(OpenEXR, m)
         .def_readwrite("pixels", &PyPreviewImage::pixels)
         ;
     
-    py::class_<PyDouble>(m, "Double")
-        .def(py::init<double>())
-        .def("__repr__", [](const PyDouble& d) { return repr(d.d); })
-        .def(py::self == py::self)
-        ;
-
     //
     // The File API: Channel, Part, and File
     //
