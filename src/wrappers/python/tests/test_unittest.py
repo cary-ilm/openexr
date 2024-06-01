@@ -96,7 +96,8 @@ def compare_attributes(name, lhs, rhs):
             raise Exception(f"attribute {name}: arrays differ: {lhs} {rhs}")
     elif isinstance(lhs, float) and isinstance(rhs, float):
         if not equalWithRelError(lhs, rhs, 1e05):
-            raise Exception(f"attribute {name}: floats differ: {lhs} {rhs}")
+            if math.isfinite(lhs) and math.isfinite(rhs):
+                raise Exception(f"attribute {name}: floats differ: {lhs} {rhs}")
     elif lhs != rhs:
         raise Exception(f"attribute {name}: values differ: {lhs} {rhs}")
 
@@ -107,6 +108,16 @@ def compare_channels(lhs, rhs):
         lhs.xSampling != rhs.xSampling or
         lhs.ySampling != rhs.ySampling):
         raise Exception(f"channel {lhs.name} differs: {lhs.__repr__()} {rhs.__repr__()}")
+    if lhs.pixels.shape != rhs.pixels.shape:
+        raise Exception(f"channel {lhs.name}: image size differs: {lhs.pixels.shape} vs. {rhs.pixels.shape}")
+        
+    close = np.isclose(lhs.pixels, rhs.pixels, 1e-5)
+    if not np.all(close):
+        for i in np.argwhere(close==False):
+            y,x = i
+            if math.isfinite(lhs.pixels[y,x]) and math.isfinite(rhs.pixels[y,x]):
+                raise Exception(f"channel {lhs.name}: pixels {i} differ: {lhs.pixels[y,x]} {rhs.pixels[y,x]}")
+
 
 def print_file(f, print_pixels = False):
 
