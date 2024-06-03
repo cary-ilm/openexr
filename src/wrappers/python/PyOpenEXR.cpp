@@ -99,17 +99,17 @@ namespace {
 // Create a PyFile out of a list of parts (i.e. a multi-part file)
 //
 
-PyFile::PyFile(const py::list& p)
-    : parts(p)
+PyFile::PyFile(const py::list& parts)
+    : parts(parts)
 {
-    for (size_t part_index = 0; part_index < parts.size(); part_index++)
+    int part_index = 0;
+    for (auto p : this->parts)
     {
-        auto p = parts[part_index];
         if (!py::isinstance<PyPart>(p))
             throw std::invalid_argument("must be a list of OpenEXR.Part() objects");
 
-        auto P = p.cast<PyPart&>();
-        P.part_index = part_index;
+        PyPart& P = p.cast<PyPart&>();
+        P.part_index = part_index++;
     }
 }
 
@@ -369,13 +369,6 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
     for (auto c = channel_list.begin(); c != channel_list.end(); c++)
     {
         std::string py_channel_name = c.name();
-#if XXX
-        char channel_name; 
-        int nrgba = 0;
-        if (rgba)
-            nrgba = rgba_channel(channel_list, c.name(), py_channel_name, channel_name);
-#endif
-        
         auto py_channel_name_str = py::str(py_channel_name);
             
         if (!channels.contains(py_channel_name_str))
@@ -469,21 +462,21 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
                       case UINT:
                           {
                               auto ptr = static_cast<py::array_t<uint32_t>*>(C.pixels.mutable_data(y, x));
-                              *ptr = py::array_t<uint32_t>({size});
+                              *ptr = py::array_t<uint32_t>(size);
                               S[y][x] = static_cast<void*>(ptr->request().ptr);
                           }
                           break;
                       case HALF:
                           {
                               auto ptr = static_cast<py::array_t<half>*>(C.pixels.mutable_data(y, x));
-                              *ptr = py::array_t<half>({size});
+                              *ptr = py::array_t<half>(size);
                               S[y][x] = static_cast<void*>(ptr->request().ptr);
                           }
                         break;
                       case FLOAT:
                           {
                               auto ptr = static_cast<py::array_t<float>*>(C.pixels.mutable_data(y, x));
-                              *ptr = py::array_t<float>({size});
+                              *ptr = py::array_t<float>(size);
                               S[y][x] = static_cast<void*>(ptr->request().ptr);
                           }
                           break;
@@ -502,6 +495,125 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
             delete C._deep_samples;
             C._deep_samples = nullptr;
         }
+    }
+}
+
+void
+PyPart::writePixels(MultiPartOutputFile& outfile, const Box2i& dw) const
+{
+    FrameBuffer frameBuffer;
+        
+    for (auto c : channels)
+    {
+        auto C = c.second.cast<const PyChannel&>();
+
+        if (C.pixels.ndim() == 3)
+        {
+            //
+            // The py::dict has RGB or RGBA channels, but the
+            // framebuffer needs a slice per dimension
+            //
+                    
+            std::string name_prefix;
+            if (C.name == "RGB" || C.name == "RGBA")
+                name_prefix = "";
+            else
+                name_prefix = C.name + ".";
+                
+            py::buffer_info buf = C.pixels.request();
+            auto basePtr = static_cast<uint8_t*>(buf.ptr);
+            py::dtype dt = C.pixels.dtype();
+            int nrgba = C.pixels.shape(2);
+            size_t xStride = dt.itemsize() * nrgba;
+            size_t yStride = xStride * width() / C.xSampling;
+                    
+            auto rPtr = basePtr;
+            frameBuffer.insert (name_prefix + "R",
+                                Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                             static_cast<void*>(rPtr),
+                                             dw, xStride, yStride,
+                                             C.xSampling,
+                                             C.ySampling));
+
+            auto gPtr = &basePtr[dt.itemsize()];
+            frameBuffer.insert (name_prefix + "G",
+                                Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                             static_cast<void*>(gPtr),
+                                             dw, xStride, yStride,
+                                             C.xSampling,
+                                             C.ySampling));
+
+            auto bPtr = &basePtr[2*dt.itemsize()];
+            frameBuffer.insert (name_prefix + "B",
+                                Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                             static_cast<void*>(bPtr),
+                                             dw, xStride, yStride,
+                                             C.xSampling,
+                                             C.ySampling));
+
+            if (nrgba == 4)
+            {
+                auto aPtr = &basePtr[3*dt.itemsize()];
+                frameBuffer.insert (name_prefix + "A",
+                                    Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                                 static_cast<void*>(aPtr),
+                                                 dw, xStride, yStride,
+                                                 C.xSampling,
+                                                 C.ySampling));
+            }
+        }
+        else
+        {
+            frameBuffer.insert (C.name,
+                                Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                             static_cast<void*>(C.pixels.request().ptr),
+                                             dw, 0, 0,
+                                             C.xSampling,
+                                             C.ySampling));
+        }
+    }
+                
+    if (type() == EXR_STORAGE_SCANLINE)
+    {
+        OutputPart part(outfile, part_index);
+        part.setFrameBuffer (frameBuffer);
+        part.writePixels (height());
+    }
+    else
+    {
+        TiledOutputPart part(outfile, part_index);
+        part.setFrameBuffer (frameBuffer);
+        part.writeTiles (0, part.numXTiles() - 1, 0, part.numYTiles() - 1);
+    }
+}
+
+void
+PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
+{
+    DeepFrameBuffer frameBuffer;
+        
+    for (auto c : channels)
+    {
+        auto C = c.second.cast<const PyChannel&>();
+        frameBuffer.insert (C.name,
+                            DeepSlice (static_cast<PixelType>(C.pixelType()),
+                                       static_cast<char*>(C.pixels.request().ptr),
+                                       0, 0, 0,
+                                       C.xSampling,
+                                       C.ySampling));
+    }
+        
+    if (type() == EXR_STORAGE_DEEP_SCANLINE)
+    {
+        DeepScanLineOutputPart part(outfile, part_index);
+        part.setFrameBuffer (frameBuffer);
+        part.writePixels (height());
+    }
+    else 
+    {
+        DeepTiledOutputPart part(outfile, part_index);
+        part.setFrameBuffer (frameBuffer);
+        part.writeTiles (0, part.numXTiles() - 1, 0, part.numYTiles() - 1);
     }
 }
 
@@ -744,119 +856,12 @@ PyFile::write(const char* outfilename)
         if (P.type() == EXR_STORAGE_SCANLINE ||
             P.type() == EXR_STORAGE_TILED)
         {
-            FrameBuffer frameBuffer;
-        
-            for (auto c : P.channels)
-            {
-                auto C = c.second.cast<const PyChannel&>();
-
-                if (C.pixels.ndim() == 3)
-                {
-                    //
-                    // The py::dict has RGB or RGBA channels, but the
-                    // framebuffer needs a slice per dimension
-                    //
-                    
-                    std::string name_prefix;
-                    if (C.name == "RGB" || C.name == "RGBA")
-                        name_prefix = "";
-                    else
-                        name_prefix = C.name + ".";
-                
-                    py::buffer_info buf = C.pixels.request();
-                    auto basePtr = static_cast<uint8_t*>(buf.ptr);
-                    py::dtype dt = C.pixels.dtype();
-                    int nrgba = C.pixels.shape(2);
-                    size_t xStride = dt.itemsize() * nrgba;
-                    size_t yStride = xStride * P.width() / C.xSampling;
-                    
-                    auto rPtr = basePtr;
-                    frameBuffer.insert (name_prefix + "R",
-                                        Slice::Make (static_cast<PixelType>(C.pixelType()),
-                                                     static_cast<void*>(rPtr),
-                                                     dw, xStride, yStride,
-                                                     C.xSampling,
-                                                     C.ySampling));
-
-                    auto gPtr = &basePtr[dt.itemsize()];
-                    frameBuffer.insert (name_prefix + "G",
-                                        Slice::Make (static_cast<PixelType>(C.pixelType()),
-                                                     static_cast<void*>(gPtr),
-                                                     dw, xStride, yStride,
-                                                     C.xSampling,
-                                                     C.ySampling));
-
-                    auto bPtr = &basePtr[2*dt.itemsize()];
-                    frameBuffer.insert (name_prefix + "B",
-                                        Slice::Make (static_cast<PixelType>(C.pixelType()),
-                                                     static_cast<void*>(bPtr),
-                                                     dw, xStride, yStride,
-                                                     C.xSampling,
-                                                     C.ySampling));
-
-                    if (nrgba == 4)
-                    {
-                        auto aPtr = &basePtr[3*dt.itemsize()];
-                        frameBuffer.insert (name_prefix + "A",
-                                            Slice::Make (static_cast<PixelType>(C.pixelType()),
-                                                         static_cast<void*>(aPtr),
-                                                         dw, xStride, yStride,
-                                                         C.xSampling,
-                                                         C.ySampling));
-                    }
-                }
-                else
-                {
-                    frameBuffer.insert (C.name,
-                                        Slice::Make (static_cast<PixelType>(C.pixelType()),
-                                                     static_cast<void*>(C.pixels.request().ptr),
-                                                     dw, 0, 0,
-                                                     C.xSampling,
-                                                     C.ySampling));
-                }
-            }
-                
-            if (P.type() == EXR_STORAGE_SCANLINE)
-            {
-                OutputPart part(outfile, part_index);
-                part.setFrameBuffer (frameBuffer);
-                part.writePixels (P.height());
-            }
-            else
-            {
-                TiledOutputPart part(outfile, part_index);
-                part.setFrameBuffer (frameBuffer);
-                part.writeTiles (0, part.numXTiles() - 1, 0, part.numYTiles() - 1);
-            }
+            P.writePixels(outfile, dw);
         }
         else if (P.type() == EXR_STORAGE_DEEP_SCANLINE ||
                  P.type() == EXR_STORAGE_DEEP_TILED)
         {
-            DeepFrameBuffer frameBuffer;
-        
-            for (auto c : P.channels)
-            {
-                auto C = c.second.cast<const PyChannel&>();
-                frameBuffer.insert (C.name,
-                                    DeepSlice (static_cast<PixelType>(C.pixelType()),
-                                               static_cast<char*>(C.pixels.request().ptr),
-                                               0, 0, 0,
-                                               C.xSampling,
-                                               C.ySampling));
-            }
-        
-            if (P.type() == EXR_STORAGE_DEEP_SCANLINE)
-            {
-                DeepScanLineOutputPart part(outfile, part_index);
-                part.setFrameBuffer (frameBuffer);
-                part.writePixels (P.height());
-            }
-            else 
-            {
-                DeepTiledOutputPart part(outfile, part_index);
-                part.setFrameBuffer (frameBuffer);
-                part.writeTiles (0, part.numXTiles() - 1, 0, part.numYTiles() - 1);
-            }
+            P.writeDeepPixels(outfile, dw);
         }
         else
             throw std::runtime_error("invalid type");
@@ -1879,7 +1884,7 @@ repr(const T& v)
 } // namespace
 
 
-#define DEEP_EXAMPLE 1
+//#define DEEP_EXAMPLE 1
 
 #if DEEP_EXAMPLE
 #include "deepExample.cpp"

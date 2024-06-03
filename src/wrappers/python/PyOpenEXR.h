@@ -66,6 +66,9 @@ class PyPart
 
     size_t         part_index;
 
+    void           writePixels(MultiPartOutputFile& outfile, const Box2i& dw) const;
+    void           writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const;
+    
     void           readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
                               const std::vector<size_t>& shape, const std::set<std::string>& rgba_channels,
                               const Box2i& dw, bool rgba);
