@@ -119,11 +119,10 @@ public:
     int                   ySampling;
     int                   pLinear;
     py::array             pixels;
-
-    Array2D<void*>*       deep_samples;
-    PixelType             _type;
-
     size_t                channel_index;
+
+    PixelType             _type;
+    Array2D<void*>*       _deep_samples;
 };
     
 template <class T>

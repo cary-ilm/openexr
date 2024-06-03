@@ -15,10 +15,6 @@
 #include <pybind11/stl_bind.h>
 #include <pybind11/operators.h>
 
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <Python.h>
-#include <numpy/arrayobject.h>
-
 #include "openexr.h"
 
 #include <ImfHeader.h>
@@ -392,9 +388,11 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
             C.xSampling = c.channel().xSampling;
             C.ySampling = c.channel().ySampling;
             C.pLinear = c.channel().pLinear;
-            C._type = c.channel().type;
             
-            C.deep_samples = new Array2D<void*>(height, width);
+            C.pixels = py::array(py::dtype("O"), {height,width});
+
+            C._type = c.channel().type;
+            C._deep_samples = new Array2D<void*>(height, width);
                     
             channels[py_channel_name.c_str()] = C;
 
@@ -428,7 +426,7 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
         }
 
             
-        auto &S = *C.deep_samples;
+        auto &S = *C._deep_samples;
         auto basePtr = &S[0][0];
         
 #if DEBUG_VERBOSE
@@ -456,112 +454,53 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
 
         part.setFrameBuffer (frameBuffer);
 
-        std::cout << "part.readPixelSampleCounts..." << std::endl;
         part.readPixelSampleCounts (dw.min.y, dw.max.y);
-        std::cout << "part.readPixelSampleCounts...done." << std::endl;
 
         for (auto c : channels)
         {
-            std::cout << "allocating..." << std::endl;
-
             auto C = c.second.cast<const PyChannel&>();
-            auto &S = *C.deep_samples;
+            auto &S = *C._deep_samples;
             for (size_t y=0; y<height; y++)
                 for (size_t x=0; x<width; x++)
                 {
                     auto size = sampleCount[y][x];
-                    std::cout << "sampleCount[" << y << "][" << x << "]=" << sampleCount[y][x] << std::endl;
                     switch (C._type)
                     {
                       case UINT:
-                          S[y][x] = static_cast<void*>(new uint32_t[size]);
+                          {
+                              auto ptr = static_cast<py::array_t<uint32_t>*>(C.pixels.mutable_data(y, x));
+                              *ptr = py::array_t<uint32_t>({size});
+                              S[y][x] = static_cast<void*>(ptr->request().ptr);
+                          }
                           break;
                       case HALF:
-                          S[y][x] = static_cast<void*>(new half[size]);
+                          {
+                              auto ptr = static_cast<py::array_t<half>*>(C.pixels.mutable_data(y, x));
+                              *ptr = py::array_t<half>({size});
+                              S[y][x] = static_cast<void*>(ptr->request().ptr);
+                          }
                         break;
                       case FLOAT:
-                          S[y][x] = static_cast<void*>(new float[size]);
-                          break;
-                      default:
-                          throw std::runtime_error("invalid pixel type");
-                    } // switch c->type
-                }
-
-
-            std::cout << "clearing..." << std::endl;
-            
-            for (size_t y=0; y<height; y++)
-                for (size_t x=0; x<width; x++)
-                {
-                    auto size = sampleCount[y][x];
-                    switch (C._type)
-                    {
-                      case UINT:
-                          for (size_t i=0; i<size; i++)
                           {
-                              auto s = static_cast<uint32_t*>(S[y][x]);
-                              s[i] = 0;
-                          }
-                          break;
-                      case HALF:
-                          for (size_t i=0; i<size; i++)
-                          {
-                              auto s = static_cast<half*>(S[y][x]);
-                              s[i] = 0;
-                          }
-                          break;
-                      case FLOAT:
-                          for (size_t i=0; i<size; i++)
-                          {
-                              auto s = static_cast<float*>(S[y][x]);
-                              s[i] = 0;
+                              auto ptr = static_cast<py::array_t<float>*>(C.pixels.mutable_data(y, x));
+                              *ptr = py::array_t<float>({size});
+                              S[y][x] = static_cast<void*>(ptr->request().ptr);
                           }
                           break;
                       default:
                           throw std::runtime_error("invalid pixel type");
                     } // switch c->type
                 }
+
         }
         
-        std::cout << "part.readPixels..." << std::endl;
         part.readPixels (dw.min.y, dw.max.y);
-        std::cout << "part.readPixels...done." << std::endl;
 
         for (auto c : channels)
         {
             auto C = c.second.cast<const PyChannel&>();
-            for (size_t y=0; y<height; y++)
-                for (size_t x=0; x<width; x++)
-                {
-                    auto size = sampleCount[y][x];
-                    auto &S = *C.deep_samples;
-                    switch (C._type)
-                    {
-                      case UINT:
-                          for (size_t i=0; i<size; i++)
-                          {
-                              auto s = static_cast<uint32_t*>(S[y][x]);
-                              std::cout << "sample: " << C.name << "[" << y << "][" << x << "][" << i << "]=" << s[i] << std::endl;
-                          }
-                          break;
-                      case HALF:
-                          for (size_t i=0; i<size; i++)
-                          {
-                              auto s = static_cast<half*>(S[y][x]);
-                              std::cout << "sample: " << C.name << "[" << y << "][" << x << "][" << i << "]=" << s[i] << std::endl;
-                          }
-                          break;
-                      case FLOAT:
-                          for (size_t i=0; i<size; i++)
-                          {
-                              auto s = static_cast<float*>(S[y][x]);
-                              std::cout << "sample: " << C.name << "[" << y << "][" << x << "][" << i << "]=" << s[i] << std::endl;
-                          }
-                          break;
-                      default:
-                          throw std::runtime_error("invalid pixel type");
-                    } // switch c->type
-                }
+            delete C._deep_samples;
+            C._deep_samples = nullptr;
         }
     }
 }
@@ -1472,54 +1411,10 @@ is_chromaticities(const py::object& object, Chromaticities& v)
     return false;
 }
 
-#if XXX
-
-template <class T>
-Vec2<T>
-get_v2(const py::array& a)
-{
-    py::buffer_info buf = a.request();
-    auto v = static_cast<const T*>(buf.ptr);
-    return Vec2<T>(v[0], v[1]);
-}
-
-template <class T>
-Vec3<T>
-get_v3(const py::array& a)
-{
-    py::buffer_info buf = a.request();
-    auto v = static_cast<const T*>(buf.ptr);
-    return Vec3<T>(v[0], v[1], v[2]);
-}
-
-template <class T>
-Matrix33<T>
-get_m33(const py::array& a)
-{
-    py::buffer_info buf = a.request();
-    auto v = static_cast<const T*>(buf.ptr);
-    return Matrix33<T>(v[0], v[1], v[2],
-                       v[3], v[4], v[5],
-                       v[6], v[7], v[8]);
-}
-
-template <class T>
-Matrix44<T>
-get_m44(const py::array& a)
-{
-    py::buffer_info buf = a.request();
-    auto v = static_cast<const T*>(buf.ptr);
-    return Matrix44<T>(v[0], v[1], v[2], v[3],
-                       v[4], v[5], v[6], v[7],
-                       v[8], v[9], v[10], v[11],
-                       v[12], v[13], v[14], v[15]);
-}
-#endif
-
 void
 PyFile::insert_attribute(Header& header, const std::string& name, const py::object& object)
 {
-#if XXX
+#if DEBUG_VERBOSE
     std::cout << "insert_attribute " << name << ": " << py::str(object) << std::endl;
 #endif
     
@@ -1984,79 +1879,7 @@ repr(const T& v)
 } // namespace
 
 
-// Helper function to create a 1D NumPy array of integers
-static PyObject* create_1d_array(int size) {
-    npy_intp dims[1] = {size};
-    PyObject *array = PyArray_SimpleNew(1, dims, NPY_INT);
-    int *data = (int *)PyArray_DATA((PyArrayObject *)array);
-    for (int i = 0; i < size; ++i) {
-        data[i] = i;
-    }
-    return array;
-}
-
-// Main function to create the 2D array of arrays
-static PyObject* create_2d_array_of_arrays(void) {
-
-    Py_Initialize();
-    import_array(); // Initialize NumPy
-
-    npy_intp dims[2] = {3, 3};
-    PyObject *array_of_arrays = PyArray_SimpleNew(2, dims, NPY_OBJECT);
-
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            int size = i * 3 + j;
-            PyObject *subarray = create_1d_array(size);
-            // Get a pointer to the element in the 2D array and set the subarray
-            *(PyObject **)PyArray_GETPTR2((PyArrayObject *)array_of_arrays, i, j) = subarray;
-        }
-    }
-
-    return array_of_arrays;
-}
-
-py::object
-py_create_2d_array_of_arrays(void)
-{
-    auto py_obj = create_2d_array_of_arrays();
-    return py::reinterpret_borrow<py::object>(py_obj);
-}
-
-#if XXX
-int main(int argc, char *argv[]) {
-    // Initialize the Python interpreter
-    Py_Initialize();
-    import_array(); // Initialize NumPy
-
-    // Create the 2D array of arrays
-    PyObject *array_of_arrays = create_2d_array_of_arrays();
-
-    // Print the result (optional, for verification)
-    PyObject_Print(array_of_arrays, stdout, 0);
-    printf("\n");
-
-    // Clean up and exit
-    Py_DECREF(array_of_arrays);
-    Py_Finalize();
-    return 0;
-}
-#endif
-
-Chromaticities
-chromaticities(float redx,
-               float redy, 
-               float greenx,
-               float greeny,
-               float bluex,
-               float bluey,
-               float whitex,
-               float whitey)
-{
-    return Chromaticities(V2f(redx, redy), V2f(greenx, greeny), V2f(bluex, bluey), V2f(whitex, whitey));
-}
-
-#define DEEP_EXAMPLE 0
+#define DEEP_EXAMPLE 1
 
 #if DEEP_EXAMPLE
 #include "deepExample.cpp"
@@ -2249,11 +2072,6 @@ PYBIND11_MODULE(OpenEXR, m)
              py::arg("ySampling"),
              py::arg("pLinear")=false)
         .def("__repr__", [](const PyChannel& c) { return repr(c); })
-#if XXX
-        .def(py::self == py::self)
-        .def(py::self != py::self)
-        .def("diff", &PyChannel::diff)
-#endif
         .def_readwrite("name", &PyChannel::name)
         .def("type", &PyChannel::pixelType)
         .def_readwrite("xSampling", &PyChannel::xSampling)
@@ -2270,11 +2088,6 @@ PYBIND11_MODULE(OpenEXR, m)
              py::arg("channels"),
              py::arg("name")="")
         .def("__repr__", [](const PyPart& p) { return repr(p); })
-#if XXX
-        .def(py::self == py::self)
-        .def(py::self != py::self)
-        .def("diff", &PyPart::diff)
-#endif
         .def("name", &PyPart::name)
         .def("type", &PyPart::type)
         .def("width", &PyPart::width)
@@ -2298,11 +2111,6 @@ PYBIND11_MODULE(OpenEXR, m)
              py::arg("parts"))
         .def("__enter__", &PyFile::__enter__)
         .def("__exit__", &PyFile::__exit__)
-#if XXX
-        .def(py::self == py::self)
-        .def(py::self != py::self)
-        .def("diff", &PyFile::diff)
-#endif
         .def_readwrite("filename", &PyFile::filename)
         .def_readwrite("parts", &PyFile::parts)
         .def("header", &PyFile::header, py::arg("part_index") = 0)
@@ -2311,9 +2119,6 @@ PYBIND11_MODULE(OpenEXR, m)
         ;
 
 #if DEEP_EXAMPLE
-//    import_array();
-    
-    m.def("create_2d_array_of_arrays", &py_create_2d_array_of_arrays);
     m.def("writeDeepExample", &writeDeepExample);
     m.def("readDeepExample", &readDeepExample);
 #endif
