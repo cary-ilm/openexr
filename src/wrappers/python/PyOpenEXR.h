@@ -124,8 +124,8 @@ public:
     py::array             pixels;
     size_t                channel_index;
 
-    PixelType             _type;
-    Array2D<void*>*       _deep_samples;
+    mutable PixelType             _type;
+    mutable Array2D<void*>*       _deep_samples;
 };
     
 template <class T>
