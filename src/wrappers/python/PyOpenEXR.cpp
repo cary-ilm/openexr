@@ -507,6 +507,8 @@ PyPart::writePixels(MultiPartOutputFile& outfile, const Box2i& dw) const
     {
         auto C = c.second.cast<const PyChannel&>();
 
+        auto pixelType = C.pixelType();
+            
         if (C.pixels.ndim() == 3)
         {
             //
@@ -529,7 +531,7 @@ PyPart::writePixels(MultiPartOutputFile& outfile, const Box2i& dw) const
                     
             auto rPtr = basePtr;
             frameBuffer.insert (name_prefix + "R",
-                                Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                Slice::Make (pixelType,
                                              static_cast<void*>(rPtr),
                                              dw, xStride, yStride,
                                              C.xSampling,
@@ -537,7 +539,7 @@ PyPart::writePixels(MultiPartOutputFile& outfile, const Box2i& dw) const
 
             auto gPtr = &basePtr[dt.itemsize()];
             frameBuffer.insert (name_prefix + "G",
-                                Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                Slice::Make (pixelType,
                                              static_cast<void*>(gPtr),
                                              dw, xStride, yStride,
                                              C.xSampling,
@@ -545,7 +547,7 @@ PyPart::writePixels(MultiPartOutputFile& outfile, const Box2i& dw) const
 
             auto bPtr = &basePtr[2*dt.itemsize()];
             frameBuffer.insert (name_prefix + "B",
-                                Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                Slice::Make (pixelType,
                                              static_cast<void*>(bPtr),
                                              dw, xStride, yStride,
                                              C.xSampling,
@@ -555,7 +557,7 @@ PyPart::writePixels(MultiPartOutputFile& outfile, const Box2i& dw) const
             {
                 auto aPtr = &basePtr[3*dt.itemsize()];
                 frameBuffer.insert (name_prefix + "A",
-                                    Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                    Slice::Make (pixelType,
                                                  static_cast<void*>(aPtr),
                                                  dw, xStride, yStride,
                                                  C.xSampling,
@@ -565,7 +567,7 @@ PyPart::writePixels(MultiPartOutputFile& outfile, const Box2i& dw) const
         else
         {
             frameBuffer.insert (C.name,
-                                Slice::Make (static_cast<PixelType>(C.pixelType()),
+                                Slice::Make (pixelType,
                                              static_cast<void*>(C.pixels.request().ptr),
                                              dw, 0, 0,
                                              C.xSampling,
@@ -638,6 +640,13 @@ PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
                         S[y][x] = const_cast<void*>(v);
                         if (C._type == NUM_PIXELTYPES)
                             C._type = UINT;
+                        else if (C._type != UINT)
+                        {
+                            std::stringstream err;
+                            err << "invalid deep pixel array at " << y << "," << x
+                                << ": all pixels must have same type of samples";
+                            throw std::invalid_argument(err.str());
+                        }
                     }
                     else if (py::isinstance<py::array_t<half>>(a))
                     {
@@ -647,6 +656,13 @@ PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
                         S[y][x] = const_cast<void*>(v);
                         if (C._type == NUM_PIXELTYPES)
                             C._type = HALF;
+                        else if (C._type != HALF)
+                        {
+                            std::stringstream err;
+                            err << "invalid deep pixel array at " << y << "," << x
+                                << ": all pixels must have same type of samples";
+                            throw std::invalid_argument(err.str());
+                        }
                     }
                     else if (py::isinstance<py::array_t<float>>(a))
                     {
@@ -656,6 +672,13 @@ PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
                         S[y][x] = const_cast<void*>(v);
                         if (C._type == NUM_PIXELTYPES)
                             C._type = FLOAT;
+                        else if (C._type != FLOAT)
+                        {
+                            std::stringstream err;
+                            err << "invalid deep pixel array at " << y << "," << x
+                                << ": all pixels must have same type of samples";
+                            throw std::invalid_argument(err.str());
+                        }
                     }
                     else
                     {
@@ -719,6 +742,13 @@ PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
         DeepTiledOutputPart part(outfile, part_index);
         part.setFrameBuffer (frameBuffer);
         part.writeTiles (0, part.numXTiles() - 1, 0, part.numYTiles() - 1);
+    }
+
+    for (auto c : channels)
+    {
+        auto C = c.second.cast<const PyChannel&>();
+        delete C._deep_samples;
+        C._deep_samples = nullptr;
     }
 }
 
@@ -915,7 +945,7 @@ PyFile::write(const char* outfilename)
         for (auto c : P.channels)
         {
             auto C = py::cast<PyChannel&>(c.second);
-            auto t = static_cast<PixelType>(C.pixelType());
+            auto pixelType = C.pixelType();
 
             if (C.pixels.ndim() == 3)
             {
@@ -930,15 +960,15 @@ PyFile::write(const char* outfilename)
                 else
                     name_prefix = C.name + ".";
 
-                header.channels ().insert(name_prefix + "R", Channel (t, C.xSampling, C.ySampling, C.pLinear));
-                header.channels ().insert(name_prefix + "G", Channel (t, C.xSampling, C.ySampling, C.pLinear));
-                header.channels ().insert(name_prefix + "B", Channel (t, C.xSampling, C.ySampling, C.pLinear));
+                header.channels ().insert(name_prefix + "R", Channel (pixelType, C.xSampling, C.ySampling, C.pLinear));
+                header.channels ().insert(name_prefix + "G", Channel (pixelType, C.xSampling, C.ySampling, C.pLinear));
+                header.channels ().insert(name_prefix + "B", Channel (pixelType, C.xSampling, C.ySampling, C.pLinear));
                 int nrgba = C.pixels.shape(2);
                 if (nrgba > 3)
-                    header.channels ().insert(name_prefix + "A", Channel (t, C.xSampling, C.ySampling, C.pLinear));
+                    header.channels ().insert(name_prefix + "A", Channel (pixelType, C.xSampling, C.ySampling, C.pLinear));
             }
             else
-                header.channels ().insert(C.name, Channel (t, C.xSampling, C.ySampling, C.pLinear));
+                header.channels ().insert(C.name, Channel (pixelType, C.xSampling, C.ySampling, C.pLinear));
         }
 
 
