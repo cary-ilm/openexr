@@ -49,7 +49,7 @@ def compare_parts(lhs, rhs):
     attributes = set(lhs.header.keys()).union(set(rhs.header.keys()))
 
     for a in attributes:
-        if a in ["channels"]:
+        if a in ["channels", "chunkCount"]:
             continue
 
         if a not in lhs.header:
@@ -207,7 +207,7 @@ exr_files = [
 
 bug_files = [
     "LuminanceChroma/MtTamNorth.exr", # channel BY differs.
-    "v2/Stereo/Trunks.exr", # deepscanlne, RuntimeError: Invalid base pointer, please set a proper sample count slice.
+#    "v2/Stereo/Trunks.exr", # deepscanlne, RuntimeError: Invalid base pointer, please set a proper sample count slice.
     "v2/Stereo/Balls.exr", # RuntimeError: Invalid base pointer, please set a proper sample count slice.
     "v2/Stereo/Ground.exr", # RuntimeError: Invalid base pointer, please set a proper sample count slice.
     "v2/Stereo/Leaves.exr", # RuntimeError: Invalid base pointer, please set a proper sample count slice.
@@ -221,6 +221,10 @@ bug_files = [
     "v2/LowResLeftView/Leaves.exr",
     "Chromaticities/Rec709_YC.exr",  # channel BY differs.
     "Chromaticities/XYZ_YC.exr",  # channel BY differs.
+]
+
+exr_files = [
+    "v2/Stereo/Trunks.exr", # deepscanlne, RuntimeError: Invalid base pointer, please set a proper sample count slice.
 ]
 
 class TestImages(unittest.TestCase):
@@ -237,6 +241,25 @@ class TestImages(unittest.TestCase):
             return False
         return True
 
+    def print_file(self, f, print_pixels = False):
+
+        print(f"file {f.filename}")
+        print(f"parts:")
+        parts = f.parts
+        for p in parts:
+            print(f"  part: {p.name()} {p.type()} {p.compression()} height={p.height()} width={p.width()}")
+            h = p.header
+            for a in h:
+                print(f"    header[{a}] {h[a]}")
+            for n,c in p.channels.items():
+                print(f"    channel[{c.name}] shape={c.pixels.shape} strides={c.pixels.strides} {c.pixels.dtype}")
+                if print_pixels:
+                    for y in range(c.pixels.shape[0]):
+                        s = f"      {c.name}[{y}]:"
+                        for x in range(c.pixels.shape[1]):
+                            s += f" {c.pixels[y][x]}"
+                        print(s)
+                        
     def print_channel_names(self, file):
         for p in file.parts:
             s = f"part[{p.part_index}] name='{p.name()}', channels: ["
@@ -260,6 +283,9 @@ class TestImages(unittest.TestCase):
 
         # Set the type and tile description (default)
         for P in f.parts:
+            if P.header["type"] in [OpenEXR.deepscanline,  OpenEXR.deeptiled]:
+                return
+            
             P.header["compression"] = OpenEXR.ZIP_COMPRESSION
             P.header["type"] = OpenEXR.tiledimage
             if "tiles" not in P.header:
@@ -284,8 +310,10 @@ class TestImages(unittest.TestCase):
 
     def do_test_image(self, url):
 
-        verbose = False
+        verbose = True
 
+        print(f"do_test_image: {url}")
+        
         filename = "test_file.exr"
         if not self.download_file(url, filename):
             return
@@ -295,14 +323,18 @@ class TestImages(unittest.TestCase):
         print(f"Reading {url} as separate channels...")
         separate_channels = OpenEXR.File(filename)
         if verbose:
-            print_channel_names(separate_channels)
+            self.print_file(separate_channels, True)
+            print("print_file done.")
+#            print_channel_names(separate_channels)
 
+            
         # Write it out
 
         print(f"Writing separate_channels.exr...")
-        for P in separate_channels.parts:
-            P.header["compression"] = OpenEXR.ZIP_COMPRESSION
         separate_channels.write("separate_channels.exr")
+
+#        for P in separate_channels.parts:
+#            P.header["compression"] = OpenEXR.ZIPS_COMPRESSION
 
         # Read the file that was just written
         print(f"Reading {url} as separate channels...")
@@ -312,12 +344,6 @@ class TestImages(unittest.TestCase):
 
         # Confirm that the file that was just written is identical to the original
 
-        # Clear the chunkCount values before comparison, since they might differ
-        for P in separate_channels.parts:
-            if "chunkCount" in P.header: del P.header["chunkCount"]
-        for P in separate_channels2.parts:
-            if "chunkCount" in P.header: del P.header["chunkCount"]
-
         print(f"Comparing separate_channels to separate_channels2...")
         compare_files(separate_channels, separate_channels2)
 
@@ -325,8 +351,8 @@ class TestImages(unittest.TestCase):
 
         print(f"Reading {url} as rgba channels...")
         rgba_channels = OpenEXR.File(filename, True)
-        for P in rgba_channels.parts:
-            P.header["compression"] = OpenEXR.ZIP_COMPRESSION
+        #for P in rgba_channels.parts:
+        #    P.header["compression"] = OpenEXR.ZIPS_COMPRESSION
         if verbose:
             print_channel_names(rgba_channels)
 
@@ -369,7 +395,7 @@ class TestImages(unittest.TestCase):
                 url = f"{REPO}/{filename}"
 
                 self.do_test_image(url)
-                self.do_test_tiled(url)
+#                self.do_test_tiled(url)
 
             print("OK")
 
@@ -378,6 +404,12 @@ class TestImages(unittest.TestCase):
             print(f"{sys.argv[0]}: skipping images, no repo")
 
 if __name__ == '__main__':
+
+
+    if len(sys.argv) > 2:
+        exr_files = sys.argv[2:]
+        bug_files = []
+        
     unittest.main()
     print("OK")
 

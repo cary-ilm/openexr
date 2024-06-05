@@ -457,34 +457,34 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
                 for (size_t x=0; x<width; x++)
                 {
                     auto size = sampleCount[y][x];
-                    switch (C._type)
-                    {
-                      case UINT:
-                          {
-                              auto ptr = static_cast<py::array_t<uint32_t>*>(C.pixels.mutable_data(y, x));
-                              *ptr = py::array_t<uint32_t>(size);
-                              S[y][x] = static_cast<void*>(ptr->request().ptr);
-                          }
-                          break;
-                      case HALF:
-                          {
-                              auto ptr = static_cast<py::array_t<half>*>(C.pixels.mutable_data(y, x));
-                              *ptr = py::array_t<half>(size);
-                              S[y][x] = static_cast<void*>(ptr->request().ptr);
-                          }
-                        break;
-                      case FLOAT:
-                          {
-                              auto ptr = static_cast<py::array_t<float>*>(C.pixels.mutable_data(y, x));
-                              *ptr = py::array_t<float>(size);
-                              S[y][x] = static_cast<void*>(ptr->request().ptr);
-                          }
-                          break;
-                      default:
-                          throw std::runtime_error("invalid pixel type");
-                    } // switch c->type
+                    if (size > 0)
+                        switch (C._type)
+                        {
+                          case UINT:
+                              {
+                                  auto ptr = static_cast<py::array_t<uint32_t>*>(C.pixels.mutable_data(y, x));
+                                  *ptr = py::array_t<uint32_t>(size);
+                                  S[y][x] = static_cast<void*>(ptr->request().ptr);
+                              }
+                              break;
+                          case HALF:
+                              {
+                                  auto ptr = static_cast<py::array_t<half>*>(C.pixels.mutable_data(y, x));
+                                  *ptr = py::array_t<half>(size);
+                                  S[y][x] = static_cast<void*>(ptr->request().ptr);
+                              }
+                              break;
+                          case FLOAT:
+                              {
+                                  auto ptr = static_cast<py::array_t<float>*>(C.pixels.mutable_data(y, x));
+                                  *ptr = py::array_t<float>(size);
+                                  S[y][x] = static_cast<void*>(ptr->request().ptr);
+                              }
+                              break;
+                          default:
+                              throw std::runtime_error("invalid pixel type");
+                        } // switch c->type
                 }
-
         }
         
         part.readPixels (dw.min.y, dw.max.y);
