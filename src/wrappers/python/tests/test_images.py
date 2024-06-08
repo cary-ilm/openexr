@@ -100,13 +100,33 @@ def compare_channels(lhs, rhs):
     if lhs.pixels.shape != rhs.pixels.shape:
         raise Exception(f"channel {lhs.name}: image size differs: {lhs.pixels.shape} vs. {rhs.pixels.shape}")
         
-    with np.errstate(invalid='ignore'):
-        close = np.isclose(lhs.pixels, rhs.pixels, 1e-5, equal_nan=True)
-    if not np.all(close):
-        for i in np.argwhere(close==False):
-            y,x = i
-            if math.isfinite(lhs.pixels[y,x]) and math.isfinite(rhs.pixels[y,x]):
-                raise Exception(f"channel {lhs.name}: pixels {i} differ: {lhs.pixels[y,x]} {rhs.pixels[y,x]}")
+    if lhs.pixels.dtype == np.dtype('O') and rhs.pixels.dtype == np.dtype('O'):
+        for y in range(lhs.pixels.shape[0]):
+            for x in range(lhs.pixels.shape[1]):
+                ld = lhs.pixels[y,x]
+                rd = rhs.pixels[y,x]
+                if ld is None and rd is None:
+                    continue
+                if ld.shape != rd.shape:
+                    raise Exception(f"channel {lhs.name}: deep pixels {i} differ: {ld} {rd}")
+                with np.errstate(invalid='ignore'):
+                    close = np.isclose(ld, rd, 1e-5, equal_nan=True)
+                if not np.all(close):
+                    for i in np.argwhere(close==False):
+                        y,x = i
+                        raise Exception(f"channel {lhs.name}: deep pixels {i} differ: {ld} {rd}")
+    else:
+                
+        with np.errstate(invalid='ignore'):
+            close = np.isclose(lhs.pixels, rhs.pixels, 1e-5, equal_nan=True)
+
+        if not np.all(close):
+            for i in np.argwhere(close==False):
+                y,x = i
+                lp = lhs.pixels[y,x]
+                rp = rhs.pixels[y,x]
+                if math.isfinite(lp) and math.isfinite(rp):
+                    raise Exception(f"channel {lhs.name}: pixels {i} differ: {lp} {rp}")
 
 exr_files = [
     "TestImages/GammaChart.exr",
@@ -207,24 +227,8 @@ exr_files = [
 
 bug_files = [
     "LuminanceChroma/MtTamNorth.exr", # channel BY differs.
-#    "v2/Stereo/Trunks.exr", # deepscanlne, RuntimeError: Invalid base pointer, please set a proper sample count slice.
-    "v2/Stereo/Balls.exr", # RuntimeError: Invalid base pointer, please set a proper sample count slice.
-    "v2/Stereo/Ground.exr", # RuntimeError: Invalid base pointer, please set a proper sample count slice.
-    "v2/Stereo/Leaves.exr", # RuntimeError: Invalid base pointer, please set a proper sample count slice.
-    "v2/LeftView/Trunks.exr",
-    "v2/LeftView/Balls.exr",
-    "v2/LeftView/Ground.exr",
-    "v2/LeftView/Leaves.exr",
-    "v2/LowResLeftView/Trunks.exr",
-    "v2/LowResLeftView/Balls.exr",
-    "v2/LowResLeftView/Ground.exr",
-    "v2/LowResLeftView/Leaves.exr",
     "Chromaticities/Rec709_YC.exr",  # channel BY differs.
     "Chromaticities/XYZ_YC.exr",  # channel BY differs.
-]
-
-exr_files = [
-    "v2/Stereo/Trunks.exr", # deepscanlne, RuntimeError: Invalid base pointer, please set a proper sample count slice.
 ]
 
 class TestImages(unittest.TestCase):
@@ -310,7 +314,7 @@ class TestImages(unittest.TestCase):
 
     def do_test_image(self, url):
 
-        verbose = True
+        verbose = False
 
         print(f"do_test_image: {url}")
         
@@ -323,18 +327,15 @@ class TestImages(unittest.TestCase):
         print(f"Reading {url} as separate channels...")
         separate_channels = OpenEXR.File(filename)
         if verbose:
-            self.print_file(separate_channels, True)
-            print("print_file done.")
-#            print_channel_names(separate_channels)
+            self.print_file(separate_channels, False)
+            print("print_file done:")
+            print_channel_names(separate_channels)
 
             
         # Write it out
 
         print(f"Writing separate_channels.exr...")
         separate_channels.write("separate_channels.exr")
-
-#        for P in separate_channels.parts:
-#            P.header["compression"] = OpenEXR.ZIPS_COMPRESSION
 
         # Read the file that was just written
         print(f"Reading {url} as separate channels...")
@@ -373,7 +374,7 @@ class TestImages(unittest.TestCase):
 
         print(f"Comparing separate_channels to separate_channels2...")
         compare_files(separate_channels, separate_channels2)
-        print("good.")
+        print("ok.")
 
     def test_images(self):
 
@@ -382,6 +383,7 @@ class TestImages(unittest.TestCase):
         #
 
         REPO_VAR = "OPENEXR_TEST_IMAGE_REPO" 
+        os.environ[REPO_VAR] = "file:///home/cary/src/cary-ilm/openexr-images"
         if REPO_VAR in os.environ:
 
             REPO = os.environ[REPO_VAR]

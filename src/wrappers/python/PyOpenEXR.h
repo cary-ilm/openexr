@@ -90,28 +90,31 @@ class PyChannel
 public:
 
     PyChannel()
-        : xSampling(1), ySampling(1), pLinear(false), channel_index(0) {}
+        : xSampling(1), ySampling(1), pLinear(false), channel_index(0),
+          _type(NUM_PIXELTYPES), _deep_samples(nullptr) {}
 
     PyChannel(int xSampling, int ySampling, bool pLinear = false)
-        : xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), channel_index(0) {}
+        : xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), channel_index(0),
+          _type(NUM_PIXELTYPES), _deep_samples(nullptr) {}
     PyChannel(const py::array& p)
-        : xSampling(1), ySampling(1), pLinear(false), pixels(p),
-          channel_index(0) {validate_pixel_array(); }
+        : xSampling(1), ySampling(1), pLinear(false), pixels(p), channel_index(0),
+          _type(NUM_PIXELTYPES), _deep_samples(nullptr) {validate_pixel_array(); }
     PyChannel(const py::array& p, int xSampling, int ySampling, bool pLinear = false)
-        : xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), pixels(p),
-          channel_index(0) {validate_pixel_array(); }
+        : xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), pixels(p), channel_index(0),
+          _type(NUM_PIXELTYPES), _deep_samples(nullptr) {validate_pixel_array(); }
         
     PyChannel(const char* n)
-        : name(n), xSampling(1), ySampling(1), pLinear(false), channel_index(0) {}
+        : name(n), xSampling(1), ySampling(1), pLinear(false), channel_index(0),
+          _type(NUM_PIXELTYPES), _deep_samples(nullptr) {}
     PyChannel(const char* n, int xSampling, int ySampling, bool pLinear = false)
-        : name(n), xSampling(xSampling), ySampling(ySampling), pLinear(pLinear),
-          channel_index(0) {}
+        : name(n), xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), channel_index(0),
+          _type(NUM_PIXELTYPES), _deep_samples(nullptr) {}
     PyChannel(const char* n, const py::array& p)
-        : name(n), xSampling(1), ySampling(1), pLinear(false), pixels(p),
-          channel_index(0) {validate_pixel_array(); }
+        : name(n), xSampling(1), ySampling(1), pLinear(false), pixels(p), channel_index(0),
+          _type(NUM_PIXELTYPES), _deep_samples(nullptr) {validate_pixel_array(); }
     PyChannel(const char* n, const py::array& p, int xSampling, int ySampling, bool pLinear = false)
-        : name(n), xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), pixels(p),
-          channel_index(0) {validate_pixel_array(); }
+        : name(n), xSampling(xSampling), ySampling(ySampling), pLinear(pLinear), pixels(p), channel_index(0),
+          _type(NUM_PIXELTYPES), _deep_samples(nullptr) {validate_pixel_array(); }
 
     void validate_pixel_array();
     
@@ -126,6 +129,8 @@ public:
 
     mutable PixelType             _type;
     mutable Array2D<void*>*       _deep_samples;
+
+    template<class T> void        set_deep_sample(const py::array& a, size_t y, size_t x, PixelType type) const;
 };
     
 template <class T>

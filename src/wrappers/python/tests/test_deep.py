@@ -52,7 +52,13 @@ def compare_channels(lhs, rhs):
     width = lhs.pixels.shape[1]
     for y in range(height):
         for x in range(width):
-            close = np.isclose(lhs.pixels[y,x], rhs.pixels[y,x], 1e-5)
+            l = lhs.pixels[y,x]
+            r = rhs.pixels[y,x]
+            print(f"pixel[{y},{x}] l={l} {type(l)} r={r} {type(r)}")
+            if l is None and r is None:
+                print(f"> None.")
+                continue
+            close = np.isclose(l, r, 1e-5)
             print(f"close[{y},{x}] {close}")
             if not np.all(close):
                 for i in np.argwhere(close==False):
@@ -64,30 +70,37 @@ class TestDeep(unittest.TestCase):
 
     def test_write_deep(self):
 
-        height, width = (3,2)
+        dataWindow = ((100,100), (103,105))
+        height = dataWindow[1][1] - dataWindow[0][1] + 1
+        width = dataWindow[1][0] - dataWindow[0][0] + 1
         
-        Z = np.empty((height, width), dtype=object)
+        U = np.empty((height, width), dtype=object)
+        H = np.empty((height, width), dtype=object)
+        F = np.empty((height, width), dtype=object)
         for y in range(height):
             for x in range(width):
-                Z[y, x] = np.array([(k+1)*10 for k in range((y*width+x) % 3 + 1)], dtype='float32')
+                i = y*width+x
+                l = i % 3 
+                if l == 0:
+                    U[y, x] = np.array([i], dtype='uint32')
+                    H[y, x] = np.array([i], dtype='float16')
+                    F[y, x] = np.array([i], dtype='float32')
+                else:
+                    U[y, x] = None
+                    H[y, x] = None
+                    F[y, x] = None
         
-        channels = { "Z" : Z }
+        channels = { "U" : U, "H" : H, "F" : F }
         header = { "compression" : OpenEXR.ZIPS_COMPRESSION,
-                   "type" : OpenEXR.deepscanline }
+                   "type" : OpenEXR.deepscanline,
+                   "dataWindow" : dataWindow}
 
         filename = "write_deep.exr"
         with OpenEXR.File(header, channels) as outfile:
             outfile.write(filename)
-            print("outfile:")
-            print_deep(outfile)
 
-        infile = OpenEXR.File(filename)
-
-        print("infile:")
-        print_deep(infile)
-
-        compare_files(infile, outfile)
-        
+        with OpenEXR.File(filename) as infile:
+            compare_files(infile, outfile)
 
 if __name__ == '__main__':
     unittest.main()
