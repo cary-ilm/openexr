@@ -102,6 +102,11 @@ class TestDeep(unittest.TestCase):
         with OpenEXR.File(filename) as infile:
             compare_files(infile, outfile)
 
+            print_deep(infile)
+#        pixels[y,x][i][0] # red channel of sample i
+#        pixels[y,x][i][1] # red channel of sample i
+#        pixels[y,x][i][2] # red channel of sample i
+
 if __name__ == '__main__':
     unittest.main()
     print("OK")
