@@ -20,7 +20,7 @@ def print_deep(outfile):
         for y in range(c.pixels.shape[0]):
             for x in range(c.pixels.shape[1]):
                 d = c.pixels[y,x]
-                print(f"pixels[{y},{x}]: {d}")
+                print(f"{n}[{y},{x}]: {d}")
 
 def compare_files(lhs, rhs):
 
@@ -68,14 +68,57 @@ def compare_channels(lhs, rhs):
 
 class TestDeep(unittest.TestCase):
 
-    def test_write_deep(self):
+    def test_deep_rgba(self):
+        dataWindow = ((100,100), (101,102))
+        height = dataWindow[1][1] - dataWindow[0][1] + 1
+        width = dataWindow[1][0] - dataWindow[0][0] + 1
+        
+        R = np.empty((height, width), dtype=object)
+        G = np.empty((height, width), dtype=object)
+        B = np.empty((height, width), dtype=object)
+        Z = np.empty((height, width), dtype=object)
+
+        for y in range(height):
+            for x in range(width):
+                i = y*width+x
+                l = i % 3 
+                if l == 0:
+                    R[y, x] = np.array([i+1], dtype='uint32')
+                    G[y, x] = np.array([(i+1)*10], dtype='uint32')
+                    B[y, x] = np.array([(i+1)*100], dtype='uint32')
+                    Z[y, x] = np.array([(i+1)*1000], dtype='float32')
+                else:
+                    R[y, x] = None
+                    G[y, x] = None
+                    B[y, x] = None
+                    Z[y, x] = None
+        
+        channels = { "R" : R, "G" : G, "B" : B, "Z" : Z }
+        header = { "compression" : OpenEXR.ZIPS_COMPRESSION,
+                   "type" : OpenEXR.deepscanline,
+                   "dataWindow" : dataWindow}
+
+        filename = "write_deep.exr"
+        with OpenEXR.File(header, channels) as outfile:
+            outfile.write(filename)
+
+            print("separate channels:")
+            print_deep(outfile)
+
+        with OpenEXR.File(filename, True) as infile:
+            compare_files(infile, outfile)
+
+            print("rgba:")
+            print_deep(infile)
+        
+    def xxx_test_write_deep(self):
 
         dataWindow = ((100,100), (103,105))
         height = dataWindow[1][1] - dataWindow[0][1] + 1
         width = dataWindow[1][0] - dataWindow[0][0] + 1
         
         U = np.empty((height, width), dtype=object)
-        H = np.empty((height, width), dtype=object)
+        H = np.empty((height, width), dtype=OBJECT)
         F = np.empty((height, width), dtype=object)
         for y in range(height):
             for x in range(width):
