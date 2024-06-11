@@ -30,7 +30,7 @@ def compare_files(lhs, rhs):
 def compare_parts(lhs, rhs):
 
     if len(lhs.channels) != len(rhs.channels):
-        raise Exception(f"#channels in {lhs.name} differs: {len(lhs.channels)} {len(rhs.channels)}")
+        raise Exception(f"#channels in {lhs.name()} differs: {len(lhs.channels)} {len(rhs.channels)}")
 
     for c in lhs.channels.keys():
         compare_channels(lhs.channels[c], rhs.channels[c])
@@ -43,7 +43,9 @@ def compare_channels(lhs, rhs):
         lhs.ySampling != rhs.ySampling):
         raise Exception(f"channel {lhs.name} differs: {lhs.__repr__()} {rhs.__repr__()}")
 
-def compare_channels(lhs, rhs):
+    compare_channel_pixels(lhs, rhs)
+    
+def compare_channel_pixels(lhs, rhs):
 
     if lhs.pixels.shape != rhs.pixels.shape:
         raise Exception(f"channel {lhs.name}: image size differs: {lhs.pixels.shape} vs. {rhs.pixels.shape}")
@@ -54,12 +56,9 @@ def compare_channels(lhs, rhs):
         for x in range(width):
             l = lhs.pixels[y,x]
             r = rhs.pixels[y,x]
-            print(f"pixel[{y},{x}] l={l} {type(l)} r={r} {type(r)}")
             if l is None and r is None:
-                print(f"> None.")
                 continue
             close = np.isclose(l, r, 1e-5)
-            print(f"close[{y},{x}] {close}")
             if not np.all(close):
                 for i in np.argwhere(close==False):
                     y,x = i
@@ -81,12 +80,12 @@ class TestDeep(unittest.TestCase):
         for y in range(height):
             for x in range(width):
                 i = y*width+x
-                l = i % 3 
+                l = i % 2 
                 if l == 0:
-                    R[y, x] = np.array([i+1], dtype='uint32')
-                    G[y, x] = np.array([(i+1)*10], dtype='uint32')
-                    B[y, x] = np.array([(i+1)*100], dtype='uint32')
-                    Z[y, x] = np.array([(i+1)*1000], dtype='float32')
+                    R[y, x] = np.array([j for j in range(i+1)], dtype='uint32')
+                    G[y, x] = np.array([j*10 for j in range(i+1)], dtype='uint32')
+                    B[y, x] = np.array([j*100 for j in range(i+1)], dtype='uint32')
+                    Z[y, x] = np.array([j*1000 for j in range(i+1)], dtype='float32')
                 else:
                     R[y, x] = None
                     G[y, x] = None
@@ -102,23 +101,26 @@ class TestDeep(unittest.TestCase):
         with OpenEXR.File(header, channels) as outfile:
             outfile.write(filename)
 
-            print("separate channels:")
-            print_deep(outfile)
+            with OpenEXR.File(filename, True) as infile:
 
-        with OpenEXR.File(filename, True) as infile:
-            compare_files(infile, outfile)
-
-            print("rgba:")
-            print_deep(infile)
-        
-    def xxx_test_write_deep(self):
+                RGB = infile.channels()["RGB"]
+                for y in range(height):
+                    for x in range(width):
+                        p = RGB.pixels[y,x]
+                        if p is None:
+                            assert R[y,x] is None
+                        else:
+                            for i in range(p.shape[0]):
+                                self.assertEqual(p[i,:].tolist(), [R[y,x][i], G[y,x][i], B[y,x][i]])
+                
+    def test_write_deep(self):
 
         dataWindow = ((100,100), (103,105))
         height = dataWindow[1][1] - dataWindow[0][1] + 1
         width = dataWindow[1][0] - dataWindow[0][0] + 1
         
         U = np.empty((height, width), dtype=object)
-        H = np.empty((height, width), dtype=OBJECT)
+        H = np.empty((height, width), dtype=object)
         F = np.empty((height, width), dtype=object)
         for y in range(height):
             for x in range(width):
@@ -142,13 +144,8 @@ class TestDeep(unittest.TestCase):
         with OpenEXR.File(header, channels) as outfile:
             outfile.write(filename)
 
-        with OpenEXR.File(filename) as infile:
-            compare_files(infile, outfile)
-
-            print_deep(infile)
-#        pixels[y,x][i][0] # red channel of sample i
-#        pixels[y,x][i][1] # red channel of sample i
-#        pixels[y,x][i][2] # red channel of sample i
+            with OpenEXR.File(filename) as infile:
+                compare_files(infile, outfile)
 
 if __name__ == '__main__':
     unittest.main()

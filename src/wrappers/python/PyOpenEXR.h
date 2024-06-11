@@ -132,7 +132,7 @@ public:
     mutable Array2D<void*>*       _deep_samples;
 
     template<class T> void        set_deep_sample(const py::array& a, size_t y, size_t x, PixelType type) const;
-    void                          create_deep_pixel_array(size_t i, unsigned int count);
+    void                          create_deep_pixel_arrays(size_t height, size_t width, const Array2D<unsigned int>& sampleCount);
 };
     
 class PyPreviewImage
