@@ -1989,7 +1989,7 @@ PyChannel::validate_pixel_array()
     if (pixels.ndim() < 2 ||  pixels.ndim() > 3)
         throw std::invalid_argument("invalid pixel array: must be 2D or 3D numpy array");
 
-    if (py::isinstance<py::dtype>(pixels.dtype())) 
+    if (pixels.dtype().kind() == 'O')
     {
         auto height = pixels.shape(0);
         auto width = pixels.shape(1);

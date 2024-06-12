@@ -352,8 +352,6 @@ class TestImages(unittest.TestCase):
 
         print(f"Reading {url} as rgba channels...")
         rgba_channels = OpenEXR.File(filename, True)
-        #for P in rgba_channels.parts:
-        #    P.header["compression"] = OpenEXR.ZIPS_COMPRESSION
         if verbose:
             print_channel_names(rgba_channels)
 
@@ -383,7 +381,6 @@ class TestImages(unittest.TestCase):
         #
 
         REPO_VAR = "OPENEXR_TEST_IMAGE_REPO" 
-        os.environ[REPO_VAR] = "file:///home/cary/src/cary-ilm/openexr-images"
         if REPO_VAR in os.environ:
 
             REPO = os.environ[REPO_VAR]
