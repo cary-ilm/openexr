@@ -361,7 +361,7 @@ PyChannel::create_deep_pixel_arrays(size_t height, size_t width, const Array2D<u
     if (_nrgba > 0)
         shape.push_back(_nrgba); // shape=(count,3) for RGB; shape=(count,4) for RGBA
 
-    py::object* data_ptr = static_cast<py::object*>(pixels.mutable_data());
+    py::object* pixel_objects = static_cast<py::object*>(pixels.mutable_data());
 
     for (size_t y=0; y<height; y++)
         for (size_t x=0; x<width; x++)
@@ -374,7 +374,7 @@ PyChannel::create_deep_pixel_arrays(size_t height, size_t width, const Array2D<u
                 // No samples, no array.
                 //
                 
-                data_ptr[i] = py::none();
+                pixel_objects[i] = py::none();
             }
             else
             {
@@ -383,13 +383,13 @@ PyChannel::create_deep_pixel_arrays(size_t height, size_t width, const Array2D<u
                 switch (_type)
                 {
                   case UINT:
-                      data_ptr[i] = py::array_t<uint32_t>(shape);
+                      pixel_objects[i] = py::array_t<uint32_t>(shape);
                       break;
                   case HALF:
-                      data_ptr[i] = py::array_t<half>(shape);
+                      pixel_objects[i] = py::array_t<half>(shape);
                       break;
                   case FLOAT:
-                      data_ptr[i] = py::array_t<float>(shape);
+                      pixel_objects[i] = py::array_t<float>(shape);
                       break;
                   default:
                       throw std::runtime_error("invalid pixel type");
@@ -696,6 +696,29 @@ PyChannel::set_deep_sample(const py::array& a, size_t y, size_t x, PixelType typ
     }
 }
 
+int
+get_nrgba(const py::array& pixels)
+{
+    const py::object* pixel_objects = static_cast<const py::object*>(pixels.data());
+
+    size_t height = pixels.shape(0);
+    size_t width = pixels.shape(1);
+    for (size_t y = 0; y<height; y++)
+        for (size_t x = 0; x<width; x++)
+        {
+            auto i = y * width + x;
+            if (py::isinstance<py::array>(pixel_objects[i]))
+            {
+                auto a = py::cast<const py::array>(pixel_objects[i]);
+                if (a.ndim() == 3 || a.ndim() == 4)
+                    return a.ndim();
+                return 0;
+            }
+        }
+
+    return 0;
+}
+    
 void
 PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
 {
@@ -709,10 +732,30 @@ PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
         for (size_t x=0; x<w; x++)
             sampleCount[y][x] = 0;
 
+    std::map<std::string,std::unique_ptr<Array2DVoidPtr>> slice_data_map;
+
     for (auto c : channels)
     {
         const PyChannel& C = c.second.cast<const PyChannel&>();
 
+        if (C.pixels.dtype().kind() != 'O')
+            throw std::runtime_error("Expected deep pixel array with dtype 'O'");
+
+        int nrgba = get_nrgba(C.pixels);
+        
+        if (nrgba > 0)
+        {
+            auto rPtr = basePtr;
+            frameBuffer.insert (name_prefix + "R",
+                                Slice::Make (pixelType,
+                                             static_cast<void*>(rPtr),
+                                             dw, xStride, yStride,
+                                             C.xSampling,
+                                             C.ySampling));
+
+
+        }
+        
         C._deep_samples = new Array2D<void*>(h, w);
         auto &S = *C._deep_samples;
         for (size_t y=0; y<h; y++)
@@ -721,9 +764,6 @@ PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
         
         C._type = NUM_PIXELTYPES;
         
-        if (!py::isinstance<py::dtype>(C.pixels.dtype())) 
-            throw std::runtime_error("Expected deep pixel array with dtype 'O'");
-
         auto pixel_objects = static_cast<const py::object*>(C.pixels.data());
 
         for (size_t y=0; y<h; y++)
