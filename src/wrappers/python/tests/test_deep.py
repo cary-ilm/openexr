@@ -99,7 +99,7 @@ class TestDeep(unittest.TestCase):
                     B[y, x] = np.array([j*100 for j in range(1,i)], dtype=dt)
                     if do_alpha:
                         A[y, x] = np.array([j*100 for j in range(1,i)], dtype=dt)
-                    Z[y, x] = np.array([j*1000 for j in range(1,i)], dtype=dt)
+                    Z[y, x] = np.array([j*2 for j in range(1,i)], dtype=dt)
                 else:
                     R[y, x] = None
                     G[y, x] = None
