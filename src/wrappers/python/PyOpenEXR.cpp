@@ -165,7 +165,7 @@ PyFile::PyFile(const std::string& filename, bool rgba, bool header_only)
         {
             std::string name = a.name();
             const Attribute& attribute = a.attribute();
-            P.header[py::str(name)] = get_attribute_object(name, &attribute);
+            P.header[py::str(name)] = getAttributeObject(name, &attribute);
         }
 
         //
@@ -180,15 +180,15 @@ PyFile::PyFile(const std::string& filename, bool rgba, bool header_only)
         // by examining common prefixes.
         //
         
-        std::set<std::string> rgba_channels;
+        std::set<std::string> rgbaChannels;
         if (rgba)
         {
             for (auto c = header.channels().begin(); c != header.channels().end(); c++)
             {
                 std::string py_channel_name;
                 char channel_name;
-                if (P.rgba_channel(header.channels(), c.name(), py_channel_name, channel_name))
-                    rgba_channels.insert(c.name());
+                if (P.rgbaChannel(header.channels(), c.name(), py_channel_name, channel_name))
+                    rgbaChannels.insert(c.name());
             }
         }
         
@@ -201,11 +201,11 @@ PyFile::PyFile(const std::string& filename, bool rgba, bool header_only)
         auto type = header.type();
         if (type == SCANLINEIMAGE || type == TILEDIMAGE)
         {
-            P.readPixels(infile, header.channels(), shape, rgba_channels, dw, rgba);
+            P.readPixels(infile, header.channels(), shape, rgbaChannels, dw, rgba);
         }
         else if (type == DEEPSCANLINE || type == DEEPTILE)
         {
-            P.readDeepPixels(infile, type, header.channels(), shape, rgba_channels, dw, rgba);
+            P.readDeepPixels(infile, type, header.channels(), shape, rgbaChannels, dw, rgba);
         }
         parts.append(py::cast<PyPart>(PyPart(P)));
     } // for parts
@@ -213,7 +213,7 @@ PyFile::PyFile(const std::string& filename, bool rgba, bool header_only)
 
 void
 PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
-                   const std::vector<size_t>& shape, const std::set<std::string>& rgba_channels,
+                   const std::vector<size_t>& shape, const std::set<std::string>& rgbaChannels,
                    const Box2i& dw, bool rgba)
 {
     FrameBuffer frameBuffer;
@@ -224,7 +224,7 @@ PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
         char channel_name; 
         int nrgba = 0;
         if (rgba)
-            nrgba = rgba_channel(channel_list, c.name(), py_channel_name, channel_name);
+            nrgba = rgbaChannel(channel_list, c.name(), py_channel_name, channel_name);
             
         auto py_channel_name_str = py::str(py_channel_name);
             
@@ -251,7 +251,7 @@ PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
             // nrgba is 3 for RGB and 4 for RGBA.
             //
             
-            if (rgba_channels.find(c.name()) != rgba_channels.end())
+            if (rgbaChannels.find(c.name()) != rgbaChannels.end())
                 c_shape.push_back(nrgba);
 
             switch (c.channel().type)
@@ -270,14 +270,6 @@ PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
             } // switch c->type
 
             channels[py_channel_name.c_str()] = C;
-
-#if DEBUG_VERBOSE
-            std::cout << ":: creating PyChannel name=" << C.name
-                      << " ndim=" << C.pixels.ndim()
-                      << " size=" << C.pixels.size()
-                      << " itemsize=" << C.pixels.dtype().itemsize()
-                      << std::endl;
-#endif
         }
 
         //
@@ -318,17 +310,7 @@ PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
         }
 
         size_t yStride = xStride * shape[1] / C.xSampling;
-            
-#if DEBUG_VERBOSE
-        std::cout << "Creating slice from PyChannel name=" << C.name
-                  << " ndim=" << C.pixels.ndim()
-                  << " size=" << C.pixels.size()
-                  << " itemsize=" << C.pixels.dtype().itemsize()
-                  << " name=" << c.name()
-                  << " type=" << c.channel().type
-                  << std::endl;
-#endif
-        
+
         frameBuffer.insert (c.name(),
                             Slice::Make (c.channel().type,
                                          (void*) basePtr,
@@ -349,7 +331,7 @@ PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
 }
 
 void
-PyChannel::create_deep_pixel_arrays(size_t height, size_t width, const Array2D<unsigned int>& sampleCounts)
+PyChannel::createDeepPixelArrays(size_t height, size_t width, const Array2D<unsigned int>& sampleCounts)
 {
     //
     // Create the py::array of the appropriate type and shape to hold the
@@ -400,18 +382,19 @@ PyChannel::create_deep_pixel_arrays(size_t height, size_t width, const Array2D<u
 
 void
 PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, const ChannelList& channel_list,
-                       const std::vector<size_t>& shape, const std::set<std::string>& rgba_channels,
+                       const std::vector<size_t>& shape, const std::set<std::string>& rgbaChannels,
                        const Box2i& dw, bool rgba)
 {
     size_t width  = dw.max.x - dw.min.x + 1;
     size_t height = dw.max.y - dw.min.y + 1;
+    auto dw_offset = dw.min.y * width + dw.min.x;
 
     Array2D<unsigned int> sampleCount (height, width);
 
     DeepFrameBuffer frameBuffer;
 
     frameBuffer.insertSampleCountSlice (Slice (UINT,
-                                               (char*) (&sampleCount[0][0] - dw.min.x - dw.min.y * width),
+                                               (char*) (&sampleCount[0][0] - dw_offset),
                                                sizeof (unsigned int) * 1,       // xStride
                                                sizeof (unsigned int) * width)); // yStride
 
@@ -419,21 +402,19 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
     // Map from channel name to 2D array of pointers to sample arrays for
     // each slice.
     
-    typedef Array2D<void*> Array2DVoidPtr;
-    
-    std::map<std::string,std::unique_ptr<Array2DVoidPtr>> slice_data_map;
+    std::map<std::string,std::unique_ptr<Array2DVoidPtr>> sliceDataMap;
     
     //
     // The channel_list argument is the Imf::Header's list of channels.
     //
     // When building a py::dict of channels that coalesces "R", "G", "B", and
     // 'A' channels into "RGBA", the PyPart's channels py::dict has a single
-    // entry for all 4 (or 3 if no alpha). rgba_channel_map maps the
+    // entry for all 4 (or 3 if no alpha). rgbaChannelMap maps the
     // channel_list names (e.g. "R") to the PyChannel name (e.g. "RGBA").
     //
     //
     
-    std::map<std::string,PyChannel*> rgba_channel_map;
+    std::map<std::string,PyChannel*> rgbaChannelMap;
 
     for (auto c = channel_list.begin(); c != channel_list.end(); c++)
     {
@@ -441,7 +422,7 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
         char channel_name; 
         int nrgba = 0;
         if (rgba)
-            nrgba = rgba_channel(channel_list, c.name(), py_channel_name, channel_name);
+            nrgba = rgbaChannel(channel_list, c.name(), py_channel_name, channel_name);
         
         auto py_channel_name_str = py::str(py_channel_name);
             
@@ -463,7 +444,7 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
         }
 
         auto v = channels[py_channel_name.c_str()];
-        rgba_channel_map[c.name()] = v.cast<PyChannel*>();
+        rgbaChannelMap[c.name()] = v.cast<PyChannel*>();
             
         size_t xStride = sizeof(void*);
         size_t yStride = xStride * shape[1];
@@ -491,13 +472,13 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
         if (nrgba > 0)
             sampleStride *= nrgba;
 
-        slice_data_map[c.name()] = std::unique_ptr<Array2DVoidPtr>(new Array2DVoidPtr(height, width));
-        Array2DVoidPtr* slice_data = slice_data_map[c.name()].get();
+        sliceDataMap[c.name()] = std::unique_ptr<Array2DVoidPtr>(new Array2DVoidPtr(height, width));
+        Array2DVoidPtr* sliceData = sliceDataMap[c.name()].get();
         
-        auto base = &(*slice_data)[0][0];
+        auto base = &(*sliceData)[0][0] - dw_offset;
         frameBuffer.insert (c.name(),
                             DeepSlice (c.channel().type,
-                                       (char*) (base - dw.min.x - dw.min.y * width),
+                                       (char*) base,
                                        xStride,
                                        yStride,
                                        sampleStride,
@@ -522,7 +503,7 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
         for (auto c : channels)
         {
             auto C = py::cast<PyChannel&>(c.second);
-            C.create_deep_pixel_arrays(height, width, sampleCount);
+            C.createDeepPixelArrays(height, width, sampleCount);
         }
         
         for (auto c = channel_list.begin(); c != channel_list.end(); c++)
@@ -533,9 +514,9 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
             // into RGB/RGBA.
             //
             
-            auto &slice_data = *slice_data_map[c.name()];
+            auto &sliceData = *sliceDataMap[c.name()];
 
-            PyChannel& C = *rgba_channel_map[c.name()];
+            PyChannel& C = *rgbaChannelMap[c.name()];
             py::object* pixel_objects = static_cast<py::object*>(C.pixels.mutable_data());
 
             size_t channel_offset = 0;
@@ -552,7 +533,7 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
             for (size_t y=0; y<height; y++)
                 for (size_t x=0; x<width; x++)
                     if (sampleCount[y][x] == 0)
-                        slice_data[y][x] = nullptr;
+                        sliceData[y][x] = nullptr;
                     else
                     {
                         auto i = y * width + x;
@@ -562,18 +543,19 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
                           case UINT:
                               {
                                   auto d = static_cast<uint32_t*>(a.request().ptr);
-                                  slice_data[y][x] = static_cast<void*>(&d[channel_offset]);
+                                  sliceData[y][x] = static_cast<void*>(&d[channel_offset]);
                               }
                               break;
                           case HALF:
                               {
                                   auto d = static_cast<half*>(a.request().ptr);
-                                  slice_data[y][x] = static_cast<void*>(&d[channel_offset]);
+                                  sliceData[y][x] = static_cast<void*>(&d[channel_offset]);
                               }
+                              break;
                           case FLOAT:
                               {
                                   auto d = static_cast<float*>(a.request().ptr);
-                                  slice_data[y][x] = static_cast<void*>(&d[channel_offset]);
+                                  sliceData[y][x] = static_cast<void*>(&d[channel_offset]);
                               }
                               break;
                           case NUM_PIXELTYPES:
@@ -679,12 +661,14 @@ PyPart::writePixels(MultiPartOutputFile& outfile, const Box2i& dw) const
 
 template<class T>
 void
-PyChannel::set_deep_sample(const py::array& a, size_t y, size_t x, PixelType type) const
+PyChannel::setSliceDataPtr(Array2DVoidPtr& sliceData,const py::array& a, size_t y, size_t x,
+                              int channel_offset, PixelType type) const
 {
     auto s = py::cast<const py::array_t<T>>(a);
     auto d = static_cast<const T*>(s.request().ptr);    
-    const void* v = static_cast<const void*>(d);
-    (*_deep_samples)[y][x] = const_cast<void*>(v);
+    const void* v = static_cast<const void*>(&d[channel_offset]);
+    sliceData[y][x] = const_cast<void*>(v);
+
     if (_type == NUM_PIXELTYPES)
         _type = type;
     else if (_type != type)
@@ -697,7 +681,7 @@ PyChannel::set_deep_sample(const py::array& a, size_t y, size_t x, PixelType typ
 }
 
 int
-get_nrgba(const py::array& pixels)
+get_deep_nrgba(const py::array& pixels)
 {
     const py::object* pixel_objects = static_cast<const py::object*>(pixels.data());
 
@@ -710,8 +694,8 @@ get_nrgba(const py::array& pixels)
             if (py::isinstance<py::array>(pixel_objects[i]))
             {
                 auto a = py::cast<const py::array>(pixel_objects[i]);
-                if (a.ndim() == 3 || a.ndim() == 4)
-                    return a.ndim();
+                if (a.ndim() == 2)
+                    return a.shape(1);
                 return 0;
             }
         }
@@ -720,19 +704,115 @@ get_nrgba(const py::array& pixels)
 }
     
 void
+PyChannel::insertDeepSlice(DeepFrameBuffer& frameBuffer, const std::string& slice_name,
+                           size_t height, size_t width, int nrgba, int dw_offset, int channel_offset,
+                           Array2D<unsigned int>& sampleCount,
+                           std::vector<std::shared_ptr<Array2DVoidPtr>>& sliceDatas) const
+{
+    Array2DVoidPtr* sliceDataPtr = new Array2DVoidPtr(height, width);
+    Array2DVoidPtr& sliceData(*sliceDataPtr);
+    sliceDatas.push_back(std::shared_ptr<Array2DVoidPtr>(sliceDataPtr));
+
+    auto pixel_objects = static_cast<const py::object*>(pixels.data());
+
+    for (size_t y=0; y<height; y++)
+        for (size_t x=0; x<width; x++)
+        {
+            int i = y * width + x;
+                
+            auto object = pixel_objects[i];
+            if (object.is(py::none()))
+                continue;
+            
+            if (py::isinstance<py::array>(object))
+            {
+                auto a = object.cast<py::array>();
+                if (sampleCount[y][x] == 0)
+                    sampleCount[y][x] = a.shape(0);
+                else if (sampleCount[y][x] != a.shape(0))
+                {
+                    std::stringstream err;
+                    err << "invalid sample count at pixel " << y << "," << x
+                        << ": all channels must have the same number of samples";
+                    throw std::invalid_argument(err.str());
+                }
+                
+                if (py::isinstance<py::array_t<uint32_t>>(a))
+                    setSliceDataPtr<uint32_t>(sliceData, a, y, x, channel_offset, UINT);
+                else if (py::isinstance<py::array_t<half>>(a))
+                    setSliceDataPtr<half>(sliceData, a, y, x, channel_offset, HALF);
+                else if (py::isinstance<py::array_t<float>>(a))
+                    setSliceDataPtr<float>(sliceData, a, y, x, channel_offset, FLOAT);
+                else
+                {
+                    std::stringstream err;
+                    err << "invalid deep pixel array at " << y << "," << x
+                        << ": unrecognized array type";
+                    throw std::invalid_argument(err.str());
+                }
+            }
+            else
+            {
+                std::stringstream err;
+                err << "invalid deep pixel array at " << y << "," << x
+                    << ": unrecognized object type";
+                throw std::invalid_argument(err.str());
+            }
+        }
+
+    size_t xStride = sizeof(void*);
+    size_t yStride = xStride * width;
+    size_t sampleStride;
+    switch (_type)
+    {
+    case UINT:
+        sampleStride = sizeof(uint32_t);
+        break;
+    case HALF:
+        sampleStride = sizeof(half);
+        break;
+    case FLOAT:
+        sampleStride = sizeof(float);
+        break;
+    default:
+        sampleStride = 0;
+        break;
+    }
+    if (nrgba > 0)
+        sampleStride *= nrgba;
+
+    void* base_ptr = &sliceData[0][0] - dw_offset;
+    frameBuffer.insert (slice_name,
+                        DeepSlice (_type,
+                                   static_cast<char*>(base_ptr),
+                                   xStride,
+                                   yStride,
+                                   sampleStride,
+                                   xSampling,
+                                   ySampling));
+}
+
+void
 PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
 {
+    size_t width  = dw.max.x - dw.min.x + 1;
+    size_t height = dw.max.y - dw.min.y + 1;
+
+    auto dw_offset = dw.min.y * width + dw.min.x;
+
     DeepFrameBuffer frameBuffer;
         
-    auto h = height();
-    auto w = width();
-    
-    Array2D<unsigned int> sampleCount (h, w);
-    for (size_t y=0; y<h; y++)
-        for (size_t x=0; x<w; x++)
+    Array2D<unsigned int> sampleCount (height, width);
+    for (size_t y=0; y<height; y++)
+        for (size_t x=0; x<width; x++)
             sampleCount[y][x] = 0;
 
-    std::map<std::string,std::unique_ptr<Array2DVoidPtr>> slice_data_map;
+    frameBuffer.insertSampleCountSlice (Slice (UINT,
+                                               (char*) (&sampleCount[0][0] - dw_offset),
+                                               sizeof (unsigned int) * 1,       // xStride
+                                               sizeof (unsigned int) * width)); // yStride
+
+    std::vector<std::shared_ptr<Array2DVoidPtr>> sliceDatas;
 
     for (auto c : channels)
     {
@@ -741,136 +821,36 @@ PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
         if (C.pixels.dtype().kind() != 'O')
             throw std::runtime_error("Expected deep pixel array with dtype 'O'");
 
-        int nrgba = get_nrgba(C.pixels);
-        
-        if (nrgba > 0)
-        {
-            auto rPtr = basePtr;
-            frameBuffer.insert (name_prefix + "R",
-                                Slice::Make (pixelType,
-                                             static_cast<void*>(rPtr),
-                                             dw, xStride, yStride,
-                                             C.xSampling,
-                                             C.ySampling));
-
-
-        }
-        
-        C._deep_samples = new Array2D<void*>(h, w);
-        auto &S = *C._deep_samples;
-        for (size_t y=0; y<h; y++)
-            for (size_t x=0; x<w; x++)
-                S[y][x] = nullptr;
-        
         C._type = NUM_PIXELTYPES;
         
-        auto pixel_objects = static_cast<const py::object*>(C.pixels.data());
-
-        for (size_t y=0; y<h; y++)
-            for (size_t x=0; x<w; x++)
-            {
-                int i = y * w + x;
-                
-                auto object = pixel_objects[i];
-                if (object.is(py::none()))
-                    continue;
-                
-                if (py::isinstance<py::array>(object))
-                {
-                    auto a = py::cast<py::array>(object);
-
-                    auto n = a.size();
-                    if (n == 0)
-                        continue;
-                    
-                    if (sampleCount[y][x] == 0)
-                        sampleCount[y][x] = n;
-                    
-                    if (sampleCount[y][x] != n)
-                    {
-                        std::stringstream err;
-                        err << "inconsistent sample array length at pixel "
-                            << y << "," << x << ": " << n << " vs. " << sampleCount[y][x];
-                        throw std::invalid_argument(err.str());
-                    }
-
-                    if (py::isinstance<py::array_t<uint32_t>>(a))
-                        C.set_deep_sample<uint32_t>(a, y, x, UINT);
-                    else if (py::isinstance<py::array_t<half>>(a))
-                        C.set_deep_sample<half>(a, y, x, HALF);
-                    else if (py::isinstance<py::array_t<float>>(a))
-                        C.set_deep_sample<float>(a, y, x, FLOAT);
-                    else
-                    {
-                        std::stringstream err;
-                        err << "invalid deep pixel array at " << y << "," << x;
-                        throw std::invalid_argument(err.str());
-                    }
-                }
-                else
-                {
-                    std::stringstream err;
-                    err << "invalid deep sample at [" << y << "," << x << ": " << py::str(*object) << std::endl;
-                    throw std::invalid_argument(err.str());
-                }
-            }
-
-    }
-
-    frameBuffer.insertSampleCountSlice (Slice (UINT,
-                                               (char*) (&sampleCount[0][0] - dw.min.x - dw.min.y * w),
-                                               sizeof (unsigned int) * 1,       // xStride
-                                               sizeof (unsigned int) * w)); // yStride
-
-    for (auto c : channels)
-    {
-        const PyChannel& C = c.second.cast<const PyChannel&>();
-        auto &S = *C._deep_samples;
-        void* d = &S[0][0] - dw.min.x - dw.min.y * w;
-        size_t xStride = sizeof(void*);
-        size_t yStride = xStride * w;
-        size_t sampleStride;
-        switch (C._type)
+        int nrgba = get_deep_nrgba(C.pixels);
+        if (nrgba == 0)
+            C.insertDeepSlice(frameBuffer, C.name, height, width, nrgba, dw_offset, 0, sampleCount, sliceDatas);
+        else
         {
-          case UINT:
-              sampleStride = sizeof(uint32_t);
-              break;
-          case HALF:
-              sampleStride = sizeof(half);
-              break;
-          case FLOAT:
-              sampleStride = sizeof(float);
-              break;
-          default:
-              sampleStride = 0;
-              break;
-        }
+            std::string name_prefix = "";
+            if (C.name != "RGB" && C.name != "RGBA")
+                name_prefix = C.name + ".";
 
-        frameBuffer.insert (C.name, DeepSlice (C._type,
-                                               static_cast<char*>(d),
-                                               xStride, yStride, sampleStride,
-                                               C.xSampling,
-                                               C.ySampling));
+            C.insertDeepSlice(frameBuffer, name_prefix+"R", height, width, nrgba, dw_offset, 0, sampleCount, sliceDatas);
+            C.insertDeepSlice(frameBuffer, name_prefix+"G", height, width, nrgba, dw_offset, 1, sampleCount, sliceDatas);
+            C.insertDeepSlice(frameBuffer, name_prefix+"B", height, width, nrgba, dw_offset, 2, sampleCount, sliceDatas);
+            if (nrgba == 4)
+                C.insertDeepSlice(frameBuffer, name_prefix+"A", height, width, nrgba, dw_offset, 3, sampleCount, sliceDatas);
+        }
     }
-        
+
     if (type() == EXR_STORAGE_DEEP_SCANLINE)
     {
         DeepScanLineOutputPart part(outfile, part_index);
         part.setFrameBuffer (frameBuffer);
-        part.writePixels (height());
+        part.writePixels (height);
     }
     else 
     {
         DeepTiledOutputPart part(outfile, part_index);
         part.setFrameBuffer (frameBuffer);
         part.writeTiles (0, part.numXTiles() - 1, 0, part.numYTiles() - 1);
-    }
-
-    for (auto c : channels)
-    {
-        auto C = c.second.cast<const PyChannel&>();
-        delete C._deep_samples;
-        C._deep_samples = nullptr;
     }
 }
 
@@ -893,8 +873,8 @@ PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
 //
 
 int
-PyPart::rgba_channel(const ChannelList& channel_list, const std::string& name,
-                     std::string& py_channel_name, char& channel_name)
+PyPart::rgbaChannel(const ChannelList& channel_list, const std::string& name,
+                    std::string& py_channel_name, char& channel_name)
 {
     py_channel_name = name;
     channel_name = py_channel_name.back();
@@ -1035,7 +1015,7 @@ PyFile::write(const char* outfilename)
         {
             auto name = py::str(a.first);
             py::object second = py::cast<py::object>(a.second);
-            insert_attribute(header, name, second);
+            insertAttribute(header, name, second);
         }
         
         //
@@ -1082,7 +1062,15 @@ PyFile::write(const char* outfilename)
             auto C = py::cast<PyChannel&>(c.second);
             auto pixelType = C.pixelType();
 
-            if (C.pixels.ndim() == 3)
+            int nrgba;
+            if (C.pixels.dtype().kind() == 'O')
+                nrgba = get_deep_nrgba(C.pixels);
+            else if (C.pixels.ndim() == 2)
+                nrgba = 0;
+            else
+                nrgba = C.pixels.shape(2);
+
+            if (nrgba > 0)
             {
                 //
                 // The py::dict has a single "RGB" or "RGBA" numpy array, but
@@ -1098,7 +1086,6 @@ PyFile::write(const char* outfilename)
                 header.channels ().insert(name_prefix + "R", Channel (pixelType, C.xSampling, C.ySampling, C.pLinear));
                 header.channels ().insert(name_prefix + "G", Channel (pixelType, C.xSampling, C.ySampling, C.pLinear));
                 header.channels ().insert(name_prefix + "B", Channel (pixelType, C.xSampling, C.ySampling, C.pLinear));
-                int nrgba = C.pixels.shape(2);
                 if (nrgba > 3)
                     header.channels ().insert(name_prefix + "A", Channel (pixelType, C.xSampling, C.ySampling, C.pLinear));
             }
@@ -1222,7 +1209,7 @@ make_v3(const Vec3<T>& v)
 }
 
 py::object
-PyFile::get_attribute_object(const std::string& name, const Attribute* a)
+PyFile::getAttributeObject(const std::string& name, const Attribute* a)
 {
     if (auto v = dynamic_cast<const Box2iAttribute*> (a))
     {
@@ -1687,12 +1674,8 @@ is_chromaticities(const py::object& object, Chromaticities& v)
 }
 
 void
-PyFile::insert_attribute(Header& header, const std::string& name, const py::object& object)
+PyFile::insertAttribute(Header& header, const std::string& name, const py::object& object)
 {
-#if DEBUG_VERBOSE
-    std::cout << "insert_attribute " << name << ": " << py::str(object) << std::endl;
-#endif
-    
     std::stringstream err;
     
     //
@@ -2024,7 +2007,7 @@ PyPart::PyPart(const py::dict& header, const py::dict& channels, const std::stri
 }
 
 void
-PyChannel::validate_pixel_array()
+PyChannel::validatePixelArray()
 {
     if (pixels.ndim() < 2 ||  pixels.ndim() > 3)
         throw std::invalid_argument("invalid pixel array: must be 2D or 3D numpy array");

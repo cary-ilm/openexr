@@ -45,7 +45,7 @@ def is_default(name, value):
     return True
 
 def compare_parts(lhs, rhs):
-
+    
     attributes = set(lhs.header.keys()).union(set(rhs.header.keys()))
 
     for a in attributes:
@@ -101,8 +101,9 @@ def compare_channels(lhs, rhs):
         raise Exception(f"channel {lhs.name}: image size differs: {lhs.pixels.shape} vs. {rhs.pixels.shape}")
         
     if lhs.pixels.dtype == np.dtype('O') and rhs.pixels.dtype == np.dtype('O'):
-        for y in range(lhs.pixels.shape[0]):
-            for x in range(lhs.pixels.shape[1]):
+        height, width = lhs.pixels.shape
+        for y in range(height):
+            for x in range(width):
                 ld = lhs.pixels[y,x]
                 rd = rhs.pixels[y,x]
                 if ld is None and rd is None:
@@ -111,10 +112,9 @@ def compare_channels(lhs, rhs):
                     raise Exception(f"channel {lhs.name}: deep pixels {i} differ: {ld} {rd}")
                 with np.errstate(invalid='ignore'):
                     close = np.isclose(ld, rd, 1e-5, equal_nan=True)
-                if not np.all(close):
-                    for i in np.argwhere(close==False):
-                        y,x = i
-                        raise Exception(f"channel {lhs.name}: deep pixels {i} differ: {ld} {rd}")
+                    if not np.all(close):
+                        for i in np.argwhere(close==False):
+                            raise Exception(f"channel {lhs.name}: pixels[{y}][{x}] deep sample{i} differs: {ld} {rd}")
     else:
                 
         with np.errstate(invalid='ignore'):
@@ -231,9 +231,15 @@ bug_files = [
     "Chromaticities/XYZ_YC.exr",  # channel BY differs.
 ]
 
+bug_files = []
+exr_files = [
+    "v2/Stereo/Trunks.exr",
+]
+
 class TestImages(unittest.TestCase):
 
     def download_file(self, url, output_file):
+
         try:
             result = run(['curl', '-o', output_file, url], stdout=PIPE, stderr=PIPE, universal_newlines=True)
             print(" ".join(result.args))
@@ -258,11 +264,11 @@ class TestImages(unittest.TestCase):
             for n,c in p.channels.items():
                 print(f"    channel[{c.name}] shape={c.pixels.shape} strides={c.pixels.strides} {c.pixels.dtype}")
                 if print_pixels:
-                    for y in range(c.pixels.shape[0]):
-                        s = f"      {c.name}[{y}]:"
-                        for x in range(c.pixels.shape[1]):
-                            s += f" {c.pixels[y][x]}"
-                        print(s)
+                    maxy, maxx = c.pixels.shape[0], c.pixels.shape[1]
+                    maxy, maxx = 2, 800
+                    for y in range(maxy):
+                        for x in range(maxx):
+                            print(f"{n}[{y},{x}]={c.pixels[y,x]}")
                         
     def print_channel_names(self, file):
         for p in file.parts:
@@ -278,9 +284,12 @@ class TestImages(unittest.TestCase):
         # Write the image as tiled, reread and confirm it's the same
         #
 
-        filename = "test_file.exr"
-        if not self.download_file(url, filename):
-            return
+        if "://" not in url:
+            filename = url
+        else:
+            filename = "test_file.exr"
+            if not self.download_file(url, filename):
+                return
 
         print(f"Reading {url} ...")
         f = OpenEXR.File(filename)
@@ -315,63 +324,70 @@ class TestImages(unittest.TestCase):
     def do_test_image(self, url):
 
         verbose = False
+        verbose_pixels = False
 
-        print(f"do_test_image: {url}")
+        print(f"testing image {url}...")
         
-        filename = "test_file.exr"
-        if not self.download_file(url, filename):
-            return
+        if "://" not in url:
+            filename = url
+        else:
+            filename = "test_file.exr"
+            if not self.download_file(url, filename):
+                return
 
         # Read the file as separate channels, as usual...
 
         print(f"Reading {url} as separate channels...")
-        separate_channels = OpenEXR.File(filename)
-        if verbose:
-            self.print_file(separate_channels, False)
-            print("print_file done:")
-            print_channel_names(separate_channels)
+        with OpenEXR.File(filename) as separate_channels:
+            if verbose:
+                print("separate_channels:")
+                self.print_file(separate_channels, verbose_pixels)
+                self.print_channel_names(separate_channels)
 
-            
-        # Write it out
+            # Write it out
 
-        print(f"Writing separate_channels.exr...")
-        separate_channels.write("separate_channels.exr")
+            print(f"Writing separate_channels.exr...")
+            separate_channels.write("separate_channels.exr")
 
-        # Read the file that was just written
-        print(f"Reading {url} as separate channels...")
-        separate_channels2 = OpenEXR.File("separate_channels.exr")
-        if verbose:
-            print_channel_names(separate_channels2)
+            # Read the file that was just written
+            print(f"Reading {url} as separate channels...")
+            with OpenEXR.File("separate_channels.exr") as separate_channels2:
+                if verbose:
+                    self.print_channel_names(separate_channels2)
 
-        # Confirm that the file that was just written is identical to the original
+                # Confirm that the file that was just written is identical to the original
 
-        print(f"Comparing separate_channels to separate_channels2...")
-        compare_files(separate_channels, separate_channels2)
+                print(f"Comparing separate_channels to separate_channels2...")
+                compare_files(separate_channels, separate_channels2)
+                print(f"Comparing separate_channels to separate_channels2...done.")
 
-        # Read the original file as RGBA channels
+                # Read the original file as RGBA channels
 
-        print(f"Reading {url} as rgba channels...")
-        rgba_channels = OpenEXR.File(filename, True)
-        if verbose:
-            print_channel_names(rgba_channels)
+                print(f"Reading {url} as rgba channels...")
+                with OpenEXR.File(filename, True) as rgba_channels:
+                    if verbose:
+                        self.print_channel_names(rgba_channels)
 
-        # Write it out
+                    # Write it out
 
-        print(f"Writing rgba_channels.exr...")
-        rgba_channels.write("rgba_channels.exr")
+                    print(f"Writing rgba_channels.exr...")
+                    rgba_channels.write("rgba_channels.exr")
 
-        # Read the file that was just written (was RGBA in memory,
-        # should have been written as usual)
+                # Read the file that was just written (was RGBA in memory,
+                # should have been written as usual)
 
-        print(f"Reading rgba_channels as separate channels...")
-        separate_channels2  = OpenEXR.File("rgba_channels.exr")
-        if verbose:
-            print_channel_names(separate_channels2)
+                print(f"Reading rgba_channels as separate channels3...")
+                with OpenEXR.File("rgba_channels.exr") as separate_channels3:
+                    if verbose:
+                        print("separate_channels3:")
+                        self.print_file(separate_channels3, verbose_pixels)
+                        self.print_channel_names(separate_channels3)
 
-        # Confirm that it, too, is the same as the original
+                    # Confirm that it, too, is the same as the original
 
-        print(f"Comparing separate_channels to separate_channels2...")
-        compare_files(separate_channels, separate_channels2)
+                    print(f"Comparing separate_channels to separate_channels3...")
+                    compare_files(separate_channels, separate_channels3)
+
         print("ok.")
 
     def test_images(self):

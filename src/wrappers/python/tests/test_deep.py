@@ -68,54 +68,84 @@ def compare_channel_pixels(lhs, rhs):
 class TestDeep(unittest.TestCase):
 
     def test_deep_rgba(self):
-        dataWindow = ((100,100), (101,102))
+
+        self.do_test_deep_rgba(False, 'uint32')
+        self.do_test_deep_rgba(True, 'uint32')
+        self.do_test_deep_rgba(False, 'e')
+        self.do_test_deep_rgba(True, 'e')
+        self.do_test_deep_rgba(False, 'float32')
+        self.do_test_deep_rgba(True, 'float32')
+        
+    def do_test_deep_rgba(self, do_alpha, dt):
+
+        dataWindow = ((100,100), (120,130))
         height = dataWindow[1][1] - dataWindow[0][1] + 1
         width = dataWindow[1][0] - dataWindow[0][0] + 1
         
         R = np.empty((height, width), dtype=object)
         G = np.empty((height, width), dtype=object)
         B = np.empty((height, width), dtype=object)
+        if do_alpha:
+            A = np.empty((height, width), dtype=object)
         Z = np.empty((height, width), dtype=object)
 
         for y in range(height):
             for x in range(width):
-                i = y*width+x
+                i = y*width+x + 2
                 l = i % 2 
                 if l == 0:
-                    R[y, x] = np.array([j for j in range(i+1)], dtype='uint32')
-                    G[y, x] = np.array([j*10 for j in range(i+1)], dtype='uint32')
-                    B[y, x] = np.array([j*100 for j in range(i+1)], dtype='uint32')
-                    Z[y, x] = np.array([j*1000 for j in range(i+1)], dtype='float32')
+                    R[y, x] = np.array([j for j in range(1,i)], dtype=dt)
+                    G[y, x] = np.array([j*10 for j in range(1,i)], dtype=dt)
+                    B[y, x] = np.array([j*100 for j in range(1,i)], dtype=dt)
+                    if do_alpha:
+                        A[y, x] = np.array([j*100 for j in range(1,i)], dtype=dt)
+                    Z[y, x] = np.array([j*1000 for j in range(1,i)], dtype=dt)
                 else:
                     R[y, x] = None
                     G[y, x] = None
                     B[y, x] = None
+                    if do_alpha:
+                        A[y, x] = None
                     Z[y, x] = None
         
-        channels = { "R" : R, "G" : G, "B" : B, "Z" : Z }
+        channels = { "B" : B, "G" : G, "R" : R, "Z" : Z }
+        if do_alpha:
+            channels["A"] = A
         header = { "compression" : OpenEXR.ZIPS_COMPRESSION,
                    "type" : OpenEXR.deepscanline,
                    "dataWindow" : dataWindow}
 
         filename = "write_deep.exr"
         with OpenEXR.File(header, channels) as outfile:
+
             outfile.write(filename)
 
             with OpenEXR.File(filename, True) as infile:
 
-                RGB = infile.channels()["RGB"]
+                channel = "RGBA" if do_alpha else "RGB"
+                
+                C = infile.channels()[channel]
                 for y in range(height):
                     for x in range(width):
-                        p = RGB.pixels[y,x]
+                        p = C.pixels[y,x]
                         if p is None:
                             assert R[y,x] is None
                         else:
                             for i in range(p.shape[0]):
-                                self.assertEqual(p[i,:].tolist(), [R[y,x][i], G[y,x][i], B[y,x][i]])
+                                if do_alpha:
+                                    self.assertEqual(p[i,:].tolist(), [R[y,x][i], G[y,x][i], B[y,x][i], A[y,x][i]])
+                                else:
+                                    self.assertEqual(p[i,:].tolist(), [R[y,x][i], G[y,x][i], B[y,x][i]])
                 
-    def test_write_deep(self):
+                infile.write("rgb_deep.exr")
 
-        dataWindow = ((100,100), (103,105))
+            with OpenEXR.File("rgb_deep.exr") as infile:
+
+                compare_files(infile, outfile)
+                
+    def test_deep(self):
+
+        dataWindow = ((100,100), (120,130))
         height = dataWindow[1][1] - dataWindow[0][1] + 1
         width = dataWindow[1][0] - dataWindow[0][0] + 1
         
@@ -142,9 +172,11 @@ class TestDeep(unittest.TestCase):
 
         filename = "write_deep.exr"
         with OpenEXR.File(header, channels) as outfile:
+
             outfile.write(filename)
 
             with OpenEXR.File(filename) as infile:
+
                 compare_files(infile, outfile)
 
 if __name__ == '__main__':
