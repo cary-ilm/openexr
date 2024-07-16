@@ -492,9 +492,9 @@ exrmetrics (
             case ZIPS_COMPRESSION:
                 outHeader.zipCompressionLevel () = level;
                 break;
-                //            case ZSTD_COMPRESSION :
-                //                outHeader.zstdCompressionLevel()=level;
-                //                break;
+          case ZSTD_COMPRESSION :
+              outHeader.zstdCompressionLevel()=level;
+              break;
             default:
                 throw runtime_error (
                     "-l option only works for DWAA/DWAB,ZIP/ZIPS or ZSTD compression");
