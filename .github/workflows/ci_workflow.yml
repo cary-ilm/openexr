@@ -233,7 +233,7 @@ jobs:
           mkdir _build
           mkdir _examples
       - name: Install help2man
-        run: yum install -y help2man
+        run: yum --disablerepo=http://mirrorlist.centos.org install -y help2man
       - name: Configure
         run: |
           cmake -B _build -S . \
