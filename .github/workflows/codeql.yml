@@ -83,6 +83,6 @@ jobs:
           cmake -B _build -S . -DCMAKE_INSTALL_PREFIX=_install 
           cmake --build _build --target install
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@5cf07d8b700b67e235fbb65cbc84f69c0cf10464
       with:
         category: "/language:${{matrix.language}}"
