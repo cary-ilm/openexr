@@ -61,6 +61,7 @@ jobs:
       run: |
         wget https://github.com/github/codeql-cli-binaries/releases/download/v2.18.0/codeql-linux64.zip
         unzip codeql-linux64.zip -d codeql
+        $GITHUB_WORKSPACE/codeql/codeql
         echo "$GITHUB_WORKSPACE/codeql/codeql" >> $GITHUB_PATH
         
     # Initializes the CodeQL tools for scanning.
