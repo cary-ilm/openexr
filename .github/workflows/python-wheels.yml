@@ -60,10 +60,11 @@ jobs:
         uses: pypa/cibuildwheel@7e5a838a63ac8128d71ab2dfd99e4634dd1bca09 # v2.19.2
         env:
           CIBW_ARCHS_MACOS: x86_64 arm64 universal2
-          # Skip python 3.6 since scikit-build-core requires 3.7+
+          # Build Python 3.7 through 3.11. Skip python 3.6 since scikit-build-core requires 3.7+
           # Skip 32-bit wheels builds on Windows
           # Also skip the PyPy builds, since they fail the unit tests
-          CIBW_SKIP: cp36-* *-win32 *_i686 pp* 
+          CIBW_BUILD: cp37-* cp38-* cp39-* cp310-* cp311-*
+          CIBW_SKIP: *-win32 *_i686
           CIBW_TEST_SKIP: "*-macosx*arm64"
           OPENEXR_TEST_IMAGE_REPO: "https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main"
 
