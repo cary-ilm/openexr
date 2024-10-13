@@ -142,8 +142,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       - name: Install Dependencies
-        #run: share/ci/scripts/linux/install_help2man.sh 
-        run: sudo yum install help2man
+        run: share/ci/scripts/linux/install_help2man.sh 
       - name: Create build directories
         run: |
           mkdir _install
