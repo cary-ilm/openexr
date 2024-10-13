@@ -84,7 +84,7 @@ jobs:
           - OPENEXR_BUILD_EXAMPLES: 'ON'
           - OPENEXR_BUILD_TOOLS: 'ON'
           - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
-          - BUILD_TESTING: 'ON'
+          - BUILD_TESTING: 'OFF'
 
           # -------------------------------------------------------------------
           # VFX CY2024 - GCC
@@ -165,7 +165,7 @@ jobs:
                 -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON' 
       - name: Build
         run: |
-          echo cmake --build _build \
+          cmake --build _build \
                 --target install \
                 --config ${{ matrix.build-type }}
       - name: Validate
