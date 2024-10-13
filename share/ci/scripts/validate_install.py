@@ -48,22 +48,22 @@ def verify_conditions(generated_manifest, options):
     """Verify if specific conditions are met based on given options."""
     errors = []
 
-    if options.imath:
-        imath_files = [f for f in generated_manifest if "Imath" in f]
-        if imath_files:
-            errors.append(f"Error: Files containing 'Imath' found: {', '.join(imath_files)}")
-
-    if options.pkgconfig:
+    if options.OPENEXR_INSTALL_PKG_CONFIG == 'OFF':
         pc_file = [f for f in generated_manifest if f.endswith("OpenEXR.pc")]
         if pc_file:
             errors.append(f"Error: 'OpenEXR.pc' found in the manifest.")
 
-    if options.examples:
+    if options.OPENEXR_INSTALL_EXAMPLES == 'OFF':
         example_files = [f for f in generated_manifest if "share/docs/examples" in f]
         if example_files:
             errors.append(f"Error: Files in 'share/docs/examples' found: {', '.join(example_files)}")
 
-    if options.shared:
+    if options.OPENEXR_INSTALL_TOOLS == 'OFF':
+        example_files = [f for f in generated_manifest if "bin" in f]
+        if example_files:
+            errors.append(f"Error: Files in 'share/docs/examples' found: {', '.join(example_files)}")
+
+    if options.BUILD_SHARED_LIBS:
         static_files = [f for f in generated_manifest if f.endswith(".a")]
         if static_files:
             errors.append(f"Error: Static library files (.a) found: {', '.join(static_files)}")
@@ -82,7 +82,7 @@ def apply_libsuffix(files, libsuffix, shared_suffix):
         updated_files.append(file)
     return updated_files
 
-def validate_install(generated_manifest_path, committed_manifest_path, base_path, version, options):
+def validate_install(generated_manifest_path, committed_manifest_path, base_path, options):
     """Main function to verify the installed files."""
     # Normalize paths
     base_path = Path(base_path)
@@ -96,7 +96,7 @@ def validate_install(generated_manifest_path, committed_manifest_path, base_path
     committed_manifest = [normalize_path(check_suffix(path), base_path) for path in committed_manifest]
 
     # Apply libsuffix handling
-    generated_manifest = apply_libsuffix(generated_manifest, options.libsuffix, shared_suffix)
+#    generated_manifest = apply_libsuffix(generated_manifest, options.libsuffix, shared_suffix)
 
     print("committed_manifest:")
     for l in committed_manifest:
@@ -148,4 +148,4 @@ if __name__ == "__main__":
 
     sys.exit(1)
 
-    validate_install(args.generated_manifest, args.committed_manifest, args.install_base_path, args.version, args)
+    validate_install(args.generated_manifest, args.committed_manifest, args.install_base_path, args)

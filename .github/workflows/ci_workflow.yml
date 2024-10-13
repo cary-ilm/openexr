@@ -148,7 +148,7 @@ jobs:
           mkdir _examples
       - name: Configure
         run: |
-          echo cmake -B _build -S . \
+          cmake -B _build -S . \
                 -DCMAKE_INSTALL_PREFIX=_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ matrix.cxx-standard }} \
@@ -171,7 +171,15 @@ jobs:
       - name: Validate
         run: |
           # share/ci/scripts/linux/validate_openexr_libs.sh _install 
-          share/ci/scripts/validate_install.py _build/install_manifest.txt share/ci/install_manifest.txt ${{ github.workspace }} ${{ matrix.BUILD_SHARED }} ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} ${{ matrix.OPENEXR_INSTALL_EXAMPLES }} ${{ matrix.OPENEXR_INSTALL_TOOLS }} ${{ matrix.OPENEXR_INSTALL_DOCS }} 
+          share/ci/scripts/validate_install.py \
+             _build/install_manifest.txt \
+             share/ci/install_manifest.txt \
+             ${{ github.workspace }} \
+             ${{ matrix.BUILD_SHARED_LIBS }} \
+             ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
+             ${{ matrix.OPENEXR_INSTALL_EXAMPLES }} \
+             ${{ matrix.OPENEXR_INSTALL_TOOLS }} \
+             ${{ matrix.OPENEXR_INSTALL_DOCS }}  \
       - name: Test
         run: |
           echo ctest -T Test ${{ matrix.exclude-tests }} \
