@@ -55,12 +55,11 @@ jobs:
   # TODO: Add ARM build. Add sanitize build.
 
   linux:
-    name: 'Linux ${{ matrix.label }}VFXP-${{ matrix.vfx-cy }} centos7
-       <${{ matrix.compiler-desc }},
-       C++${{ matrix.cxx-standard }},
-       config=${{ matrix.build-type }},
-       shared=${{ matrix.build-shared }},
-       threads=${{ matrix.threads-enabled }}>'
+    name: 'Linux ${{ matrix.vfx-cy }} 
+       ${{ matrix.compiler-desc }}
+       C++${{ matrix.cxx-standard }}
+       ${{ matrix.build-type }}
+       ${{ matrix.label }}'
     # GH-hosted VM. The build runs in CentOS 7 'container' defined below.
     runs-on: ubuntu-latest
     container:
@@ -69,142 +68,68 @@ jobs:
       image: aswf/ci-openexr:${{ matrix.vfx-cy }}
     strategy:
       matrix:
-        build: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        build: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         include:
+
+          - vfx-cy: 2024
+          - compiler-desc: gcc11.2.1
+          - cxx-compiler: g++
+          - cc-compiler: gcc
+          - cxx-standard: 17
+          - build-type: Release
+          - OPENEXR_ENABLE_THREADING: 'ON'
+          - OPENEXR_INSTALL_PKG_CONFIG: 'ON'
+          - OPENEXR_INSTALL_EXAMPLES: 'ON'
+          - OPENEXR_INSTALL_TOOLS: 'ON'
+          - OPENEXR_INSTALL_DOCS: 'ON'
+          - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
+          - tests-enabled: 'ON'
+
           # -------------------------------------------------------------------
           # VFX CY2024 - GCC
           # -------------------------------------------------------------------
-          # Shared, Release
+          # 
           - build: 1
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc11.2.1
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2024
-            exclude-tests:
-
-          # Shared, Release, Threads OFF
-          - build: 2
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc11.2.1
-            label: 
-            threads-enabled: 'OFF'
-            vfx-cy: 2024
-            exclude-tests:
-
-          # Shared, Debug
-          - build: 3
             build-type: Debug
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc11.2.1
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2024
-            exclude-tests:
 
-          # Static, Release
-          - build: 4
-            build-type: Release
+          - build: 2
+
+          - build: 3
+            label: Static
             build-shared: 'OFF'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc11.2.1
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2024
-            exclude-tests:
 
-          # -------------------------------------------------------------------
-          # VFX CY2024 - Clang 15.0
-          # -------------------------------------------------------------------
-          # Release
+          - build: 4
+            label: threads=OFF
+            threads-enabled: 'OFF'
+
           - build: 5
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: clang++
-            cc-compiler: clang
-            compiler-desc: clang15.0
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2024
-            exclude-tests:
+            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal deflate
+          - OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
+          - OPENEXR_INSTALL_EXAMPLES: 'OFF'
+          - OPENEXR_INSTALL_TOOLS: 'OFF'
+          - OPENEXR_INSTALL_DOCS: 'OFF'
+          - OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
 
-          # -------------------------------------------------------------------
-          # VFX CY2024 - Clang 14.0
-          # -------------------------------------------------------------------
-          # Release
           - build: 6
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
+            compiler-desc: clang15.0
             cxx-compiler: clang++
             cc-compiler: clang
-            compiler-desc: clang14.0
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2024
-            exclude-tests:
 
-          # -------------------------------------------------------------------
-          # VFX CY2023 - GCC
-          # -------------------------------------------------------------------
-          # Shared, Release
           - build: 7
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc11.2.1
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2023
-            exclude-tests:
+            compiler-desc: clang14.0
+            cxx-compiler: clang++
+            cc-compiler: clang
 
-          # -------------------------------------------------------------------
-          # VFX CY2022 - GCC, Release
-          # -------------------------------------------------------------------
-          # Shared, Release
           - build: 8
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc9.3.1
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2022
-            exclude-tests:
+            vfx-cy: 2023
 
-          # -------------------------------------------------------------------
-          # VFX CY2021 - GCC, Release
-          # -------------------------------------------------------------------
-          # Shared, Release
           - build: 9
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
+            vfx-cy: 2022
             compiler-desc: gcc9.3.1
-            label: 
-            threads-enabled: 'ON'
+
+          - build: 10
             vfx-cy: 2021
-            exclude-tests:
+            compiler-desc: gcc9.3.1
 
     env:
       CXX: ${{ matrix.cxx-compiler }}
@@ -226,12 +151,15 @@ jobs:
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
-                -DCMAKE_VERBOSE_MAKEFILE:BOOL='OFF' \
                 -DBUILD_SHARED_LIBS=${{ matrix.build-shared }} \
-                -DOPENEXR_INSTALL_TOOLS='ON' \
-                -DOPENEXR_INSTALL_DOCS='OFF' \
+                -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }} \
+                -DOPENEXR_INSTALL_PKG_CONFIG=${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
+                -DOPENEXR_INSTALL_EXAMPLES=${{ matrix.OPENEXR_INSTALL_EXAMPLES }} \
+                -DOPENEXR_INSTALL_TOOLS=${{ matrix.OPENEXR_INSTALL_TOOLS }} \
+                -DOPENEXR_INSTALL_DOCS=${{ matrix.OPENEXR_INSTALL_DOCS }} \
+                -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
-                -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }}
+                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON' 
       - name: Build
         run: |
           cmake --build _build \
@@ -240,6 +168,7 @@ jobs:
       - name: Validate
         run: |
           share/ci/scripts/linux/validate_openexr_libs.sh _install 
+          share/ci/scripts/validate_install.py _build/install_manifest.txt share/ci/install_manifest.txt ${{ github.workspace }} ${{OPENEXR_INSTALL_PKG_CONFIG}} ${{OPENEXR_INSTALL_EXAMPLES}} ${{OPENEXR_INSTALL_TOOLS}} ${{OPENEXR_INSTALL_DOCS} 
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
