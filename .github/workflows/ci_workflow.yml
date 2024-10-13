@@ -77,13 +77,14 @@ jobs:
           - cc-compiler: gcc
           - cxx-standard: 17
           - build-type: Release
+          - BUILD_SHARED_LIBS: 'ON'
           - OPENEXR_ENABLE_THREADING: 'ON'
           - OPENEXR_INSTALL_PKG_CONFIG: 'ON'
           - OPENEXR_INSTALL_EXAMPLES: 'ON'
           - OPENEXR_INSTALL_TOOLS: 'ON'
           - OPENEXR_INSTALL_DOCS: 'ON'
           - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
-          - tests-enabled: 'OFF'
+          - BUILD_TESTING: 'ON'
 
           # -------------------------------------------------------------------
           # VFX CY2024 - GCC
@@ -96,11 +97,11 @@ jobs:
 
           - build: 3
             label: Static
-            build-shared: 'OFF'
+            BUILD_SHARED_LIBS: 'OFF'
 
           - build: 4
             label: threads=OFF
-            threads-enabled: 'OFF'
+            OPENEXR_ENABLE_THREADING: 'OFF'
 
           - build: 5
             label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal deflate
@@ -109,6 +110,7 @@ jobs:
             OPENEXR_INSTALL_TOOLS: 'OFF'
             OPENEXR_INSTALL_DOCS: 'OFF'
             OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
+            BUILD_TESTING: 'OFF'
 
           - build: 6
             compiler-desc: clang15.0
@@ -151,14 +153,14 @@ jobs:
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ matrix.cxx-standard }} \
                 -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
-                -DBUILD_SHARED_LIBS=${{ matrix.build-shared }} \
-                -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }} \
+                -DBUILD_SHARED_LIBS=${{ matrix.BUILD_SHARED_LIBS }} \
+                -DOPENEXR_ENABLE_THREADING=${{ matrix.OPENEXR_ENABLE_THREADING }} \
                 -DOPENEXR_INSTALL_PKG_CONFIG=${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
                 -DOPENEXR_INSTALL_EXAMPLES=${{ matrix.OPENEXR_INSTALL_EXAMPLES }} \
                 -DOPENEXR_INSTALL_TOOLS=${{ matrix.OPENEXR_INSTALL_TOOLS }} \
                 -DOPENEXR_INSTALL_DOCS=${{ matrix.OPENEXR_INSTALL_DOCS }} \
-                -DBUILD_TESTING=${{ matrix.tests-enabled }} \
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
+                -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON' 
       - name: Build
@@ -169,7 +171,7 @@ jobs:
       - name: Validate
         run: |
           # share/ci/scripts/linux/validate_openexr_libs.sh _install 
-          share/ci/scripts/validate_install.py _build/install_manifest.txt share/ci/install_manifest.txt ${{ github.workspace }} ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} ${{ matrix.OPENEXR_INSTALL_EXAMPLES }} ${{ matrix.OPENEXR_INSTALL_TOOLS }} ${{ matrix.OPENEXR_INSTALL_DOCS }} 
+          share/ci/scripts/validate_install.py _build/install_manifest.txt share/ci/install_manifest.txt ${{ github.workspace }} ${{ matrix.BUILD_SHARED }} ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} ${{ matrix.OPENEXR_INSTALL_EXAMPLES }} ${{ matrix.OPENEXR_INSTALL_TOOLS }} ${{ matrix.OPENEXR_INSTALL_DOCS }} 
       - name: Test
         run: |
           echo ctest -T Test ${{ matrix.exclude-tests }} \

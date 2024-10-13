@@ -127,19 +127,25 @@ def validate_install(generated_manifest_path, committed_manifest_path, base_path
 if __name__ == "__main__":
 
     print(f"validate_install: {sys.argv}")
-    os.exit(1)
 
     parser = argparse.ArgumentParser(description="Validate installed files against committed install manifest.")
     parser.add_argument("generated_manifest", help="Path to the generated install_manifest.txt")
     parser.add_argument("committed_manifest", help="Path to the committed install_manifest.txt")
     parser.add_argument("install_base_path", help="Base install path to normalize file paths")
-    parser.add_argument("version", help="Library version string in the form '-X_Y'")
-    parser.add_argument("-imath", action="store_true", help="Error if files containing 'Imath' are found")
-    parser.add_argument("-pkgconfig", action="store_true", help="Error if 'OpenEXR.pc' is found")
-    parser.add_argument("-examples", action="store_true", help="Error if files in 'share/docs/examples' are found")
-    parser.add_argument("-shared", action="store_true", help="Error if static library files (.a) are found")
-    parser.add_argument("-libsuffix", help="Remove the given suffix before the shared object suffix in lib files")
+    parser.add_argument("BUILD_SHARED_LIBS", help="Error if static library files (.a) are found")
+    parser.add_argument("OPENEXR_INSTALL_PKG_CONFIG", help="Error if 'OpenEXR.pc' is found")
+    parser.add_argument("OPENEXR_INSTALL_EXAMPLES", help="Error if files in 'share/docs/examples' are found")
+    parser.add_argument("OPENEXR_INSTALL_TOOLS", help="Error if files in 'bin' are found")
+    parser.add_argument("OPENEXR_INSTALL_DOCS", help="Error if files in 'docs' are found")
+
+    print(f"BUILD_SHARED_LIBS={args.BUILD_SHARED_LIBS}")
+    print(f"OPENEXR_INSTALL_PKG_CONFIG={args.OPENEXR_INSTALL_PKG_CONFIG}")
+    print(f"OPENEXR_INSTALL_EXAMPLES={args.OPENEXR_INSTALL_EXAMPLES}")
+    print(f"OPENEXR_INSTALL_TOOLS={args.OPENEXR_INSTALL_TOOLS}")
+    print(f"OPENEXR_INSTALL_DOCS={args.OPENEXR_INSTALL_DOCS}")
 
     args = parser.parse_args()
+
+    sys.exit(1)
 
     validate_install(args.generated_manifest, args.committed_manifest, args.install_base_path, args.version, args)
