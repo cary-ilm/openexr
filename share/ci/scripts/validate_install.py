@@ -138,13 +138,13 @@ if __name__ == "__main__":
     parser.add_argument("OPENEXR_INSTALL_TOOLS", help="Error if files in 'bin' are found")
     parser.add_argument("OPENEXR_INSTALL_DOCS", help="Error if files in 'docs' are found")
 
+    args = parser.parse_args()
+
     print(f"BUILD_SHARED_LIBS={args.BUILD_SHARED_LIBS}")
     print(f"OPENEXR_INSTALL_PKG_CONFIG={args.OPENEXR_INSTALL_PKG_CONFIG}")
     print(f"OPENEXR_INSTALL_EXAMPLES={args.OPENEXR_INSTALL_EXAMPLES}")
     print(f"OPENEXR_INSTALL_TOOLS={args.OPENEXR_INSTALL_TOOLS}")
     print(f"OPENEXR_INSTALL_DOCS={args.OPENEXR_INSTALL_DOCS}")
-
-    args = parser.parse_args()
 
     sys.exit(1)
 
