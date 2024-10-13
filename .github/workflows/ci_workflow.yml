@@ -169,7 +169,7 @@ jobs:
       - name: Validate
         run: |
           share/ci/scripts/linux/validate_openexr_libs.sh _install 
-          share/ci/scripts/validate_install.py _build/install_manifest.txt share/ci/install_manifest.txt ${{ github.workspace }} ${{matrix.OPENEXR_INSTALL_PKG_CONFIG}} ${{matrix.OPENEXR_INSTALL_EXAMPLES}} ${{matrix.OPENEXR_INSTALL_TOOLS}} ${{matrix.OPENEXR_INSTALL_DOCS} 
+          share/ci/scripts/validate_install.py _build/install_manifest.txt share/ci/install_manifest.txt ${{ github.workspace }} ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} ${{ matrix.OPENEXR_INSTALL_EXAMPLES }} ${{ matrix.OPENEXR_INSTALL_TOOLS }} ${{ matrix.OPENEXR_INSTALL_DOCS }} 
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
