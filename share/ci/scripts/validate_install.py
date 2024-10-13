@@ -146,6 +146,4 @@ if __name__ == "__main__":
     print(f"OPENEXR_INSTALL_TOOLS={args.OPENEXR_INSTALL_TOOLS}")
     print(f"OPENEXR_INSTALL_DOCS={args.OPENEXR_INSTALL_DOCS}")
 
-    sys.exit(1)
-
     validate_install(args.generated_manifest, args.committed_manifest, args.install_base_path, args)
