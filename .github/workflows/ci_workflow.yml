@@ -157,8 +157,8 @@ jobs:
                 -DOPENEXR_ENABLE_THREADING=${{ matrix.OPENEXR_ENABLE_THREADING }} \
                 -DOPENEXR_INSTALL_PKG_CONFIG=${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
                 -DOPENEXR_INSTALL_DOCS=${{ matrix.OPENEXR_INSTALL_DOCS }} \
-                -DOPENEXR_BUILD_EXAMPLES=${{ matrix.OPENEXR_INSTALL_EXAMPLES }} \
-                -DOPENEXR_BUILD_TOOLS=${{ matrix.OPENEXR_INSTALL_TOOLS }} \
+                -DOPENEXR_BUILD_EXAMPLES=${{ matrix.OPENEXR_BUILD_EXAMPLES }} \
+                -DOPENEXR_BUILD_TOOLS=${{ matrix.OPENEXR_BUILD_TOOLS }} \
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
                 -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
