@@ -53,12 +53,12 @@ def verify_conditions(generated_manifest, options):
         if pc_file:
             errors.append(f"Error: 'OpenEXR.pc' found in the manifest.")
 
-    if options.OPENEXR_INSTALL_EXAMPLES == 'OFF':
+    if options.OPENEXR_BUILD_EXAMPLES == 'OFF':
         example_files = [f for f in generated_manifest if "share/docs/examples" in f]
         if example_files:
             errors.append(f"Error: Files in 'share/docs/examples' found: {', '.join(example_files)}")
 
-    if options.OPENEXR_INSTALL_TOOLS == 'OFF':
+    if options.OPENEXR_BUILD_TOOLS == 'OFF':
         example_files = [f for f in generated_manifest if "bin" in f]
         if example_files:
             errors.append(f"Error: Files in 'share/docs/examples' found: {', '.join(example_files)}")
@@ -134,16 +134,16 @@ if __name__ == "__main__":
     parser.add_argument("install_base_path", help="Base install path to normalize file paths")
     parser.add_argument("BUILD_SHARED_LIBS", help="Error if static library files (.a) are found")
     parser.add_argument("OPENEXR_INSTALL_PKG_CONFIG", help="Error if 'OpenEXR.pc' is found")
-    parser.add_argument("OPENEXR_INSTALL_EXAMPLES", help="Error if files in 'share/docs/examples' are found")
-    parser.add_argument("OPENEXR_INSTALL_TOOLS", help="Error if files in 'bin' are found")
     parser.add_argument("OPENEXR_INSTALL_DOCS", help="Error if files in 'docs' are found")
+    parser.add_argument("OPENEXR_BUILD_EXAMPLES", help="Error if files in 'share/docs/examples' are found")
+    parser.add_argument("OPENEXR_BUILD_TOOLS", help="Error if files in 'bin' are found")
 
     args = parser.parse_args()
 
     print(f"BUILD_SHARED_LIBS={args.BUILD_SHARED_LIBS}")
     print(f"OPENEXR_INSTALL_PKG_CONFIG={args.OPENEXR_INSTALL_PKG_CONFIG}")
-    print(f"OPENEXR_INSTALL_EXAMPLES={args.OPENEXR_INSTALL_EXAMPLES}")
-    print(f"OPENEXR_INSTALL_TOOLS={args.OPENEXR_INSTALL_TOOLS}")
     print(f"OPENEXR_INSTALL_DOCS={args.OPENEXR_INSTALL_DOCS}")
+    print(f"OPENEXR_BUILD_EXAMPLES={args.OPENEXR_BUILD_EXAMPLES}")
+    print(f"OPENEXR_BUILD_TOOLS={args.OPENEXR_BUILD_TOOLS}")
 
     validate_install(args.generated_manifest, args.committed_manifest, args.install_base_path, args)

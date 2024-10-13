@@ -80,9 +80,9 @@ jobs:
           - BUILD_SHARED_LIBS: 'ON'
           - OPENEXR_ENABLE_THREADING: 'ON'
           - OPENEXR_INSTALL_PKG_CONFIG: 'ON'
-          - OPENEXR_INSTALL_EXAMPLES: 'ON'
-          - OPENEXR_INSTALL_TOOLS: 'ON'
           - OPENEXR_INSTALL_DOCS: 'ON'
+          - OPENEXR_BUILD_EXAMPLES: 'ON'
+          - OPENEXR_BUILD_TOOLS: 'ON'
           - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
           - BUILD_TESTING: 'ON'
 
@@ -106,9 +106,9 @@ jobs:
           - build: 5
             label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal deflate
             OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
-            OPENEXR_INSTALL_EXAMPLES: 'OFF'
-            OPENEXR_INSTALL_TOOLS: 'OFF'
             OPENEXR_INSTALL_DOCS: 'OFF'
+            OPENEXR_BUILD_EXAMPLES: 'OFF'
+            OPENEXR_BUILD_TOOLS: 'OFF'
             OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
             BUILD_TESTING: 'OFF'
 
@@ -156,9 +156,9 @@ jobs:
                 -DBUILD_SHARED_LIBS=${{ matrix.BUILD_SHARED_LIBS }} \
                 -DOPENEXR_ENABLE_THREADING=${{ matrix.OPENEXR_ENABLE_THREADING }} \
                 -DOPENEXR_INSTALL_PKG_CONFIG=${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
-                -DOPENEXR_INSTALL_EXAMPLES=${{ matrix.OPENEXR_INSTALL_EXAMPLES }} \
-                -DOPENEXR_INSTALL_TOOLS=${{ matrix.OPENEXR_INSTALL_TOOLS }} \
                 -DOPENEXR_INSTALL_DOCS=${{ matrix.OPENEXR_INSTALL_DOCS }} \
+                -DOPENEXR_BUILD_EXAMPLES=${{ matrix.OPENEXR_INSTALL_EXAMPLES }} \
+                -DOPENEXR_BUILD_TOOLS=${{ matrix.OPENEXR_INSTALL_TOOLS }} \
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
                 -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
@@ -171,15 +171,17 @@ jobs:
       - name: Validate
         run: |
           # share/ci/scripts/linux/validate_openexr_libs.sh _install 
+          pwd
+          find . 
           share/ci/scripts/validate_install.py \
-             ${{ github.workspace }}/_build/install_manifest.txt \
-             ${{ github.workspace }}/share/ci/install_manifest.txt \
+             _build/install_manifest.txt \
+             share/ci/install_manifest.txt \
              ${{ github.workspace }} \
              ${{ matrix.BUILD_SHARED_LIBS }} \
              ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
-             ${{ matrix.OPENEXR_INSTALL_EXAMPLES }} \
-             ${{ matrix.OPENEXR_INSTALL_TOOLS }} \
              ${{ matrix.OPENEXR_INSTALL_DOCS }}  \
+             ${{ matrix.OPENEXR_BUILD_EXAMPLES }} \
+             ${{ matrix.OPENEXR_BUILD_TOOLS }} 
       - name: Test
         run: |
           echo ctest -T Test ${{ matrix.exclude-tests }} \
