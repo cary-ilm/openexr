@@ -172,8 +172,8 @@ jobs:
         run: |
           # share/ci/scripts/linux/validate_openexr_libs.sh _install 
           share/ci/scripts/validate_install.py \
-             _build/install_manifest.txt \
-             share/ci/install_manifest.txt \
+             ${{ github.workspace }}/_build/install_manifest.txt \
+             ${{ github.workspace }}/share/ci/install_manifest.txt \
              ${{ github.workspace }} \
              ${{ matrix.BUILD_SHARED_LIBS }} \
              ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
