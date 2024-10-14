@@ -176,11 +176,13 @@ jobs:
           echo "installed manifest:"
           cat share/ci/install_manifest.txt
           echo "installed manifest: done."
-          echo "\n"
+          echo 
           echo "generated manifest:"
           cat _build/install_manifest.txt
           echo "generated manifest: done."
-          echo "\n"
+          echo 
+          echo "PWD:"
+          pwd
           share/ci/scripts/validate_install.py \
              _build/install_manifest.txt \
              share/ci/install_manifest.txt \

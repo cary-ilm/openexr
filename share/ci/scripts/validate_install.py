@@ -140,9 +140,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print(f"generated_manifest={generated_manifest}")
-    print(f"committed_manifest={committed_manifest}")
-    print(f"install_base_path={install_base_path}")
+    print(f"generated_manifest={arg.generated_manifest}")
+    print(f"committed_manifest={arg.committed_manifest}")
+    print(f"install_base_path={arg.install_base_path}")
     print(f"BUILD_SHARED_LIBS={args.BUILD_SHARED_LIBS}")
     print(f"OPENEXR_INSTALL_PKG_CONFIG={args.OPENEXR_INSTALL_PKG_CONFIG}")
     print(f"OPENEXR_INSTALL_DOCS={args.OPENEXR_INSTALL_DOCS}")
