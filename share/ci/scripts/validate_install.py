@@ -109,7 +109,7 @@ def validate_install(generated_manifest_path, committed_manifest_path, base_path
     missing_files, extra_files = compare_manifests(generated_manifest, committed_manifest)
 
     if options.OPENEXR_BUILD_PYTHON == 'OFF':
-        missing_files = [line for lin in missing_files if "python/" not in line]
+        missing_files = [file for file in missing_files if "python/" not in file]
 
     # Verify additional conditions
     condition_errors = verify_conditions(generated_manifest, options)
