@@ -4,7 +4,7 @@
 set -e
 
 # Variables
-HELP2MAN_VERSION="1.48.6"
+HELP2MAN_VERSION="1.49.3"
 HELP2MAN_URL="https://ftp.gnu.org/gnu/help2man/help2man-$HELP2MAN_VERSION.tar.xz"
 HELP2MAN_DIR="help2man-$HELP2MAN_VERSION"
 
