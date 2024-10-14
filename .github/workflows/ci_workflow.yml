@@ -83,6 +83,7 @@ jobs:
           - OPENEXR_INSTALL_DOCS: 'ON'
           - OPENEXR_BUILD_EXAMPLES: 'ON'
           - OPENEXR_BUILD_TOOLS: 'ON'
+          - OPENEXR_BUILD_PYTHON: 'OFF'
           - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
           - BUILD_TESTING: 'OFF'
 
@@ -161,6 +162,7 @@ jobs:
                 -DOPENEXR_INSTALL_DOCS=${{ matrix.OPENEXR_INSTALL_DOCS }} \
                 -DOPENEXR_BUILD_EXAMPLES=${{ matrix.OPENEXR_BUILD_EXAMPLES }} \
                 -DOPENEXR_BUILD_TOOLS=${{ matrix.OPENEXR_BUILD_TOOLS }} \
+                -DOPENEXR_BUILD_PYTHON=${{ matrix.OPENEXR_BUILD_PYTHON }} \
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
                 -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
@@ -181,7 +183,8 @@ jobs:
              ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
              ${{ matrix.OPENEXR_INSTALL_DOCS }}  \
              ${{ matrix.OPENEXR_BUILD_EXAMPLES }} \
-             ${{ matrix.OPENEXR_BUILD_TOOLS }} 
+             ${{ matrix.OPENEXR_BUILD_TOOLS }} \
+             ${{ matrix.OPENEXR_BUILD_PYTHON }} 
       - name: Test
         run: |
           echo ctest -T Test ${{ matrix.exclude-tests }} \
