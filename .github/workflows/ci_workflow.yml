@@ -173,16 +173,6 @@ jobs:
       - name: Validate
         run: |
           # share/ci/scripts/linux/validate_openexr_libs.sh _install 
-          echo "installed manifest:"
-          cat share/ci/install_manifest.txt
-          echo "installed manifest: done."
-          echo 
-          echo "generated manifest:"
-          cat _build/install_manifest.txt
-          echo "generated manifest: done."
-          echo 
-          echo "PWD: $PWD"
-          pwd
           share/ci/scripts/validate_install.py \
              _build/install_manifest.txt \
              share/ci/install_manifest.txt \

@@ -27,7 +27,7 @@ def normalize_path(path, base_path):
 def load_manifest(file_path):
     """Load and return the list of files from the install manifest."""
     with open(file_path, 'r') as file:
-        return sorted(line.strip() for line in file)
+        return sorted(line.strip().replace("lib64/", "lib/") for line in file)
 
 def compare_manifests(generated_manifest, committed_manifest):
     """Compare the generated and committed manifests."""
@@ -113,13 +113,14 @@ def validate_install(generated_manifest_path, committed_manifest_path, base_path
 
     # Output results
     if missing_files:
-        print(f"Error: Missing files from installation:\n{', '.join(missing_files)}")
+        print("Error: Files missing from installation:\n  " + '\n  '.join(missing_files))
     if extra_files:
-        print(f"Error: Extra files installed:\n{', '.join(extra_files)}")
+        print("Error: Unexpected files installed:\n  " + '\n  '.join(extra_files))
     
     if condition_errors:
         for error in condition_errors:
             print(error)
+        sys.exit(1)
 
     if not missing_files and not extra_files and not condition_errors:
         print("Success: The installed files match the committed manifest.")
