@@ -181,12 +181,12 @@ jobs:
           cat _build/install_manifest.txt
           echo "generated manifest: done."
           echo 
-          echo "PWD:"
+          echo "PWD: $PWD"
           pwd
           share/ci/scripts/validate_install.py \
              _build/install_manifest.txt \
              share/ci/install_manifest.txt \
-             ${{ github.workspace }} \
+             $PWD/_install \
              ${{ matrix.BUILD_SHARED_LIBS }} \
              ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
              ${{ matrix.OPENEXR_INSTALL_DOCS }}  \
