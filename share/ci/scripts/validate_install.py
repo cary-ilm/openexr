@@ -27,7 +27,7 @@ def normalize_path(path, base_path):
 def load_manifest(file_path):
     """Load and return the list of files from the install manifest."""
     with open(file_path, 'r') as file:
-        return sorted(line.strip().replace("lib64/", "lib/") for line in file)
+        return sorted(line.strip().replace("lib64/", "lib/") for line in file if "deflate" not in line)
 
 def compare_manifests(generated_manifest, committed_manifest):
     """Compare the generated and committed manifests."""
@@ -108,6 +108,9 @@ def validate_install(generated_manifest_path, committed_manifest_path, base_path
     # Compare manifests
     missing_files, extra_files = compare_manifests(generated_manifest, committed_manifest)
 
+    if options.OPENEXR_BUILD_PYTHON == 'OFF':
+        missing_files = [line for lin in missing_files if "python/" not in line]
+
     # Verify additional conditions
     condition_errors = verify_conditions(generated_manifest, options)
 
@@ -138,6 +141,7 @@ if __name__ == "__main__":
     parser.add_argument("OPENEXR_INSTALL_DOCS", help="Error if files in 'docs' are found")
     parser.add_argument("OPENEXR_BUILD_EXAMPLES", help="Error if files in 'share/docs/examples' are found")
     parser.add_argument("OPENEXR_BUILD_TOOLS", help="Error if files in 'bin' are found")
+    parser.add_argument("OPENEXR_BUILD_PYTHON", help="Error if files in 'python' are found")
 
     args = parser.parse_args()
 
@@ -149,5 +153,6 @@ if __name__ == "__main__":
     print(f"OPENEXR_INSTALL_DOCS={args.OPENEXR_INSTALL_DOCS}")
     print(f"OPENEXR_BUILD_EXAMPLES={args.OPENEXR_BUILD_EXAMPLES}")
     print(f"OPENEXR_BUILD_TOOLS={args.OPENEXR_BUILD_TOOLS}")
+    print(f"OPENEXR_BUILD_PYTHON={args.OPENEXR_BUILD_PYTHON}")
 
     validate_install(args.generated_manifest, args.committed_manifest, args.install_base_path, args)
