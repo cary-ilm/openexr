@@ -55,7 +55,7 @@ jobs:
   # TODO: Add ARM build. Add sanitize build.
 
   linux:
-    name: 'Linux ${{ matrix.vfx-cy }} 
+    name: '${{ matrix.build}}. Linux ${{ matrix.vfx-cy }} 
        ${{ matrix.compiler-desc }}
        C++${{ matrix.cxx-standard }}
        ${{ matrix.build-type }}
@@ -154,13 +154,13 @@ jobs:
           mkdir _install
           mkdir _build
           mkdir _examples
-      - name: Configure
+      - name: Construct CMake command and save it to environment
         run: |
-          cmake -B _build -S . \
+          CMAKE_COMMAND="cmake -B _build -S . \
                 -DCMAKE_INSTALL_PREFIX=_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ matrix.cxx-standard }} \
-                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
+                -DCMAKE_CXX_FLAGS='${{ matrix.cxx-flags }}' \
                 -DBUILD_SHARED_LIBS=${{ matrix.BUILD_SHARED_LIBS }} \
                 -DOPENEXR_ENABLE_THREADING=${{ matrix.OPENEXR_ENABLE_THREADING }} \
                 -DOPENEXR_INSTALL_PKG_CONFIG=${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
@@ -172,14 +172,18 @@ jobs:
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
                 -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
-                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON' 
+                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
+          echo "CMAKE_COMMAND=$cmake_command" >> $GITHUB_ENV
+      - name: Configure
+        run: $CMAKE_COMMAND
       - name: Build
         run: |
           cmake --build _build \
                 --target install \
                 --config ${{ matrix.build-type }}
       - name: Rename install_manifest.txt
-        run: mv _build/install_manifest.txt _build/install-manifest-${{ matrix.build }}.txt
+        echo "# $CMAKE_COMMAND" > _build/install_manifest-${{ matrix.build }}.txt
+        sort _build/install_manifest.txt >> _build/install_manifest-${{ matrix.build }}.txt
       - name: Upload install_manifest.txt
         uses: actions/upload-artifact@v3
         with:
