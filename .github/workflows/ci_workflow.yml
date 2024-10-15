@@ -182,8 +182,9 @@ jobs:
                 --target install \
                 --config ${{ matrix.build-type }}
       - name: Rename install_manifest.txt
-        echo "# $CMAKE_COMMAND" > _build/install_manifest-${{ matrix.build }}.txt
-        sort _build/install_manifest.txt >> _build/install_manifest-${{ matrix.build }}.txt
+        run: |
+          echo "# $CMAKE_COMMAND" > _build/install_manifest-${{ matrix.build }}.txt
+          sort _build/install_manifest.txt >> _build/install_manifest-${{ matrix.build }}.txt
       - name: Upload install_manifest.txt
         uses: actions/upload-artifact@v3
         with:
