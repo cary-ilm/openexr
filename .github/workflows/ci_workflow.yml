@@ -179,9 +179,9 @@ jobs:
                 --target install \
                 --config ${{ matrix.build-type }}
       - name: Upload install_manifest.txt
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: install-manifest-${{ matrix.job }}
+          name: install-manifest-${{ matrix.build }}
           path: _build/install_manifest.txt
       - name: Validate
         run: |
