@@ -178,6 +178,11 @@ jobs:
           cmake --build _build \
                 --target install \
                 --config ${{ matrix.build-type }}
+      - name: Upload install_manifest.txt
+        uses: actions/upload-artifact@v3
+        with:
+          name: install-manifest
+          path: _build/install_manifest.txt
       - name: Validate
         run: |
           # share/ci/scripts/linux/validate_openexr_libs.sh _install 
