@@ -84,6 +84,7 @@ jobs:
           - OPENEXR_BUILD_EXAMPLES: 'ON'
           - OPENEXR_BUILD_TOOLS: 'ON'
           - OPENEXR_BUILD_PYTHON: 'OFF'
+          - OPENEXR_FORCE_INTERNAL_IMATH: 'OFF'
           - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
           - BUILD_TESTING: 'OFF'
 
@@ -110,6 +111,7 @@ jobs:
             OPENEXR_INSTALL_DOCS: 'OFF'
             OPENEXR_BUILD_EXAMPLES: 'OFF'
             OPENEXR_BUILD_TOOLS: 'OFF'
+            OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
             OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
             BUILD_TESTING: 'OFF'
 
@@ -143,7 +145,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       - name: Install Dependencies
-        run: share/ci/scripts/linux/install_help2man.sh 
+        run: |
+          share/ci/scripts/install_Imath.sh 
+          share/ci/scripts/install_libdeflate.sh
+          share/ci/scripts/linux/install_help2man.sh
       - name: Create build directories
         run: |
           mkdir _install
@@ -163,6 +168,7 @@ jobs:
                 -DOPENEXR_BUILD_EXAMPLES=${{ matrix.OPENEXR_BUILD_EXAMPLES }} \
                 -DOPENEXR_BUILD_TOOLS=${{ matrix.OPENEXR_BUILD_TOOLS }} \
                 -DOPENEXR_BUILD_PYTHON=${{ matrix.OPENEXR_BUILD_PYTHON }} \
+                -DOPENEXR_FORCE_INTERNAL_IMATH=${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH }} \
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
                 -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
