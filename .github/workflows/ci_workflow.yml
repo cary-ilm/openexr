@@ -179,7 +179,7 @@ jobs:
                 --target install \
                 --config ${{ matrix.build-type }}
       - name: Rename install_manifest.txt
-        run: mv _build/install_manifest.txt install-manifest-${{ matrix.build }}.txt
+        run: mv _build/install_manifest.txt _build/install-manifest-${{ matrix.build }}.txt
       - name: Upload install_manifest.txt
         uses: actions/upload-artifact@v3
         with:
@@ -189,7 +189,7 @@ jobs:
         run: |
           # share/ci/scripts/linux/validate_openexr_libs.sh _install 
           share/ci/scripts/validate_install.py \
-             _build/install_manifest.txt \
+             _build/install-manifest-${{ matrix.build }}.txt \
              share/ci/install_manifest.txt \
              $PWD/_install \
              ${{ matrix.BUILD_SHARED_LIBS }} \
