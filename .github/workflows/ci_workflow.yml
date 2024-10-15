@@ -181,21 +181,21 @@ jobs:
           cmake --build _build \
                 --target install \
                 --config ${{ matrix.build-type }}
-      - name: Rename install-manifest.txt
+      - name: Rename install_manifest.txt
         run: |
-          echo "# $CMAKE_COMMAND" > _build/install-manifest-${{ matrix.build }}.txt
-          sort _build/install-manifest.txt >> _build/install-manifest-${{ matrix.build }}.txt
-      - name: Upload install-manifest.txt
+          echo "# $CMAKE_COMMAND" > _build/install_manifest-${{ matrix.build }}.txt
+          sort _build/install_manifest.txt >> _build/install_manifest-${{ matrix.build }}.txt
+      - name: Upload install_manifest.txt
         uses: actions/upload-artifact@v3
         with:
-          name: install-manifest-${{ matrix.build }}
-          path: _build/install-manifest-${{ matrix.build }}.txt
+          name: install_manifest-${{ matrix.build }}
+          path: _build/install_manifest-${{ matrix.build }}.txt
       - name: Validate
         run: |
           # share/ci/scripts/linux/validate_openexr_libs.sh _install 
           share/ci/scripts/validate_install.py \
-             _build/install-manifest-${{ matrix.build }}.txt \
-             share/ci/install-manifest.txt \
+             _build/install_manifest-${{ matrix.build }}.txt \
+             share/ci/install_manifest.txt \
              $PWD/_install \
              ${{ matrix.BUILD_SHARED_LIBS }} \
              ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
