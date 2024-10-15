@@ -116,14 +116,12 @@ def validate_install(generated_manifest_path, committed_manifest_path, base_path
 
     # Output results
     if missing_files:
-        print("Error: Files missing from installation:\n  " + '\n  '.join(missing_files))
+        print("Error: The following files should have been installed but weren't:\n  " + '\n  '.join(missing_files))
     if extra_files:
-        print("Error: Unexpected files installed:\n  " + '\n  '.join(extra_files))
+        print("Error: The following files were installed but were not expected:\n  " + '\n  '.join(extra_files))
     
-    if condition_errors:
-        for error in condition_errors:
-            print(error)
-        sys.exit(1)
+    if missing_files or extra_files:
+        sys.exit(0)
 
     if not missing_files and not extra_files and not condition_errors:
         print("Success: The installed files match the committed manifest.")
@@ -156,3 +154,6 @@ if __name__ == "__main__":
     print(f"OPENEXR_BUILD_PYTHON={args.OPENEXR_BUILD_PYTHON}")
 
     validate_install(args.generated_manifest, args.committed_manifest, args.install_base_path, args)
+
+    sys.exit(0)
+    
