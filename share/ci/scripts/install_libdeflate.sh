@@ -12,8 +12,8 @@ else
     SUDO="sudo"
 fi
 
-git clone https://github.com/AcademySoftwareFoundation/Imath.git
-cd Imath
+git clone https://github.com/ebiggers/libdeflate
+cd libdeflate
 
 git checkout ${TAG}
 
@@ -26,4 +26,4 @@ $SUDO cmake --build . \
       --parallel 2
 
 cd ../..
-rm -rf Imath
+rm -rf libdeflate
