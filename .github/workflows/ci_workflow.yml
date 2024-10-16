@@ -184,7 +184,7 @@ jobs:
       - name: Rename install_manifest.txt
         run: |
           echo "# $CMAKE_COMMAND" > _build/install_manifest-${{ matrix.build }}.txt
-          sort _build/install_manifest.txt | sed -e s,$PWD/_install/,, -e ,lib64/,lib/, >> _build/install_manifest-${{ matrix.build }}.txt
+          sort _build/install_manifest.txt | sed -e "s:^.*/_install/::" -e ":lib64/:lib/:" >> _build/install_manifest-${{ matrix.build }}.txt
       - name: Upload install_manifest.txt
         uses: actions/upload-artifact@v3
         with:
