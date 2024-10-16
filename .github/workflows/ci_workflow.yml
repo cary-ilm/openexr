@@ -71,6 +71,7 @@ jobs:
         build: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         include:
 
+          # defaults for the builds below
           - vfx-cy: 2024
           - compiler-desc: gcc11.2.1
           - cxx-compiler: g++
@@ -88,10 +89,6 @@ jobs:
           - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
           - BUILD_TESTING: 'OFF'
 
-          # -------------------------------------------------------------------
-          # VFX CY2024 - GCC
-          # -------------------------------------------------------------------
-          # 
           - build: 1
             build-type: Debug
 
@@ -156,6 +153,7 @@ jobs:
           mkdir _examples
       - name: Construct CMake command and save it to environment
         run: |
+          # Save the cmake command, so it can be recorded in the install manifest below.
           CMAKE_COMMAND="cmake -B _build -S . \
                 -DCMAKE_INSTALL_PREFIX=_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
@@ -181,18 +179,23 @@ jobs:
           cmake --build _build \
                 --target install \
                 --config ${{ matrix.build-type }}
-      - name: Rename install_manifest.txt
+      - name: Prepare install_manifest-<build#>.txt
         run: |
+          # Put the full cmake command at the top of the install
+          # manifest, and remove the install prefix from the
+          # filenames. Also, substitute lib/ for lib64/, since that
+          # distinction is not significant for validation that the
+          #  files have been installed correctly.
           echo "# $CMAKE_COMMAND" > _build/install_manifest-${{ matrix.build }}.txt
           sort _build/install_manifest.txt | sed -e "s:^.*/_install/::" -e ":lib64/:lib/:" >> _build/install_manifest-${{ matrix.build }}.txt
-      - name: Upload install_manifest.txt
+      - name: Upload install_manifest-<build#>.txt
         uses: actions/upload-artifact@v3
         with:
           name: install_manifest-${{ matrix.build }}
           path: _build/install_manifest-${{ matrix.build }}.txt
-      - name: Validate
+      - name: Validate install
         run: |
-          # share/ci/scripts/linux/validate_openexr_libs.sh _install 
+          share/ci/scripts/linux/validate_openexr_libs.sh _install 
           share/ci/scripts/validate_install.py \
              _build/install_manifest-${{ matrix.build }}.txt \
              share/ci/install_manifest/install_manifest-${{ matrix.build }}.txt
