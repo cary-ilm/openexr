@@ -148,7 +148,7 @@ jobs:
                 -DOPENEXR_BUILD_PYTHON=${{ matrix.OPENEXR_BUILD_PYTHON }} \
                 -DOPENEXR_FORCE_INTERNAL_IMATH=${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH }} \
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
-n                -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
+                -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
           echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
@@ -283,7 +283,7 @@ n                -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
                 -DOPENEXR_BUILD_PYTHON=${{ matrix.OPENEXR_BUILD_PYTHON }} \
                 -DOPENEXR_FORCE_INTERNAL_IMATH=${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH }} \
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
-n                -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
+                -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
           echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
