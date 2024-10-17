@@ -28,7 +28,7 @@ HELP2MAN_DIR="help2man-$HELP2MAN_VERSION"
 
 # Download help2man source code
 echo "Downloading help2man version $HELP2MAN_VERSION..."
-wget "$HELP2MAN_URL"
+curl -O "$HELP2MAN_URL"
 
 # Extract the downloaded tarball
 echo "Extracting help2man..."

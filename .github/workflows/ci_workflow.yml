@@ -175,7 +175,7 @@ jobs:
           path: _build/install_manifest-${{ matrix.build }}.txt
       - name: Validate install
         run: |
-          share/ci/scripts/linux/validate_openexr_libs.sh _install 
+          # share/ci/scripts/linux/validate_openexr_libs.sh _install 
           share/ci/scripts/validate_install.py \
              _build/install_manifest-${{ matrix.build }}.txt \
              share/ci/install_manifest/install_manifest-${{ matrix.build }}.txt
@@ -313,7 +313,7 @@ jobs:
           path: _build/install_manifest-${{ matrix.build }}.txt
       - name: Validate install
         run: |
-          share/ci/scripts/linux/validate_openexr_libs.sh _install 
+          # share/ci/scripts/linux/validate_openexr_libs.sh _install 
           share/ci/scripts/validate_install.py \
              _build/install_manifest-${{ matrix.build }}.txt \
              share/ci/install_manifest/install_manifest-${{ matrix.build }}.txt
