@@ -311,7 +311,6 @@ jobs:
         with:
           name: install_manifest-${{ matrix.build }}
           path: _build/install_manifest-${{ matrix.build }}.txt
-        shell: bash
       - name: Validate install
         run: |
           share/ci/scripts/linux/validate_openexr_libs.sh _install 
