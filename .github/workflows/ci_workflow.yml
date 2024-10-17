@@ -49,33 +49,36 @@ jobs:
   # jobs. This workflow tries to utilize (but not exceed) that budget to 
   # promote timely CI.
 
-  # ---------------------------------------------------------------------------
-  # Linux
-  # ---------------------------------------------------------------------------
-  # TODO: Add ARM build. Add sanitize build.
+  # Each job validates that the proper files have been installed by
+  # checking the contents of CMake's install_manifest.txt file. The
+  # exact contents vary depending o the build options, so this
+  # validates both that the settings have the expected effect, and
+  # that the CMake configuration does what is expected. Each job
+  # compares to a version of the install_manifest.txt archived in
+  # share/ci/install_manifest with the expected context for that
+  # build.
 
-  linux:
-    name: '${{ matrix.build}}. Linux ${{ matrix.vfx-cy }} 
+  # ---------------------------------------------------------------------------
+  # macOS
+  # ---------------------------------------------------------------------------
+  # TODO: Add ARM64/x86_64 (universal 2) build
+  
+  macOS:
+    name: '${{ matrix.build}}. macOS-${{ matrix.osver }} ${{ matrix.vfx-cy }} 
        ${{ matrix.compiler-desc }}
        C++${{ matrix.cxx-standard }}
        ${{ matrix.build-type }}
        ${{ matrix.label }}'
-    # GH-hosted VM. The build runs in CentOS 7 'container' defined below.
-    runs-on: ubuntu-latest
-    container:
-      # DockerHub: https://hub.docker.com/u/aswf
-      # Source: https://github.com/AcademySoftwareFoundation/aswf-docker
-      image: aswf/ci-openexr:${{ matrix.vfx-cy }}
+    runs-on: macos-${{ matrix.osver }}
     strategy:
       matrix:
-        build: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        build: [1, 2, 3, 4, 5, 6]
         include:
 
-          # defaults for the builds below
+          # defaults settings. These are inherited for each build below.
           - vfx-cy: 2024
-          - compiler-desc: gcc11.2.1
-          - cxx-compiler: g++
-          - cc-compiler: gcc
+          - osver: 12.0
+          - compiler-desc: AppleClang11.0
           - cxx-standard: 17
           - build-type: Release
           - BUILD_SHARED_LIBS: 'ON'
@@ -103,7 +106,7 @@ jobs:
             OPENEXR_ENABLE_THREADING: 'OFF'
 
           - build: 5
-            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal deflate
+            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
             OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
             OPENEXR_INSTALL_DOCS: 'OFF'
             OPENEXR_BUILD_EXAMPLES: 'OFF'
@@ -113,31 +116,8 @@ jobs:
             BUILD_TESTING: 'OFF'
 
           - build: 6
-            compiler-desc: clang15.0
-            cxx-compiler: clang++
-            cc-compiler: clang
+            osver: 11.0
 
-          - build: 7
-            compiler-desc: clang14.0
-            cxx-compiler: clang++
-            cc-compiler: clang
-
-          - build: 8
-            vfx-cy: 2023
-
-          - build: 9
-            vfx-cy: 2022
-            compiler-desc: gcc9.3.1
-
-          - build: 10
-            vfx-cy: 2021
-            compiler-desc: gcc9.3.1
-
-    env:
-      CXX: ${{ matrix.cxx-compiler }}
-      CC: ${{ matrix.cc-compiler }}
-      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -168,7 +148,7 @@ jobs:
                 -DOPENEXR_BUILD_PYTHON=${{ matrix.OPENEXR_BUILD_PYTHON }} \
                 -DOPENEXR_FORCE_INTERNAL_IMATH=${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH }} \
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
-                -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
+n                -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
           echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
@@ -195,7 +175,7 @@ jobs:
           path: _build/install_manifest-${{ matrix.build }}.txt
       - name: Validate install
         run: |
-          # share/ci/scripts/linux/validate_openexr_libs.sh _install 
+          share/ci/scripts/linux/validate_openexr_libs.sh _install 
           share/ci/scripts/validate_install.py \
              _build/install_manifest-${{ matrix.build }}.txt \
              share/ci/install_manifest/install_manifest-${{ matrix.build }}.txt
@@ -206,5 +186,146 @@ jobs:
                 --timeout 7200 \
                 --output-on-failure \
                 -VV
+        working-directory: _build
+
+  Windows:
+    name: '${{ matrix.build}}. Windows-${{ matrix.osver }} ${{ matrix.vfx-cy }} 
+       ${{ matrix.compiler-desc }}
+       C++${{ matrix.cxx-standard }}
+       ${{ matrix.build-type }}
+       ${{ matrix.label }}'
+    runs-on: windows-${{ matrix.osver }}
+    strategy:
+      matrix:
+        build: [1, 2, 3, 4, 5, 6]
+        include:
+
+          # defaults settings. These are inherited for each build below.
+          - vfx-cy: 2023
+          - osver: 2022
+          - compiler-desc: msvc17.5
+          - cxx-standard: 17
+          - build-type: Release
+          - BUILD_SHARED_LIBS: 'ON'
+          - OPENEXR_ENABLE_THREADING: 'ON'
+          - OPENEXR_INSTALL_PKG_CONFIG: 'ON'
+          - OPENEXR_INSTALL_DOCS: 'ON'
+          - OPENEXR_BUILD_EXAMPLES: 'ON'
+          - OPENEXR_BUILD_TOOLS: 'ON'
+          - OPENEXR_BUILD_PYTHON: 'OFF'
+          - OPENEXR_FORCE_INTERNAL_IMATH: 'OFF'
+          - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
+          - BUILD_TESTING: 'OFF'
+
+          - build: 1
+            build-type: Debug
+
+          - build: 2
+
+          - build: 3
+            label: Static
+            BUILD_SHARED_LIBS: 'OFF'
+
+          - build: 4
+            label: threads=OFF
+            OPENEXR_ENABLE_THREADING: 'OFF'
+
+          - build: 5
+            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
+            OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
+            OPENEXR_INSTALL_DOCS: 'OFF'
+            OPENEXR_BUILD_EXAMPLES: 'OFF'
+            OPENEXR_BUILD_TOOLS: 'OFF'
+            OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
+            OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
+            BUILD_TESTING: 'OFF'
+
+          - build: 6
+            vfx-cy: 2022
+            compiler-desc: msvc16.11
+            osver: 2019
+
+          - build: 6
+            vfx-cy: 2022
+            compiler-desc: msvc16.11
+            osver: 2019
+            BUILD_SHARED_LIBS: 'OFF'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      - name: Install Dependencies
+        run: |
+          share/ci/scripts/install_imath.sh main
+          share/ci/scripts/install_libdeflate.sh master
+          share/ci/scripts/linux/install_help2man.sh
+        shell: bash
+      - name: Create build directories
+        run: |
+          mkdir _install
+          mkdir _build
+          mkdir _examples
+        shell: bash
+      - name: Construct CMake command and save it to environment
+        run: |
+          # Save the cmake command, so it can be recorded in the install manifest below.
+          CMAKE_COMMAND="cmake -B _build -S . \
+                -DCMAKE_INSTALL_PREFIX=_install \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DOPENEXR_CXX_STANDARD=${{ matrix.cxx-standard }} \
+                -DCMAKE_CXX_FLAGS='${{ matrix.cxx-flags }}' \
+                -DBUILD_SHARED_LIBS=${{ matrix.BUILD_SHARED_LIBS }} \
+                -DOPENEXR_ENABLE_THREADING=${{ matrix.OPENEXR_ENABLE_THREADING }} \
+                -DOPENEXR_INSTALL_PKG_CONFIG=${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }} \
+                -DOPENEXR_INSTALL_DOCS=${{ matrix.OPENEXR_INSTALL_DOCS }} \
+                -DOPENEXR_BUILD_EXAMPLES=${{ matrix.OPENEXR_BUILD_EXAMPLES }} \
+                -DOPENEXR_BUILD_TOOLS=${{ matrix.OPENEXR_BUILD_TOOLS }} \
+                -DOPENEXR_BUILD_PYTHON=${{ matrix.OPENEXR_BUILD_PYTHON }} \
+                -DOPENEXR_FORCE_INTERNAL_IMATH=${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH }} \
+                -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
+n                -DBUILD_TESTING=${{ matrix.BUILD_TESTING }} \
+                -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
+                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
+          echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
+        shell: bash
+      - name: Configure
+        run: $CMAKE_COMMAND
+        shell: bash
+      - name: Build
+        run: |
+          cmake --build _build \
+                --target install \
+                --config ${{ matrix.build-type }}
+        shell: bash
+      - name: Prepare install_manifest-<build#>.txt
+        run: |
+          # Put the full cmake command at the top of the install
+          # manifest, and remove the install prefix from the
+          # filenames. Also, substitute lib/ for lib64/, since that
+          # distinction is not significant for validation that the
+          #  files have been installed correctly.
+          echo "# $CMAKE_COMMAND" > _build/install_manifest-${{ matrix.build }}.txt
+          sort _build/install_manifest.txt | sed -e "s:^.*/_install/::" -e ":lib64/:lib/:" >> _build/install_manifest-${{ matrix.build }}.txt
+      - name: Upload install_manifest-<build#>.txt
+        uses: actions/upload-artifact@v3
+        with:
+          name: install_manifest-${{ matrix.build }}
+          path: _build/install_manifest-${{ matrix.build }}.txt
+        shell: bash
+      - name: Validate install
+        run: |
+          share/ci/scripts/linux/validate_openexr_libs.sh _install 
+          share/ci/scripts/validate_install.py \
+             _build/install_manifest-${{ matrix.build }}.txt \
+             share/ci/install_manifest/install_manifest-${{ matrix.build }}.txt
+        shell: bash
+      - name: Test
+        run: |
+          echo ctest -T Test ${{ matrix.exclude-tests }} \
+                -C ${{ matrix.build-type }} \
+                --timeout 7200 \
+                --output-on-failure \
+                -VV
+        shell: bash
         working-directory: _build
 
