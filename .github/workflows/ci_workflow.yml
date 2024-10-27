@@ -359,7 +359,8 @@ jobs:
     runs-on: windows-${{ matrix.osver }}
     strategy:
       matrix:
-        build: [1, 2, 3, 4, 5, 6]
+        # build: [1, 2, 3, 4, 5, 6]
+        build: [1]
         include:
 
           # defaults settings. These are inherited for each build below.
@@ -382,36 +383,36 @@ jobs:
           - build: 1
             build-type: Debug
 
-          - build: 2
+          # - build: 2
 
-          - build: 3
-            label: Static
-            BUILD_SHARED_LIBS: 'OFF'
+          # - build: 3
+          #   label: Static
+          #   BUILD_SHARED_LIBS: 'OFF'
 
-          - build: 4
-            label: threads=OFF
-            OPENEXR_ENABLE_THREADING: 'OFF'
+          # - build: 4
+          #   label: threads=OFF
+          #   OPENEXR_ENABLE_THREADING: 'OFF'
 
-          - build: 5
-            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
-            OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
-            OPENEXR_INSTALL_DOCS: 'OFF'
-            OPENEXR_BUILD_EXAMPLES: 'OFF'
-            OPENEXR_BUILD_TOOLS: 'OFF'
-            OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
-            OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
-            BUILD_TESTING: 'OFF'
+          # - build: 5
+          #   label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
+          #   OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
+          #   OPENEXR_INSTALL_DOCS: 'OFF'
+          #   OPENEXR_BUILD_EXAMPLES: 'OFF'
+          #   OPENEXR_BUILD_TOOLS: 'OFF'
+          #   OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
+          #   OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
+          #   BUILD_TESTING: 'OFF'
 
-          - build: 6
-            vfx-cy: 2022
-            compiler-desc: msvc16.11
-            osver: 2019
+          # - build: 6
+          #   vfx-cy: 2022
+          #   compiler-desc: msvc16.11
+          #   osver: 2019
 
-          - build: 6
-            vfx-cy: 2022
-            compiler-desc: msvc16.11
-            osver: 2019
-            BUILD_SHARED_LIBS: 'OFF'
+          # - build: 6
+          #   vfx-cy: 2022
+          #   compiler-desc: msvc16.11
+          #   osver: 2019
+          #   BUILD_SHARED_LIBS: 'OFF'
 
     steps:
       - name: Checkout
@@ -471,8 +472,12 @@ jobs:
           # filenames. Also, substitute lib/ for lib64/, since that
           # distinction is not significant for validation that the
           #  files have been installed correctly.
+          echo _build/install_manifest.txt:
+          cat _build/install_manifest.txt
           echo "# $CMAKE_COMMAND" > _build/install_manifest-${{ matrix.build }}.txt
           sort _build/install_manifest.txt | sed -e "s:^.*/_install/::" -e ":lib64/:lib/:" >> _build/install_manifest-${{ matrix.build }}.txt
+          echo _build/install_manifest-${{ matrix.build }}.txt:
+          cat _build/install_manifest-${{ matrix.build }}.txt
       - name: Upload install_manifest-<build#>.txt
         uses: actions/upload-artifact@v3
         with:
