@@ -43,7 +43,7 @@ fi
 ls -l /usr/local/bin
 
 # Verify the installation
-./help2man$PROGRAM_SUFFIX --version 
+/usr/local/bin/help2man$PROGRAM_SUFFIX --version 
 
 echo "help2man installed successfully!"
 
