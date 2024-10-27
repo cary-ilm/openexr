@@ -34,8 +34,11 @@ make
 echo "Installing help2man..."
 $SUDO make install
 
+which help2man
+find /usr/local -name help2man
+
 # Verify the installation
-help2man --version 
+./help2man --version 
 
 echo "help2man installed successfully!"
 
