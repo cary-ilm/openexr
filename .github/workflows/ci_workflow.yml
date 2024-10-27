@@ -436,7 +436,7 @@ jobs:
         run: |
           # Save the cmake command, so it can be recorded in the install manifest below.
           CMAKE_COMMAND="cmake -B _build -S . \
-                -DCMAKE_PREFIX_PATH="C:/usr/local/bin" \
+                -DHELP2MAN="C:\usr\local\bin\help2man" \
                 -DCMAKE_INSTALL_PREFIX=_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ matrix.cxx-standard }} \
