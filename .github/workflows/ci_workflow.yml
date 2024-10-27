@@ -422,6 +422,10 @@ jobs:
           share/ci/scripts/install_libdeflate.sh master
           share/ci/scripts/linux/install_help2man.sh
         shell: bash
+      - name: Add /usr/local/bin to PATH
+        run: echo "PATH=C:\usr\local\bin;%PATH%" >> $GITHUB_ENV
+      - name: Verify PATH
+        run: echo %PATH%
       - name: Create build directories
         run: |
           mkdir _install
@@ -432,6 +436,7 @@ jobs:
         run: |
           # Save the cmake command, so it can be recorded in the install manifest below.
           CMAKE_COMMAND="cmake -B _build -S . \
+                -DCMAKE_PREFIX_PATH="C:/usr/local/bin" \
                 -DCMAKE_INSTALL_PREFIX=_install \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ matrix.cxx-standard }} \
