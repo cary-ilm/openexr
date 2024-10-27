@@ -471,13 +471,15 @@ jobs:
           # manifest, and remove the install prefix from the
           # filenames. Also, substitute lib/ for lib64/, since that
           # distinction is not significant for validation that the
-          #  files have been installed correctly.
+          # files have been installed correctly.
+          echo
           echo _build/install_manifest.txt:
           cat _build/install_manifest.txt
           echo "# $CMAKE_COMMAND" > _build/install_manifest-${{ matrix.build }}.txt
           sort _build/install_manifest.txt | sed -e "s:^.*/_install/::" -e ":lib64/:lib/:" >> _build/install_manifest-${{ matrix.build }}.txt
           echo _build/install_manifest-${{ matrix.build }}.txt:
           cat _build/install_manifest-${{ matrix.build }}.txt
+          echo done.
         shell: bash
       - name: Upload install_manifest-<build#>.txt
         uses: actions/upload-artifact@v3
