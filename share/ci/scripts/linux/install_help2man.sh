@@ -35,9 +35,8 @@ echo "Installing help2man..."
 $SUDO make install
 
 # Verify the installation
-if command -v help2man > /dev/null; then
-  echo "help2man installed successfully!"
-else
-  echo "help2man installation failed!"
-  exit 1
-fi
+help2man --version 
+
+echo "help2man installed successfully!"
+
+
