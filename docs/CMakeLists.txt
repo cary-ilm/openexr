@@ -7,7 +7,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 find_program(HELP2MAN help2man)
 if(HELP2MAN STREQUAL "HELP2MAN-NOTFOUND" OR HELP2MAN MATCHES "C:/Program Files/Git")
-    set(HELP2MAN "C:/usr/local/bin/help2man" CACHE FILEPATH "Path to help2man" FORCE)
+    set(HELP2MAN "C:/usr/local/bin/help2man.exe" CACHE FILEPATH "Path to help2man" FORCE)
     message(WARNING "Detected help2man is not usable. Setting HELP2MAN to ${HELP2MAN}")
 else()
     message(STATUS "help2man found at ${HELP2MAN}")
