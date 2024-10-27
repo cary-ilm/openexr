@@ -8,7 +8,8 @@ HELP2MAN_DIR="help2man-$HELP2MAN_VERSION"
 
 if [[ $OSTYPE == *msys* ]]; then
     SUDO=""
-    HELP2MAN_BIN="help2man.exe"
+    HELP2MAN_SUFFIX="--program_suffix=.exe"
+    export PROGRAM_SUFFIX=.exe
 else
     SUDO="sudo"
     HELP2MAN_BIN=""
@@ -28,15 +29,15 @@ cd "$HELP2MAN_DIR"
 
 # Configure, build, and install help2man
 echo "Configuring help2man..."
-./configure
+./configure $HELP2MAN_SUFFIX
 
 echo "Building help2man..."
 make
 
 echo "Installing help2man..."
-$SUDO make install $HELP2MAN_BIN
+$SUDO make install 
 
-find /usr/local -name help2man
+ls -l /usr/local/bin
 
 # Verify the installation
 ./$HELP2MAN_BIN --version 
