@@ -6,6 +6,13 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 # man pages for the bin programs
 
 find_program(HELP2MAN help2man)
+if(NOT HELP2MAN OR HELP2MAN STREQUAL "HELP2MAN-NOTFOUND")
+    message(WARNING "help2man not found. Setting HELP2MAN to a default path.")
+    # Set HELP2MAN to the specific path if not found
+    set(HELP2MAN "C:/usr/local/bin/help2man" CACHE FILEPATH "Path to help2man")
+else()
+    message(STATUS "help2man found at ${HELP2MAN}")
+endif()
 
 set(MANPAGE_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/man)
 file(MAKE_DIRECTORY ${MANPAGE_OUTPUT_DIR}/man1)
