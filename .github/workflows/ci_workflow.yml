@@ -478,6 +478,7 @@ jobs:
           sort _build/install_manifest.txt | sed -e "s:^.*/_install/::" -e ":lib64/:lib/:" >> _build/install_manifest-${{ matrix.build }}.txt
           echo _build/install_manifest-${{ matrix.build }}.txt:
           cat _build/install_manifest-${{ matrix.build }}.txt
+        shell: bash
       - name: Upload install_manifest-<build#>.txt
         uses: actions/upload-artifact@v3
         with:
