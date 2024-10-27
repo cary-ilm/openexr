@@ -36,6 +36,10 @@ make
 echo "Installing help2man..."
 $SUDO make install 
 
+if [[ $OSTYPE == *msys* ]]; then
+  mv /usr/local/bin/help2man /usr/local/bin/help2man$PROGRAM_SUFFIX
+fi
+
 ls -l /usr/local/bin
 
 # Verify the installation
