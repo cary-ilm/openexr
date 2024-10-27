@@ -357,7 +357,6 @@ jobs:
        ${{ matrix.build-type }}
        ${{ matrix.label }}'
     runs-on: windows-${{ matrix.osver }}
-    if: ${{ matrix.build }} = "1"
     strategy:
       matrix:
         build: [1, 2, 3, 4, 5, 6]
@@ -414,6 +413,7 @@ jobs:
             osver: 2019
             BUILD_SHARED_LIBS: 'OFF'
 
+    if: ${{ matrix.build }} = "1"
     steps:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
