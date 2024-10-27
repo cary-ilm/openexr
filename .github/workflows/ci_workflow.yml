@@ -357,7 +357,7 @@ jobs:
        ${{ matrix.build-type }}
        ${{ matrix.label }}'
     runs-on: windows-${{ matrix.osver }}
-    if: matrix.build = "1"
+    if: ${{ matrix.build }} = "1"
     strategy:
       matrix:
         build: [1, 2, 3, 4, 5, 6]
