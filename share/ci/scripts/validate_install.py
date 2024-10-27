@@ -5,23 +5,18 @@ import sys
 import argparse
 from pathlib import Path
 
-# Suffixes for shared object files by platform
-SHARED_OBJECT_SUFFIXES = {
-    'linux': '.so',
-    'darwin': '.dylib',
-    'win32': '.dll'
-}
-
-def get_shared_object_suffix():
-    """Return the shared object suffix for the current platform."""
-    platform = sys.platform
-    return SHARED_OBJECT_SUFFIXES.get(platform, '')
-
 def normalize_path(path, base_path):
     """Normalize the path by stripping the base path, removing leading slashes, and normalizing slashes."""
     normalized = os.path.normpath(path.replace(str(base_path), ''))
     if normalized.startswith(os.sep):
         normalized = normalized[1:]  # Remove the leading '/'
+    # Remove ".so", ".dylib", and ".dll" from the path, so that shared
+    # objects match across platforms.
+    #
+    # Linux shared objects are named libOpenEXR-3_4.so.99.3.4.0
+    # macOS shared objects are named libOpenEXR-3_4.99.3.4.0.dylib
+    #
+    normalized = normalized.replace(".so", "").replace(".dylib", "").replace(".dll", "").
     return normalized
 
 def load_manifest(file_path):

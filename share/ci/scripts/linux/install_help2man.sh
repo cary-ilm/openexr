@@ -2,6 +2,7 @@
 
 # Exit immediately if any command fails
 set -e
+set -x
 
 # Variables
 HELP2MAN_VERSION="1.49.3"
@@ -32,7 +33,7 @@ curl -O "$HELP2MAN_URL"
 
 # Extract the downloaded tarball
 echo "Extracting help2man..."
-tar -xf "$HELP2MAN_DIR.tar.xz"
+tar -xf "$HELP2MAN_DIR.tar.xz" --exclude="*/ChangeLog"
 
 # Navigate into the help2man source directory
 cd "$HELP2MAN_DIR"
