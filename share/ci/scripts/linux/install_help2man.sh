@@ -6,7 +6,7 @@ HELP2MAN_VERSION="1.49.3"
 HELP2MAN_URL="https://ftp.gnu.org/gnu/help2man/help2man-$HELP2MAN_VERSION.tar.xz"
 HELP2MAN_DIR="help2man-$HELP2MAN_VERSION"
 
-if [[ $OSTYPE == "msys" ]]; then
+if [[ $OSTYPE == *msys* ]]; then
     SUDO=""
 else
     SUDO="sudo"
@@ -32,7 +32,7 @@ echo "Building help2man..."
 make
 
 echo "Installing help2man..."
-sudo make install
+$SUDO make install
 
 # Verify the installation
 if command -v help2man > /dev/null; then
