@@ -90,7 +90,7 @@ jobs:
         run: echo $CMAKE_COMMAND
 
       - name: Build
-         run: |
+        run: |
           echo cmake --build _build --target install --config ${{ inputs.build-type }}
 
       - name: Prepare install_manifest
