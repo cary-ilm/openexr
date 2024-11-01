@@ -1,0 +1,114 @@
+# .github/workflows/common-steps.yml
+
+name: "Common CI Steps"
+
+on:
+  workflow_call:
+    inputs:
+      build-type:
+        required: true
+        type: string
+      cxx-standard:
+        required: true
+        type: string
+      cxx-flags:
+        required: true
+        type: string
+      BUILD_SHARED_LIBS:
+        required: true
+        type: string
+      OPENEXR_ENABLE_THREADING:
+        required: true
+        type: string
+      OPENEXR_INSTALL_PKG_CONFIG:
+        required: true
+        type: string
+      OPENEXR_INSTALL_DOCS:
+        required: true
+        type: string
+      OPENEXR_BUILD_EXAMPLES:
+        required: true
+        type: string
+      OPENEXR_BUILD_TOOLS:
+        required: true
+        type: string
+      OPENEXR_BUILD_PYTHON:
+        required: true
+        type: string
+      OPENEXR_FORCE_INTERNAL_IMATH:
+        required: true
+        type: string
+      OPENEXR_FORCE_INTERNAL_DEFLATE:
+        required: true
+        type: string
+      BUILD_TESTING:
+        required: true
+        type: string
+
+jobs:
+  common-steps:
+    runs-on: ${{ inputs.runs-on }}
+    container: ${{ inputs.container }} # Optional for Linux
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.6.0
+
+      - name: Install Dependencies
+        run: |
+          echo share/ci/scripts/install_imath.sh main
+          echo share/ci/scripts/install_libdeflate.sh master
+          echo share/ci/scripts/linux/install_help2man.sh
+
+      - name: Create build directories
+        run: |
+          echo mkdir _install
+          echo mkdir _build
+          echo mkdir _examples
+
+      - name: Construct CMake command and save it to environment
+        run: |
+          CMAKE_COMMAND="cmake -B _build -S . \
+                -DCMAKE_INSTALL_PREFIX=_install \
+                -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
+                -DOPENEXR_CXX_STANDARD=${{ inputs.cxx-standard }} \
+                -DCMAKE_CXX_FLAGS='${{ inputs.cxx-flags }}' \
+                -DBUILD_SHARED_LIBS=${{ inputs.BUILD_SHARED_LIBS }} \
+                -DOPENEXR_ENABLE_THREADING=${{ inputs.OPENEXR_ENABLE_THREADING }} \
+                -DOPENEXR_INSTALL_PKG_CONFIG=${{ inputs.OPENEXR_INSTALL_PKG_CONFIG }} \
+                -DOPENEXR_INSTALL_DOCS=${{ inputs.OPENEXR_INSTALL_DOCS }} \
+                -DOPENEXR_BUILD_EXAMPLES=${{ inputs.OPENEXR_BUILD_EXAMPLES }} \
+                -DOPENEXR_BUILD_TOOLS=${{ inputs.OPENEXR_BUILD_TOOLS }} \
+                -DOPENEXR_BUILD_PYTHON=${{ inputs.OPENEXR_BUILD_PYTHON }} \
+                -DOPENEXR_FORCE_INTERNAL_IMATH=${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }} \
+                -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
+                -DBUILD_TESTING=${{ inputs.BUILD_TESTING }} \
+                -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
+                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
+          echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
+
+      - name: Configure
+        run: echo $CMAKE_COMMAND
+
+      - name: Build
+         run: |
+          echo cmake --build _build --target install --config ${{ inputs.build-type }}
+
+      - name: Prepare install_manifest
+        run: |
+          echo "# $CMAKE_COMMAND" > _build/install_manifest.txt
+          sort _build/install_manifest.txt | sed -e "s:^.*/_install/::" -e ":lib64/:lib/:" >> _build/install_manifest.txt
+
+      - name: Upload install_manifest.txt
+        uses: actions/upload-artifact@v3
+        with:
+          name: install_manifest
+          path: _build/install_manifest.txt
+
+      - name: Validate install
+        run: |
+          echo share/ci/scripts/validate_install.py _build/install_manifest.txt share/ci/install_manifest/install_manifest.txt
+
+      - name: Test
+        run: |
+          echo ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
+        working-directory: _build
