@@ -66,7 +66,7 @@ jobs:
        C++${{ matrix.cxx-standard }}
        ${{ matrix.build-type }}
        ${{ matrix.label }}'
-    uses: .github/workflows/ci_steps.yml
+    uses: ./.github/workflows/ci_steps.yml
     runs-on: ubuntu-latest
     container:
       # DockerHub: https://hub.docker.com/u/aswf
@@ -156,7 +156,7 @@ jobs:
        C++${{ matrix.cxx-standard }}
        ${{ matrix.build-type }}
        ${{ matrix.label }}'
-    uses: .github/workflows/ci_steps.yml
+    uses: ./.github/workflows/ci_steps.yml
     runs-on: macos-${{ matrix.osver }}
     strategy:
       matrix:
@@ -212,7 +212,7 @@ jobs:
        C++${{ matrix.cxx-standard }}
        ${{ matrix.build-type }}
        ${{ matrix.label }}'
-    uses: .github/workflows/ci_steps.yml
+    uses: ./.github/workflows/ci_steps.yml
     runs-on: windows-${{ matrix.osver }}
     strategy:
       matrix:
