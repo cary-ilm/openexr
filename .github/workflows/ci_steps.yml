@@ -88,10 +88,11 @@ jobs:
 
       - name: Configure
         run: echo $CMAKE_COMMAND
+#          echo cmake --build _build --target install --config ${{ inputs.build-type }}
 
       - name: Build
         run: |
-          echo cmake --build _build --target install --config ${{ inputs.build-type }}
+          echo hi
 
       - name: Prepare install_manifest
         run: |
