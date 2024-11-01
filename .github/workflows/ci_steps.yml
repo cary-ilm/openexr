@@ -1,6 +1,6 @@
-# .github/workflows/common-steps.yml
+# .github/workflows/ci_steps.yml
 
-name: "Common CI Steps"
+name: "CI Steps"
 
 on:
   workflow_call:
@@ -46,7 +46,7 @@ on:
         type: string
 
 jobs:
-  common-steps:
+  ci_steps:
     runs-on: ${{ inputs.runs-on }}
     container: ${{ inputs.container }} # Optional for Linux
     steps:
