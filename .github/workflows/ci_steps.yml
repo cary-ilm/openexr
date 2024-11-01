@@ -92,7 +92,7 @@ jobs:
 
       - name: Build
         run: |
-          echo hi
+          echo hi there!
 
       - name: Prepare install_manifest
         run: |
