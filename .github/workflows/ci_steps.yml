@@ -100,7 +100,7 @@ jobs:
         run: |
           cmake --build _build \
                 --target install \
-                --config ${{ matrix.build-type }}
+                --config ${{ inputs.build-type }}
 
       - name: Test
         run: |
