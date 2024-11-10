@@ -25,6 +25,7 @@ on:
       - '!src/wrappers/**'
       - '!.github/workflows/**'
       - '.github/workflows/ci_workflow.yml'
+      - '.github/workflows/ci_steps.yml'
   pull_request:
     paths:
       - '**'
@@ -35,501 +36,224 @@ on:
       - '!src/wrappers/**'
       - '!.github/workflows/**'
       - '.github/workflows/ci_workflow.yml'
+      - '.github/workflows/ci_steps.yml'
 
 permissions:
   contents: read
 
 jobs:
-  # Linux jobs run in Docker containers, so the latest OS version is OK. macOS 
-  # and Windows jobs need to be locked to specific virtual environment 
-  # versions to mitigate issues from OS updates, and will require maintenance 
-  # as OS versions are retired.
-  #
-  # GH Actions (Free plan) supports 20 concurrent jobs, with 5 concurrent macOS 
-  # jobs. This workflow tries to utilize (but not exceed) that budget to 
-  # promote timely CI.
-
-  # ---------------------------------------------------------------------------
-  # Linux
-  # ---------------------------------------------------------------------------
-  # TODO: Add ARM build. Add sanitize build.
-
   linux:
-    name: 'Linux ${{ matrix.label }}VFXP-${{ matrix.vfx-cy }} centos7
-       <${{ matrix.compiler-desc }},
-       C++${{ matrix.cxx-standard }},
-       config=${{ matrix.build-type }},
-       shared=${{ matrix.build-shared }},
-       threads=${{ matrix.threads-enabled }}>'
-    # GH-hosted VM. The build runs in CentOS 7 'container' defined below.
-    runs-on: ubuntu-latest
-    container:
-      # DockerHub: https://hub.docker.com/u/aswf
-      # Source: https://github.com/AcademySoftwareFoundation/aswf-docker
-      image: aswf/ci-openexr:${{ matrix.vfx-cy }}
+    name: 'Linux ${{ matrix.build}}: ${{ matrix.vfx-cy }}
+       ${{ matrix.compiler-desc }}
+       C++${{ matrix.cxx-standard }}
+       ${{ matrix.build-type }}
+       ${{ matrix.label }}'
+    uses: ./.github/workflows/ci_steps.yml
+    with:
+      os: ubuntu-latest
+      container: 'aswf/ci-openexr:${{ matrix.vfx-cy }}'
+      vfx-cy: ${{ matrix.vfx-cy }}
+      compiler-desc: ${{ matrix.compiler-desc }}
+      cxx-compiler: ${{ matrix.cxx-compiler }}
+      cc-compiler: ${{ matrix.cc-compiler }}
+      cxx-standard: ${{ matrix.cxx-standard }}
+      build-type: ${{ matrix.build-type }}
+      BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS }}
+      OPENEXR_ENABLE_THREADING: ${{ matrix.OPENEXR_ENABLE_THREADING }}
+      OPENEXR_INSTALL_PKG_CONFIG: ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }}
+      OPENEXR_INSTALL_DOCS: ${{ matrix.OPENEXR_INSTALL_DOCS }}
+      OPENEXR_BUILD_EXAMPLES: ${{ matrix.OPENEXR_BUILD_EXAMPLES }}
+      OPENEXR_BUILD_TOOLS: ${{ matrix.OPENEXR_BUILD_TOOLS }}
+      OPENEXR_BUILD_PYTHON: ${{ matrix.OPENEXR_BUILD_PYTHON }}
+      OPENEXR_FORCE_INTERNAL_IMATH: ${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH }}
+      OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }}
+      BUILD_TESTING: ${{ matrix.BUILD_TESTING }}
     strategy:
       matrix:
-        build: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        build: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         include:
-          # -------------------------------------------------------------------
-          # VFX CY2024 - GCC
-          # -------------------------------------------------------------------
-          # Shared, Release
+
+          - vfx-cy: 2024
+          - compiler-desc: gcc11.2.1
+          - cxx-compiler: g++
+          - cc-compiler: gcc
+          - cxx-standard: 17
+          - build-type: Release
+          - BUILD_SHARED_LIBS: 'ON'
+          - OPENEXR_ENABLE_THREADING: 'ON'
+          - OPENEXR_INSTALL_PKG_CONFIG: 'ON'
+          - OPENEXR_INSTALL_DOCS: 'ON'
+          - OPENEXR_BUILD_EXAMPLES: 'ON'
+          - OPENEXR_BUILD_TOOLS: 'ON'
+          - OPENEXR_BUILD_PYTHON: 'OFF'
+          - OPENEXR_FORCE_INTERNAL_IMATH: 'OFF'
+          - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
+          - BUILD_TESTING: 'OFF'
+
           - build: 1
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc11.2.1
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2024
-            exclude-tests:
-
-          # Shared, Release, Threads OFF
-          - build: 2
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc11.2.1
-            label: 
-            threads-enabled: 'OFF'
-            vfx-cy: 2024
-            exclude-tests:
-
-          # Shared, Debug
-          - build: 3
             build-type: Debug
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc11.2.1
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2024
-            exclude-tests:
 
-          # Static, Release
+          - build: 2
+
+          - build: 3
+            label: Static
+            BUILD_SHARED_LIBS: 'OFF'
+
           - build: 4
-            build-type: Release
-            build-shared: 'OFF'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc11.2.1
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2024
-            exclude-tests:
+            label: threads=OFF
+            OPENEXR_ENABLE_THREADING: 'OFF'
 
-          # -------------------------------------------------------------------
-          # VFX CY2024 - Clang 15.0
-          # -------------------------------------------------------------------
-          # Release
           - build: 5
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: clang++
-            cc-compiler: clang
+            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal deflate
+            OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
+            OPENEXR_INSTALL_DOCS: 'OFF'
+            OPENEXR_BUILD_EXAMPLES: 'OFF'
+            OPENEXR_BUILD_TOOLS: 'OFF'
+            OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
+            OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
+            BUILD_TESTING: 'OFF'
+
+          - build: 6
+            label: clang15.0
             compiler-desc: clang15.0
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2024
-            exclude-tests:
-
-          # -------------------------------------------------------------------
-          # VFX CY2024 - Clang 14.0
-          # -------------------------------------------------------------------
-          # Release
-          - build: 6
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
             cxx-compiler: clang++
             cc-compiler: clang
-            compiler-desc: clang14.0
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2024
-            exclude-tests:
 
-          # -------------------------------------------------------------------
-          # VFX CY2023 - GCC
-          # -------------------------------------------------------------------
-          # Shared, Release
           - build: 7
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc11.2.1
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2023
-            exclude-tests:
+            label: clang14.0
+            compiler-desc: clang14.0
+            cxx-compiler: clang++
+            cc-compiler: clang
 
-          # -------------------------------------------------------------------
-          # VFX CY2022 - GCC, Release
-          # -------------------------------------------------------------------
-          # Shared, Release
           - build: 8
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
-            compiler-desc: gcc9.3.1
-            label: 
-            threads-enabled: 'ON'
-            vfx-cy: 2022
-            exclude-tests:
+            label: vfx2023
+            vfx-cy: 2023
 
-          # -------------------------------------------------------------------
-          # VFX CY2021 - GCC, Release
-          # -------------------------------------------------------------------
-          # Shared, Release
           - build: 9
-            build-type: Release
-            build-shared: 'ON'
-            cxx-standard: 17
-            cxx-compiler: g++
-            cc-compiler: gcc
+            label: vfx2022
+            vfx-cy: 2022
             compiler-desc: gcc9.3.1
-            label: 
-            threads-enabled: 'ON'
+
+          - build: 10
+            label: vfx2021
             vfx-cy: 2021
-            exclude-tests:
+            compiler-desc: gcc9.3.1
 
-    env:
-      CXX: ${{ matrix.cxx-compiler }}
-      CC: ${{ matrix.cc-compiler }}
-      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
-      - name: Create build directories
-        run: |
-          mkdir _install
-          mkdir _build
-          mkdir _examples
-      - name: Configure
-        run: |
-          cmake -B _build -S . \
-                -DCMAKE_INSTALL_PREFIX=_install \
-                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-                -DOPENEXR_CXX_STANDARD=${{ matrix.cxx-standard }} \
-                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
-                -DCMAKE_VERBOSE_MAKEFILE:BOOL='OFF' \
-                -DBUILD_SHARED_LIBS=${{ matrix.build-shared }} \
-                -DOPENEXR_INSTALL_TOOLS='ON' \
-                -DOPENEXR_INSTALL_DOCS='OFF' \
-                -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
-                -DOPENEXR_ENABLE_THREADING=${{ matrix.threads-enabled }}
-      - name: Build
-        run: |
-          cmake --build _build \
-                --target install \
-                --config ${{ matrix.build-type }}
-      - name: Validate
-        run: |
-          share/ci/scripts/linux/validate_openexr_libs.sh _install 
-      - name: Test
-        run: |
-          ctest -T Test ${{ matrix.exclude-tests }} \
-                -C ${{ matrix.build-type }} \
-                --timeout 7200 \
-                --output-on-failure \
-                -VV
-        working-directory: _build
-
-  # ---------------------------------------------------------------------------
-  # macOS
-  # ---------------------------------------------------------------------------
-  # TODO: Add ARM64/x86_64 (universal 2) build
-
-  macos:
-    name: 'Mac VFXP-${{ matrix.vfx-cy }} macos-${{ matrix.osver }}
-      <${{ matrix.compiler-desc }},
-       C++${{ matrix.cxx-standard }},
-       config=${{ matrix.build-type }},
-       shared=${{ matrix.build-shared }},
-       cxx=${{ matrix.cxx-standard }},
-       threads=${{ matrix.threads-enabled }}>'
-    runs-on: macos-${{ matrix.osver }}
-    strategy:
-      matrix:
-        build: [1, 2, 3, 4, 5, 6]
-        include:
-          # -------------------------------------------------------------------
-          # MacOS 14
-          # -------------------------------------------------------------------
-          # Shared, Release
-          - build: 1
-            build-type: Release
-            build-shared: 'ON'
-            threads-enabled: 'ON'
-            compiler-desc: AppleClang11.0
-            cxx-standard: 17
-            osver: 14
-            exclude-tests:
-            vfx-cy: 24
-
-          # Shared, Release, Threads OFF
-          - build: 2
-            build-type: Release
-            build-shared: 'ON'
-            threads-enabled: 'OFF'
-            compiler-desc: AppleClang11.0
-            cxx-standard: 17
-            osver: 14
-            exclude-tests:
-            vfx-cy: 24
-
-          # Static, Release
-          - build: 3
-            build-type: Release
-            build-shared: 'OFF'
-            threads-enabled: 'ON'
-            compiler-desc: AppleClang11.0
-            cxx-standard: 17
-            osver: 14
-            exclude-tests:
-            vfx-cy: 24
-
-          # Shared, Debug
-          - build: 4
-            build-type: Debug
-            build-shared: 'ON'
-            threads-enabled: 'ON'
-            compiler-desc: AppleClang11.0
-            cxx-standard: 17
-            osver: 14
-            exclude-tests:
-            vfx-cy: 24
-
-          # -------------------------------------------------------------------
-          # MacOS 13
-          # -------------------------------------------------------------------
-          # Shared, Release
-          - build: 5
-            build-type: Release
-            build-shared: 'ON'
-            threads-enabled: 'ON'
-            compiler-desc: AppleClang11.0
-            cxx-standard: 17
-            osver: 13
-            exclude-tests:
-            vfx-cy: 23
-
-          # -------------------------------------------------------------------
-          # MacOS 12
-          # -------------------------------------------------------------------
-          # Shared, Release
-          - build: 6
-            build-type: Release
-            build-shared: 'ON'
-            threads-enabled: 'ON'
-            compiler-desc: AppleClang10.5
-            cxx-standard: 17
-            osver: 12
-            exclude-tests:
-            vfx-cy: 23
-
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
-      - name: Create build directories
-        run: |
-          mkdir _install
-          mkdir _build
-          mkdir _examples
-      - name: Configure
-        run: |
-          cmake .. \
-                -DCMAKE_INSTALL_PREFIX=../_install \
-                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-                -DOPENEXR_CXX_STANDARD=${{ matrix.cxx-standard }} \
-                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
-                -DCMAKE_VERBOSE_MAKEFILE:BOOL='OFF' \
-                -DBUILD_SHARED_LIBS=${{ matrix.build-shared }} \
-                -DOPENEXR_INSTALL_TOOLS='ON' \
-                -DOPENEXR_INSTALL_DOCS='OFF' \
-                -DOPENEXR_RUN_FUZZ_TESTS='OFF'
-        working-directory: _build
-      - name: Build
-        run: |
-          cmake --build . \
-                --target install \
-                --config ${{ matrix.build-type }}
-        working-directory: _build
-      - name: Examples
-        run: | 
-          # Make sure we can build the examples when configured as a
-          # standalone application linking against the just-installed
-          # OpenEXR library.
-          cmake ../src/examples \
-                -DCMAKE_PREFIX_PATH=../../_install \
-                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-                -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
-                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
-          cmake --build . \
-                --config ${{ matrix.build-type }}
-          # Confirm the examples program runs
-          ./bin/OpenEXRExamples
-        working-directory: _examples
-      - name: Test
-        run: |
-          ctest -T Test ${{matrix.exclude-tests }} \
-                -C ${{matrix.build-type}} \
-                --timeout 7200 \
-                --output-on-failure \
-                -VV
-        working-directory: _build
-
-  # ---------------------------------------------------------------------------
-  # Windows
-  # ---------------------------------------------------------------------------
-  # TODO: Debug mode is catatonically slow under windows
-  windows:
-    name: 'Windows VFXP-${{ matrix.vfx-cy }}
-      <${{ matrix.compiler-desc }},
-       config=${{ matrix.build-type }}, 
-       shared=${{ matrix.build-shared }}, 
-       cxx=${{ matrix.cxx-standard }},
-       threads=${{ matrix.threads-enabled }}>'
-    runs-on: windows-${{ matrix.osver }}
+  macOS:
+    name: 'macOS ${{ matrix.build}}: ${{ matrix.os }} ${{ matrix.vfx-cy }}
+       ${{ matrix.compiler-desc }}
+       C++${{ matrix.cxx-standard }}
+       ${{ matrix.build-type }}
+       ${{ matrix.label }}'
+    uses: ./.github/workflows/ci_steps.yml
+    with:
+      os: ${{ matrix.os }}
+      vfx-cy: ${{ matrix.vfx-cy }}
+      compiler-desc: ${{ matrix.compiler-desc }}
+      cxx-compiler: ${{ matrix.cxx-compiler }}
+      cc-compiler: ${{ matrix.cc-compiler }}
+      cxx-standard: ${{ matrix.cxx-standard }}
+      build-type: ${{ matrix.build-type }}
+      BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS }}
+      OPENEXR_ENABLE_THREADING: ${{ matrix.OPENEXR_ENABLE_THREADING }}
+      OPENEXR_INSTALL_PKG_CONFIG: ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }}
+      OPENEXR_INSTALL_DOCS: ${{ matrix.OPENEXR_INSTALL_DOCS }}
+      OPENEXR_BUILD_EXAMPLES: ${{ matrix.OPENEXR_BUILD_EXAMPLES }}
+      OPENEXR_BUILD_TOOLS: ${{ matrix.OPENEXR_BUILD_TOOLS }}
+      OPENEXR_BUILD_PYTHON: ${{ matrix.OPENEXR_BUILD_PYTHON }}
+      OPENEXR_FORCE_INTERNAL_IMATH: ${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH }}
+      OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }}
+      BUILD_TESTING: ${{ matrix.BUILD_TESTING }}
     strategy:
       matrix:
         build: [1, 2, 3, 4, 5]
         include:
-          # -------------------------------------------------------------------
-          # VFX CY2023 - C++17 - Windows 2022 runner - MSVC 2022 (17.5)
-          # -------------------------------------------------------------------
-          # Shared, Release
+          # defaults settings. These are inherited for each build below.
+          - vfx-cy: 2024
+          - os: macos-12
+          - compiler-desc: AppleClang11.0
+          - cxx-standard: 17
+          - build-type: Release
+          - BUILD_SHARED_LIBS: 'ON'
+          - OPENEXR_ENABLE_THREADING: 'ON'
+          - OPENEXR_INSTALL_PKG_CONFIG: 'ON'
+          - OPENEXR_INSTALL_DOCS: 'ON'
+          - OPENEXR_BUILD_EXAMPLES: 'ON'
+          - OPENEXR_BUILD_TOOLS: 'ON'
+          - OPENEXR_BUILD_PYTHON: 'OFF'
+          - OPENEXR_FORCE_INTERNAL_IMATH: 'OFF'
+          - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
+          - BUILD_TESTING: 'OFF'
+
           - build: 1
-            build-type: Release
-            build-shared: 'ON'
-            threads-enabled: 'ON'
-            compiler-desc: msvc17.5
-            cxx-standard: 17
-            vfx-cy: 2023
-            exclude-tests: ''
-            osver: 2022
+            build-type: Debug
 
-          # Shared, Release, Threads OFF
           - build: 2
-            build-type: Release
-            build-shared: 'ON'
-            threads-enabled: 'OFF'
-            compiler-desc: msvc17.5
-            cxx-standard: 17
-            vfx-cy: 2023
-            exclude-tests: ''
-            osver: 2022
 
-          # Static, Release
           - build: 3
-            build-type: Release
-            build-shared: 'OFF'
-            threads-enabled: 'ON'
-            compiler-desc: msvc17.5
-            cxx-standard: 17
-            vfx-cy: 2023
-            exclude-tests: ''
-            osver: 2022
+            label: Static
+            BUILD_SHARED_LIBS: 'OFF'
 
-          # -------------------------------------------------------------------
-          # VFX CY2022 - C++17 - Windows 2019 runner - MSVC 2019 (16.11) 
-          # -------------------------------------------------------------------
-          # Shared, Release
           - build: 4
-            build-type: Release
-            build-shared: 'ON'
-            threads-enabled: 'ON'
-            compiler-desc: msvc16.11
-            cxx-standard: 17
-            vfx-cy: 2022
-            exclude-tests: ''
-            osver: 2019
+            label: threads=OFF
+            OPENEXR_ENABLE_THREADING: 'OFF'
 
-          # Static, Release
           - build: 5
-            build-type: Release
-            build-shared: 'OFF'
-            threads-enabled: 'ON'
-            compiler-desc: msvc16.11
-            cxx-standard: 17
-            vfx-cy: 2022
-            exclude-tests: ''
-            osver: 2019
+            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
+            OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
+            OPENEXR_INSTALL_DOCS: 'OFF'
+            OPENEXR_BUILD_EXAMPLES: 'OFF'
+            OPENEXR_BUILD_TOOLS: 'OFF'
+            OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
+            OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
+            BUILD_TESTING: 'OFF'
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
-      - name: Create build directories
-        run: |
-          mkdir _install
-          mkdir _build
-          mkdir _examples
-        shell: bash
-      ## - name: Install Dependences
-      ##   run: |
-      ##     share/ci/scripts/windows/install_python.ps1 ${{ matrix.python-version }} $HOME 
-      ##     share/ci/scripts/windows/install_boost.ps1 ${{ matrix.boost-version }} $HOME 3.8
-      ##     share/ci/scripts/windows/install_zlib.ps1 ${{ matrix.zlib-version }} $HOME 
-      ##   shell: powershell
-      - name: Configure
-        run: |
-          cmake .. \
-                -DCMAKE_INSTALL_PREFIX=../_install \
-                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-                -DOPENEXR_CXX_STANDARD=${{ matrix.cxx-standard }} \
-                -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }} \
-                -DCMAKE_VERBOSE_MAKEFILE:BOOL='OFF' \
-                -DBUILD_SHARED_LIBS=${{ matrix.build-shared }} \
-                -DOPENEXR_INSTALL_TOOLS='ON' \
-                -DOPENEXR_INSTALL_DOCS='OFF' \
-                -DOPENEXR_RUN_FUZZ_TESTS='OFF' 
-        shell: bash
-        working-directory: _build
-      - name: Build
-        run: |
-          cmake --build . \
-                --target install \
-                --config ${{ matrix.build-type }}
-        shell: bash
-        working-directory: _build
-      ## - name: Examples
-      ##  run: |
-      ##    # Make sure we can build the examples when configured as a
-      ##    # standalone application linking against the just-installed
-      ##    # OpenEXR library.
-      ##    cmake ../src/examples \
-      ##          -DCMAKE_PREFIX_PATH=../../_install \
-      ##          -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-      ##          -DCMAKE_CXX_STANDARD=${{ matrix.cxx-standard }} \
-      ##          -DCMAKE_CXX_FLAGS=${{ matrix.cxx-flags }}
-      ##    cmake --build . \
-      ##          --config ${{ matrix.build-type }}
-      ##    # Confirm the examples program runs
-      ##    ./bin/OpenEXRExamples
-      ##  shell: bash
-      ##  working-directory: _examples
-      - name: Test
-        run: |
-          ctest -T Test ${{ matrix.exclude-tests }} \
-                -C ${{ matrix.build-type }} \
-                --timeout 7200 \
-                --output-on-failure \
-                -VV
-        shell: bash
-        working-directory: _build
+  windows:
+    name: 'Windows ${{ matrix.build}}: ${{ matrix.os }} ${{ matrix.vfx-cy }}
+       ${{ matrix.compiler-desc }}
+       C++${{ matrix.cxx-standard }}
+       ${{ matrix.build-type }}
+       ${{ matrix.label }}'
+    uses: ./.github/workflows/ci_steps.yml
+    with:
+      os: windows-2022
+      vfx-cy: ${{ matrix.vfx-cy }}
+      compiler-desc: ${{ matrix.compiler-desc }}
+      cxx-compiler: ${{ matrix.cxx-compiler }}
+      cc-compiler: ${{ matrix.cc-compiler }}
+      cxx-standard: ${{ matrix.cxx-standard }}
+      build-type: ${{ matrix.build-type }}
+      BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS }}
+      OPENEXR_ENABLE_THREADING: ${{ matrix.OPENEXR_ENABLE_THREADING }}
+      OPENEXR_INSTALL_PKG_CONFIG: ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG }}
+      OPENEXR_INSTALL_DOCS: ${{ matrix.OPENEXR_INSTALL_DOCS }}
+      OPENEXR_BUILD_EXAMPLES: ${{ matrix.OPENEXR_BUILD_EXAMPLES }}
+      OPENEXR_BUILD_TOOLS: ${{ matrix.OPENEXR_BUILD_TOOLS }}
+      OPENEXR_BUILD_PYTHON: ${{ matrix.OPENEXR_BUILD_PYTHON }}
+      OPENEXR_FORCE_INTERNAL_IMATH: ${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH }}
+      OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE }}
+      BUILD_TESTING: ${{ matrix.BUILD_TESTING }}
+    strategy:
+      matrix:
+        build: [1]
+        include:
+          # defaults settings. These are inherited for each build below.
+          - vfx-cy: 2023
+          - os: windows-2022
+          - compiler-desc: msvc17.5
+          - cxx-standard: 17
+          - build-type: Release
+          - BUILD_SHARED_LIBS: 'ON'
+          - OPENEXR_ENABLE_THREADING: 'ON'
+          - OPENEXR_INSTALL_PKG_CONFIG: 'ON'
+          - OPENEXR_INSTALL_DOCS: 'OFF'
+          - OPENEXR_BUILD_EXAMPLES: 'ON'
+          - OPENEXR_BUILD_TOOLS: 'ON'
+          - OPENEXR_BUILD_PYTHON: 'OFF'
+          - OPENEXR_FORCE_INTERNAL_IMATH: 'OFF'
+          - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
+          - BUILD_TESTING: 'OFF'
+
+          - build: 1
+            build-type: Debug
 

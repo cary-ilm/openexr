@@ -1,0 +1,112 @@
+name: Build Steps
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      container:
+        required: false
+        type: string
+      vfx-cy:
+        required: false
+        type: string
+      compiler-desc:
+        required: false
+        type: string
+      cxx-compiler:
+        required: false
+        type: string
+      cc-compiler:
+        required: false
+        type: string
+      cxx-standard:
+        required: false
+        type: string
+      build-type:
+        required: false
+        type: string
+      BUILD_SHARED_LIBS:
+        required: false
+        type: string
+      OPENEXR_ENABLE_THREADING:
+        required: false
+        type: string
+      OPENEXR_INSTALL_PKG_CONFIG:
+        required: false
+        type: string
+      OPENEXR_INSTALL_DOCS:
+        required: false
+        type: string
+      OPENEXR_BUILD_EXAMPLES:
+        required: false
+        type: string
+      OPENEXR_BUILD_TOOLS:
+        required: false
+        type: string
+      OPENEXR_BUILD_PYTHON:
+        required: false
+        type: string
+      OPENEXR_FORCE_INTERNAL_IMATH:
+        required: false
+        type: string
+      OPENEXR_FORCE_INTERNAL_DEFLATE:
+        required: false
+        type: string
+      BUILD_TESTING:
+        required: false
+        type: string
+
+jobs:
+  ci_steps:
+    runs-on: ${{ inputs.os }}
+      - name: Checkout
+        uses: actions/checkout@v3.6.0
+
+      - name: Install Dependencies
+        run: |
+          share/ci/scripts/install_imath.sh main
+          share/ci/scripts/install_libdeflate.sh master
+          share/ci/scripts/linux/install_help2man.sh
+
+      - name: Create build directories
+        run: |
+          mkdir _install
+          mkdir _build
+          mkdir _examples
+
+      - name: Construct CMake command and save it to environment
+        run: |
+          CMAKE_COMMAND="cmake -B _build -S . \
+                -DCMAKE_INSTALL_PREFIX=_install \
+                -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
+                -DOPENEXR_CXX_STANDARD=${{ inputs.cxx-standard }} \
+                -DCMAKE_CXX_FLAGS='${{ inputs.cxx-flags }}' \
+                -DBUILD_SHARED_LIBS=${{ inputs.BUILD_SHARED_LIBS }} \
+                -DOPENEXR_ENABLE_THREADING=${{ inputs.OPENEXR_ENABLE_THREADING }} \
+                -DOPENEXR_INSTALL_PKG_CONFIG=${{ inputs.OPENEXR_INSTALL_PKG_CONFIG }} \
+                -DOPENEXR_INSTALL_DOCS=${{ inputs.OPENEXR_INSTALL_DOCS }} \
+                -DOPENEXR_BUILD_EXAMPLES=${{ inputs.OPENEXR_BUILD_EXAMPLES }} \
+                -DOPENEXR_BUILD_TOOLS=${{ inputs.OPENEXR_BUILD_TOOLS }} \
+                -DOPENEXR_BUILD_PYTHON=${{ inputs.OPENEXR_BUILD_PYTHON }} \
+                -DOPENEXR_FORCE_INTERNAL_IMATH=${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }} \
+                -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
+                -DBUILD_TESTING=${{ inputs.BUILD_TESTING }} \
+                -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
+                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
+          echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
+
+      - name: Configure
+        run: $CMAKE_COMMAND
+
+      - name: Build
+        run: |
+          cmake --build _build \
+                --target install \
+                --config ${{ matrix.build-type }}
+
+      - name: Test
+        run: |
+          echo ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
+        working-directory: _build
