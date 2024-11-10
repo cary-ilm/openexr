@@ -88,7 +88,7 @@ jobs:
           - OPENEXR_BUILD_PYTHON: 'OFF'
           - OPENEXR_FORCE_INTERNAL_IMATH: 'OFF'
           - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
-          - BUILD_TESTING: 'OFF'
+          - BUILD_TESTING: 'ON'
 
           - build: 1
             build-type: Debug
@@ -177,13 +177,13 @@ jobs:
           - BUILD_SHARED_LIBS: 'ON'
           - OPENEXR_ENABLE_THREADING: 'ON'
           - OPENEXR_INSTALL_PKG_CONFIG: 'ON'
-          - OPENEXR_INSTALL_DOCS: 'ON'
+          - OPENEXR_INSTALL_DOCS: 'OFF'
           - OPENEXR_BUILD_EXAMPLES: 'ON'
           - OPENEXR_BUILD_TOOLS: 'ON'
           - OPENEXR_BUILD_PYTHON: 'OFF'
           - OPENEXR_FORCE_INTERNAL_IMATH: 'OFF'
           - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
-          - BUILD_TESTING: 'OFF'
+          - BUILD_TESTING: 'ON'
 
           - build: 1
             build-type: Debug
@@ -252,7 +252,7 @@ jobs:
           - OPENEXR_BUILD_PYTHON: 'OFF'
           - OPENEXR_FORCE_INTERNAL_IMATH: 'OFF'
           - OPENEXR_FORCE_INTERNAL_DEFLATE: 'OFF'
-          - BUILD_TESTING: 'OFF'
+          - BUILD_TESTING: 'ON'
 
           - build: 1
             build-type: Debug
