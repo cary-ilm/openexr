@@ -71,6 +71,7 @@ jobs:
           mkdir _install
           mkdir _build
           mkdir _examples
+        shell: bash
 
       - name: Construct CMake command and save it to environment
         run: |
@@ -92,17 +93,21 @@ jobs:
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
           echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
+        shell: bash
 
       - name: Configure
         run: $CMAKE_COMMAND
+        shell: bash
 
       - name: Build
         run: |
           cmake --build _build \
                 --target install \
                 --config ${{ inputs.build-type }}
+        shell: bash
 
       - name: Test
         run: |
           echo ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
         working-directory: _build
+        shell: bash
