@@ -66,12 +66,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3.6.0
 
-      - name: Install Dependencies
-        run: |
-          share/ci/scripts/install_imath.sh main
-          share/ci/scripts/install_libdeflate.sh master
-          share/ci/scripts/linux/install_help2man.sh
-
       - name: Create build directories
         run: |
           mkdir _install
