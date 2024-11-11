@@ -4,58 +4,40 @@ on:
   workflow_call:
     inputs:
       os:
-        required: true
         type: string
       container:
-        required: false
         type: string
       vfx-cy:
-        required: false
         type: string
       compiler-desc:
-        required: false
         type: string
       cxx-compiler:
-        required: false
         type: string
       cc-compiler:
-        required: false
         type: string
       cxx-standard:
-        required: false
         type: string
       build-type:
-        required: false
         type: string
       BUILD_SHARED_LIBS:
-        required: false
         type: string
       OPENEXR_ENABLE_THREADING:
-        required: false
         type: string
       OPENEXR_INSTALL_PKG_CONFIG:
-        required: false
         type: string
       OPENEXR_INSTALL_DOCS:
-        required: false
         type: string
       OPENEXR_BUILD_EXAMPLES:
-        required: false
         type: string
       OPENEXR_BUILD_TOOLS:
-        required: false
         type: string
       OPENEXR_BUILD_PYTHON:
-        required: false
         type: string
       OPENEXR_FORCE_INTERNAL_IMATH:
-        required: false
         type: string
       OPENEXR_FORCE_INTERNAL_DEFLATE:
-        required: false
         type: string
       BUILD_TESTING:
-        required: false
         type: string
 
 jobs:
