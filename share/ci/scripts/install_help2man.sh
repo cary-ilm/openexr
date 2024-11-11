@@ -8,10 +8,8 @@ HELP2MAN_DIR="help2man-$HELP2MAN_VERSION"
 
 if [[ $OSTYPE == *msys* ]]; then
     SUDO=""
-    export PROGRAM_SUFFIX=.exe
 else
     SUDO="sudo"
-    export PROGRAM_SUFFIX=""
 fi
 
 # Download help2man source code
@@ -35,15 +33,6 @@ make
 
 echo "Installing help2man..."
 $SUDO make install 
-
-if [[ $OSTYPE == *msys* ]]; then
-  mv /usr/local/bin/help2man /usr/local/bin/help2man$PROGRAM_SUFFIX
-fi
-
-ls -l /usr/local/bin
-
-# Verify the installation
-/usr/local/bin/help2man$PROGRAM_SUFFIX --version 
 
 echo "help2man installed successfully!"
 

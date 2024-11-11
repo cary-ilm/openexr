@@ -1,7 +1,15 @@
-name: Build Steps
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) Contributors to the OpenEXR Project.
+
+# These are the steps for all CI jobs. Linux, macOS, and Windows all
+# share a common set of configure/build/validate steps.  The input
+# variables control all variations of the validation jobs.
+
+name: CI Steps
 
 on:
   workflow_call:
+    # This inputs receive values via the "with:" section in ci_workflow.yml
     inputs:
       os:
         type: string
@@ -43,6 +51,13 @@ on:
 jobs:
   ci_steps:
     runs-on: ${{ inputs.os }}
+
+    env:
+      CXX: ${{ inputs.cxx-compiler }}
+      CC: ${{ inputs.cc-compiler }}
+      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
     steps:
 
       - name: Checkout
@@ -50,6 +65,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          # Install Imath and libdeflate first, so the steps below can
+          # validate both building against an installation as well as
+          # an internal build.
           share/ci/scripts/install_imath.sh main
           share/ci/scripts/install_libdeflate.sh master
           share/ci/scripts/install_help2man.sh
