@@ -123,7 +123,7 @@ jobs:
     name: 'macOS ${{ matrix.build}}: ${{ matrix.label }}'
     uses: ./.github/workflows/ci_steps.yml
     with:
-      os: ${{ matrix.os }}
+      os: ${{ matrix.os || 'macos-14' }}
       vfx-cy: ${{ matrix.vfx-cy || '2024' }}
       compiler-desc: ${{ matrix.compiler-desc || 'AppleClang11.0' }}
       cxx-compiler: ${{ matrix.cxx-compiler }}
@@ -150,7 +150,7 @@ jobs:
 
           - build: 2
             label: Release
-
+                   
           - build: 3
             label: Static
             BUILD_SHARED_LIBS: 'OFF'
@@ -169,6 +169,15 @@ jobs:
             OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
             BUILD_TESTING: 'OFF'
 
+          - build: 6
+            label: macos-13
+            os: macos-13
+
+          - build: 7
+            label: macos-12
+            os: macos-12
+
+
   windows:
     name: 'Windows ${{ matrix.build}}: ${{ matrix.label }}'
     uses: ./.github/workflows/ci_steps.yml
@@ -183,7 +192,7 @@ jobs:
       BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS || 'ON' }}
       OPENEXR_ENABLE_THREADING: ${{ matrix.OPENEXR_ENABLE_THREADING || 'ON' }}
       OPENEXR_INSTALL_PKG_CONFIG: ${{ matrix.OPENEXR_INSTALL_PKG_CONFIG || 'ON' }}
-      OPENEXR_INSTALL_DOCS: ${{ matrix.OPENEXR_INSTALL_DOCS || 'ON' }}
+      OPENEXR_INSTALL_DOCS: ${{ matrix.OPENEXR_INSTALL_DOCS || 'OFF' }}
       OPENEXR_BUILD_EXAMPLES: ${{ matrix.OPENEXR_BUILD_EXAMPLES || 'ON' }}
       OPENEXR_BUILD_TOOLS: ${{ matrix.OPENEXR_BUILD_TOOLS || 'ON' }}
       OPENEXR_BUILD_PYTHON: ${{ matrix.OPENEXR_BUILD_PYTHON || 'OFF' }}
@@ -199,7 +208,6 @@ jobs:
 
           - build: 2
             label: Release
-            build-type: Debug
 
 
 

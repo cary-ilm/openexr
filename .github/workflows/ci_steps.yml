@@ -48,6 +48,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3.6.0
 
+      - name: Install Dependencies
+        run: |
+          share/ci/scripts/install_imath.sh main
+          share/ci/scripts/install_libdeflate.sh master
+          share/ci/scripts/install_help2man.sh
+        shell: bash
+
       - name: Create build directories
         run: |
           mkdir _install
@@ -61,7 +68,6 @@ jobs:
                 -DCMAKE_INSTALL_PREFIX=_install \
                 -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ inputs.cxx-standard }} \
-                -DCMAKE_CXX_FLAGS='${{ inputs.cxx-flags }}' \
                 -DBUILD_SHARED_LIBS=${{ inputs.BUILD_SHARED_LIBS }} \
                 -DOPENEXR_ENABLE_THREADING=${{ inputs.OPENEXR_ENABLE_THREADING }} \
                 -DOPENEXR_INSTALL_PKG_CONFIG=${{ inputs.OPENEXR_INSTALL_PKG_CONFIG }} \
