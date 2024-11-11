@@ -114,6 +114,6 @@ jobs:
 
       - name: Test
         run: |
-          echo ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
+          ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
         working-directory: _build
         shell: bash
