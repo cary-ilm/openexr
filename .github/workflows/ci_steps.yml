@@ -52,11 +52,11 @@ jobs:
   ci_steps:
     runs-on: ${{ inputs.os }}
 
-    env:
-      CXX: ${{ inputs.cxx-compiler }}
-      CC: ${{ inputs.cc-compiler }}
-      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+#    env:
+#      CXX: ${{ inputs.cxx-compiler }}
+#      CC: ${{ inputs.cc-compiler }}
+#      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
+#      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
 
