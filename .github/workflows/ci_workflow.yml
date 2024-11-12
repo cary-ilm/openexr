@@ -184,7 +184,6 @@ jobs:
             label: macos-12
             os: macos-12
 
-
   windows:
     name: 'Windows.${{ matrix.build}}: ${{ matrix.label }}'
     uses: ./.github/workflows/ci_steps.yml
@@ -213,21 +212,4 @@ jobs:
       matrix:
         include:
           - build: 1
-            label: Debug
-            build-type: Debug
-
-          - build: 2
             label: Release
-
-          - build: 3
-            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
-            OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
-            OPENEXR_INSTALL_DOCS: 'OFF'
-            OPENEXR_BUILD_EXAMPLES: 'OFF'
-            OPENEXR_BUILD_TOOLS: 'OFF'
-            OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
-            OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
-            BUILD_TESTING: 'OFF'
-
-
-
