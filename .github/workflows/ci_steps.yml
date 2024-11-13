@@ -82,7 +82,7 @@ jobs:
 
       - name: Construct CMake command and save it to environment
         run: |
-          CMAKE_COMMAND="cmake .. \
+          CMAKE_COMMAND="cmake -B . -S .. \
                 -DCMAKE_INSTALL_PREFIX=../_install \
                 -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ inputs.cxx-standard }} \
