@@ -82,8 +82,8 @@ jobs:
 
       - name: Construct CMake command and save it to environment
         run: |
-          CMAKE_COMMAND="cmake -B _build -S . \
-                -DCMAKE_INSTALL_PREFIX=_install \
+          CMAKE_COMMAND="cmake -B . -S .. \
+                -DCMAKE_INSTALL_PREFIX=../_install \
                 -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ inputs.cxx-standard }} \
                 -DBUILD_SHARED_LIBS=${{ inputs.BUILD_SHARED_LIBS }} \
@@ -99,17 +99,20 @@ jobs:
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
                 -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
           echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
+        working-directory: _build
         shell: bash
 
       - name: Configure
         run: $CMAKE_COMMAND
+        working-directory: _build
         shell: bash
 
       - name: Build
         run: |
-          cmake --build _build \
+          cmake --build . \
                 --target install \
                 --config ${{ inputs.build-type }}
+        working-directory: _build
         shell: bash
 
       - name: Test
