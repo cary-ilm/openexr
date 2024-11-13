@@ -82,7 +82,7 @@ jobs:
 
       - name: Construct CMake command and save it to environment
         run: |
-          CMAKE_COMMAND="cmake -B . -S .. \
+          CMAKE_COMMAND="cmake .. \
                 -DCMAKE_INSTALL_PREFIX=../_install \
                 -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ inputs.cxx-standard }} \
@@ -97,7 +97,7 @@ jobs:
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
                 -DBUILD_TESTING=${{ inputs.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
-                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
+                -DCMAKE_VERBOSE_MAKEFILE:BOOL='OFF'"
           echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
         working-directory: _build
         shell: bash
