@@ -126,7 +126,7 @@ jobs:
         shell: bash
     
       - name: Test Examples
-        run: D:\a\openexr\openexr\_build\bin\Release\OpenEXRExamples.exe
+        run: D:/a/openexr/openexr/_build/bin/Release/OpenEXRExamples.exe
         shell: bash
 
       - name: Test
