@@ -115,6 +115,13 @@ jobs:
         working-directory: _build
         shell: bash
 
+      - name: Set PATH for Imath DLLs
+        run: |
+          echo "C:/Program Files (x86)/Imath/bin" >> $GITHUB_PATH
+          echo "C:/Program Files (x86)/Imath/lib" >> $GITHUB_PATH
+          echo "C:/Program Files (x86)/libdeflate/bin" >> $GITHUB_PATH
+          echo "C:/Program Files (x86)/libdeflate/lib" >> $GITHUB_PATH
+    
       - name: Test
         run: |
           ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
