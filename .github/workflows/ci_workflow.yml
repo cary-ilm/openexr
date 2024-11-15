@@ -211,25 +211,25 @@ jobs:
           - build: 2
             label: Release
 
-         - build: 3
-           label: Static
-           BUILD_SHARED_LIBS: 'OFF'
+          - build: 3
+            label: Static
+            BUILD_SHARED_LIBS: 'OFF'
 
-         - build: 4
-           label: threads=OFF
-           OPENEXR_ENABLE_THREADING: 'OFF'
+          - build: 4
+            label: threads=OFF
+            OPENEXR_ENABLE_THREADING: 'OFF'
 
-         - build: 5
-           label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
-           OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
-           OPENEXR_INSTALL_DOCS: 'OFF'
-           OPENEXR_BUILD_EXAMPLES: 'OFF'
-           OPENEXR_BUILD_TOOLS: 'OFF'
-           OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
-           OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
-           BUILD_TESTING: 'OFF'
+          - build: 5
+            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
+            OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
+            OPENEXR_INSTALL_DOCS: 'OFF'
+            OPENEXR_BUILD_EXAMPLES: 'OFF'
+            OPENEXR_BUILD_TOOLS: 'OFF'
+            OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
+            OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
+            BUILD_TESTING: 'OFF'
 
-         - build: 6
-           label: windows-2019
-           os: windows-2019
+          - build: 6
+            label: windows-2019
+            os: windows-2019
 
