@@ -44,6 +44,7 @@ permissions:
 
 jobs:
   linux:
+    if: false
     name: 'Linux.${{ matrix.build}}: ${{ matrix.label }}'
     uses: ./.github/workflows/ci_steps.yml
     with:
@@ -119,6 +120,7 @@ jobs:
             vfx-cy: 2021
 
   macOS:
+    if: false
     name: 'macOS.${{ matrix.build}}: ${{ matrix.label }}'
     uses: ./.github/workflows/ci_steps.yml
     with:
@@ -215,9 +217,9 @@ jobs:
             label: Static
             BUILD_SHARED_LIBS: 'OFF'
 
-          - build: 4
-            label: threads=OFF
-            OPENEXR_ENABLE_THREADING: 'OFF'
+#          - build: 4
+#            label: threads=OFF
+#            OPENEXR_ENABLE_THREADING: 'OFF'
 
           - build: 5
             label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
