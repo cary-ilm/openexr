@@ -115,18 +115,10 @@ jobs:
         working-directory: _build
         shell: bash
 
-      - name: Set PATH for Imath DLLs
+      - name: Set PATH for Imath/libdeflate DLLs
+        if: contains(inputs.os, 'windows')
         run: |
           echo "$PATH;C:/Program Files (x86)/Imath/bin;C:/Program Files (x86)/Imath/lib;C:/Program Files (x86)/libdeflate/bin;C:/Program Files (x86)/libdeflate/lib" >> $GITHUB_PATH
-        shell: bash
-
-      - name: Test PATH
-        run: |
-          echo "PATH: $PATH"
-        shell: bash
-    
-      - name: Test Examples
-        run: D:/a/openexr/openexr/_build/bin/Release/OpenEXRExamples.exe
         shell: bash
 
       - name: Test
