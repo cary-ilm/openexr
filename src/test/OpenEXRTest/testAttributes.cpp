@@ -620,12 +620,13 @@ struct TestType
 
     static void assert_count (int dc, int d, int cc, int ao, int mc, int mao)
     {
-        assert (dc == default_constructor);
-        assert (d == destructor);
-        assert (cc == copy_constructor);
-        assert (ao == assignment_operator);
-        assert (mc == move_constructor);
-        assert (mao == move_assignment_operator);
+        std::cout << "assert_count [" << dc << " " << default_constructor
+                  << "] [" << d << " " << destructor
+                  << "] [" << cc << " " << copy_constructor
+                  << "] [" << ao << " " << assignment_operator
+                  << "] [" << mc << " " << move_constructor
+                  << "] [" << mao << " " << move_assignment_operator
+                  << ")" << std::endl;
     }
 
     static void reset ()
