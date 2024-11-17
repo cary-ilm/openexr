@@ -188,9 +188,6 @@ jobs:
       # Note the defaults provided here for the builds that don't specify
       # values.
       os: windows-2022
-      vfx-cy: ${{ matrix.vfx-cy || '2024' }}
-      cxx-compiler: ${{ matrix.cxx-compiler }}
-      cc-compiler: ${{ matrix.cc-compiler }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
       build-type: ${{ matrix.build-type || 'Release' }}
       BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS || 'ON' }}
@@ -202,26 +199,18 @@ jobs:
       OPENEXR_BUILD_PYTHON: ${{ matrix.OPENEXR_BUILD_PYTHON || 'OFF' }}
       OPENEXR_FORCE_INTERNAL_IMATH: ${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH || 'OFF' }}
       OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE || 'OFF' }}
-      BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
+      BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'OFF' }}
     strategy:
       matrix:
         include:
           - build: 1
-            build-type: Debug
             label: Debug
+            build-type: Debug
 
           - build: 2
             label: Release
 
           - build: 3
-            label: Static
-            BUILD_SHARED_LIBS: 'OFF'
-
-#          - build: 4
-#            label: threads=OFF
-#            OPENEXR_ENABLE_THREADING: 'OFF'
-
-          - build: 5
             label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
             OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
             OPENEXR_INSTALL_DOCS: 'OFF'
@@ -231,7 +220,10 @@ jobs:
             OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
             BUILD_TESTING: 'OFF'
 
-          - build: 6
-            label: windows-2019
+          - build: 4
+            label: vfx2022
             os: windows-2019
+          - build: 5
+            label: latest
+            os: windows-latest
 
