@@ -45,7 +45,7 @@ on:
         type: string
 
 jobs:
-  "ci steps":
+  ci_steps:
     runs-on: ${{ inputs.os }}
 
     env:
