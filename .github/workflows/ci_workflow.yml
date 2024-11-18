@@ -46,8 +46,6 @@ jobs:
   linux:
     name: 'Linux.${{ matrix.build}}: ${{ matrix.label }}'
     uses: ./.github/workflows/ci_steps.yml
-    container:
-      image: aswf/ci-openexr:${{ matrix.vfx-cy || '2024' }}
     with:
       # Set values for the "inputs:" as defined in ci_steps.yml
       # Note the defaults provided here for the builds that don't specify
