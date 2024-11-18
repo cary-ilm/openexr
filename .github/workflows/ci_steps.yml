@@ -120,7 +120,6 @@ jobs:
         shell: bash
 
       - name: Test
-        if: ${{ inputs.BUILD_TESTING }} == 'ON'
         run: |
           ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
         working-directory: _build
