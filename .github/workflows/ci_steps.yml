@@ -13,6 +13,8 @@ on:
     inputs:
       os:
         type: string
+      container:
+        type: string
       cxx-standard:
         type: string
       build-type:
@@ -39,6 +41,12 @@ on:
 jobs:
   ci_steps:
     runs-on: ${{ inputs.os }}
+
+    container:
+      if: ${{ inputs.container }}
+      # DockerHub: https://hub.docker.com/u/aswf
+      # Source: https://github.com/AcademySoftwareFoundation/aswf-docker
+      image: ${{ inputs.container }}
 
     steps:
 

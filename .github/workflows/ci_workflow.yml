@@ -51,6 +51,7 @@ jobs:
       # Note the defaults provided here for the builds that don't specify
       # values.
       os: ubuntu-latest
+      container: aswf/ci-openexr:${{ matrix.vfx-cy || '2024' }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
       build-type: ${{ matrix.build-type || 'Release' }}
       BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS || 'ON' }}
@@ -62,10 +63,6 @@ jobs:
       OPENEXR_FORCE_INTERNAL_IMATH: ${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH || 'OFF' }}
       OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE || 'OFF' }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
-    container:
-      # DockerHub: https://hub.docker.com/u/aswf
-      # Source: https://github.com/AcademySoftwareFoundation/aswf-docker
-      image: aswf/ci-openexr:${{ matrix.vfx-cy || '2024' }}
     strategy:
       matrix:
         include:
