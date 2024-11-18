@@ -51,6 +51,8 @@ jobs:
       # Note the defaults provided here for the builds that don't specify
       # values.
       os: ubuntu-latest
+      # DockerHub: https://hub.docker.com/u/aswf
+      # Source: https://github.com/AcademySoftwareFoundation/aswf-docker
       container: aswf/ci-openexr:${{ matrix.vfx-cy || '2024' }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
       build-type: ${{ matrix.build-type || 'Release' }}
