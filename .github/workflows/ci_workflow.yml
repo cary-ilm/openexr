@@ -52,8 +52,6 @@ jobs:
       # values.
       os: ubuntu-latest
       container: aswf/ci-openexr:${{ matrix.vfx-cy || '2024' }}
-      cxx-compiler: ${{ matrix.cxx-compiler || 'g++' }}
-      cc-compiler: ${{ matrix.cc-compiler || 'gcc' }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
       build-type: ${{ matrix.build-type || 'Release' }}
       BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS || 'ON' }}
@@ -95,24 +93,14 @@ jobs:
             BUILD_TESTING: 'OFF'
 
           - build: 6
-            label: clang15.0
-            cxx-compiler: clang++
-            cc-compiler: clang
-
-          - build: 7
-            label: clang14.0
-            cxx-compiler: clang++
-            cc-compiler: clang
-
-          - build: 8
             label: vfx2023
             vfx-cy: 2023
 
-          - build: 9
+          - build: 7
             label: vfx2022
             vfx-cy: 2022
 
-          - build: 10
+          - build: 8
             label: vfx2021
             vfx-cy: 2021
 
@@ -124,8 +112,6 @@ jobs:
       # Note the defaults provided here for the builds that don't specify
       # values.
       os: ${{ matrix.os || 'macos-14' }}
-      cxx-compiler: ${{ matrix.cxx-compiler || 'clang++' }}
-      cc-compiler: ${{ matrix.cc-compiler || 'clang' }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
       build-type: ${{ matrix.build-type || 'Release' }}
       BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS || 'ON' }}

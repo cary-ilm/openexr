@@ -13,14 +13,6 @@ on:
     inputs:
       os:
         type: string
-      container:
-        type: string
-      vfx-cy:
-        type: string
-      cxx-compiler:
-        type: string
-      cc-compiler:
-        type: string
       cxx-standard:
         type: string
       build-type:
@@ -48,12 +40,6 @@ jobs:
   ci_steps:
     runs-on: ${{ inputs.os }}
 
-    env:
-      CXX: ${{ inputs.cxx-compiler }}
-      CC: ${{ inputs.cc-compiler }}
-#      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
-#      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
     steps:
 
       - name: Checkout
@@ -64,9 +50,15 @@ jobs:
           # Install Imath and libdeflate first, so the steps below can
           # validate both building against an installation as well as
           # an internal build.
-          share/ci/scripts/install_imath.sh main
-          share/ci/scripts/install_libdeflate.sh master
-          share/ci/scripts/install_help2man.sh
+          if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "ON" ]]; then
+            share/ci/scripts/install_imath.sh main
+          fi
+          if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}" == "ON" ]]; then
+            share/ci/scripts/install_libdeflate.sh master
+          fi
+          if [[ "${{ inputs.OPENEXR_INSTALL_DOCS }}" == "ON" ]]; then
+            share/ci/scripts/install_help2man.sh
+          fi
         shell: bash
 
       - name: Create build directories
@@ -92,7 +84,7 @@ jobs:
                 -DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }} \
                 -DBUILD_TESTING=${{ inputs.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS='OFF' \
-                -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'"
+                -DCMAKE_VERBOSE_MAKEFILE='ON'"
           echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
         working-directory: _build
         shell: bash
