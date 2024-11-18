@@ -55,15 +55,15 @@ jobs:
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       - name: Install Imath
-        if: ${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH == "OFF" }}
+        if: ${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'OFF' }}
         run: share/ci/scripts/install_imath.sh main
 
       - name: Install libdeflate
-        if: ${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE == "OFF" }}
+        if: ${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE == 'OFF' }}
         run: share/ci/scripts/install_libdeflate.sh master
 
       - name: Install libdeflate
-        if: ${{ inputs.OPENEXR_INSTALL_DOCS }} == "ON"
+        if: ${{ inputs.OPENEXR_INSTALL_DOCS == 'ON' }}
         run: share/ci/scripts/install_help2man.sh
 
       - name: Create build directories
