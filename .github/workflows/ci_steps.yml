@@ -68,6 +68,7 @@ jobs:
 
       - name: Create build directories
         run: mkdir _install _build _examples
+        shell: bash
 
       - name: Construct CMake command and save it to environment
         run: |
