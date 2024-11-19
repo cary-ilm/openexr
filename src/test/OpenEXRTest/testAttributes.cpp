@@ -610,8 +610,7 @@ struct TestType
 
     static TestType func ()
     {
-        TestType t;
-        return t;
+        return TestType();
     }
 
     static TestType arg (TestType a) { return a; }
@@ -746,7 +745,7 @@ testTypedAttribute ()
     A = std::move (B);
     TestType::assert_count (0, 0, 0, 0, 0, 1);
     TestType::reset ();
-
+    
     std::cout << "A = TestType::func ();" << std::endl;
     A = TestType::func ();
     TestType::assert_count (1, 1, 0, 0, 0, 1);
@@ -790,7 +789,7 @@ testTypedAttribute ()
     a = testArg (b);
     TestType::assert_count (0, 2, 1, 0, 1, 1);
     TestType::reset ();
-
+    
     std::cout << "ok." << std::endl;
 }
 
@@ -816,7 +815,7 @@ testAttributes (const std::string& tempDir)
         longNames (pf, filename.c_str (), W, H);
 
         print_type (OPENEXR_IMF_NAMESPACE::TypedAttribute<int> ());
-
+        
         cout << "ok\n" << endl;
     }
     catch (const std::exception& e)
