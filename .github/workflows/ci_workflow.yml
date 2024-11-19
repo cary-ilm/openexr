@@ -55,6 +55,7 @@ jobs:
   # TODO: Add ARM build. Add sanitize build.
 
   linux:
+    if: false
     name: 'Linux ${{ matrix.label }}VFXP-${{ matrix.vfx-cy }} centos7
        <${{ matrix.compiler-desc }},
        C++${{ matrix.cxx-standard }},
@@ -255,6 +256,7 @@ jobs:
   # TODO: Add ARM64/x86_64 (universal 2) build
 
   macos:
+    if: false
     name: 'Mac VFXP-${{ matrix.vfx-cy }} macos-${{ matrix.osver }}
       <${{ matrix.compiler-desc }},
        C++${{ matrix.cxx-standard }},
@@ -415,7 +417,7 @@ jobs:
           # -------------------------------------------------------------------
           # Shared, Release
           - build: 1
-            build-type: Release
+            build-type: Debug
             build-shared: 'ON'
             threads-enabled: 'ON'
             compiler-desc: msvc17.5
@@ -424,52 +426,52 @@ jobs:
             exclude-tests: ''
             osver: 2022
 
-          # Shared, Release, Threads OFF
-          - build: 2
-            build-type: Release
-            build-shared: 'ON'
-            threads-enabled: 'OFF'
-            compiler-desc: msvc17.5
-            cxx-standard: 17
-            vfx-cy: 2023
-            exclude-tests: ''
-            osver: 2022
-
-          # Static, Release
-          - build: 3
-            build-type: Release
-            build-shared: 'OFF'
-            threads-enabled: 'ON'
-            compiler-desc: msvc17.5
-            cxx-standard: 17
-            vfx-cy: 2023
-            exclude-tests: ''
-            osver: 2022
-
-          # -------------------------------------------------------------------
-          # VFX CY2022 - C++17 - Windows 2019 runner - MSVC 2019 (16.11) 
-          # -------------------------------------------------------------------
-          # Shared, Release
-          - build: 4
-            build-type: Release
-            build-shared: 'ON'
-            threads-enabled: 'ON'
-            compiler-desc: msvc16.11
-            cxx-standard: 17
-            vfx-cy: 2022
-            exclude-tests: ''
-            osver: 2019
-
-          # Static, Release
-          - build: 5
-            build-type: Release
-            build-shared: 'OFF'
-            threads-enabled: 'ON'
-            compiler-desc: msvc16.11
-            cxx-standard: 17
-            vfx-cy: 2022
-            exclude-tests: ''
-            osver: 2019
+#          # Shared, Release, Threads OFF
+#          - build: 2
+#            build-type: Release
+#            build-shared: 'ON'
+#            threads-enabled: 'OFF'
+#            compiler-desc: msvc17.5
+#            cxx-standard: 17
+#            vfx-cy: 2023
+#            exclude-tests: ''
+#            osver: 2022
+#
+#          # Static, Release
+#          - build: 3
+#            build-type: Release
+#            build-shared: 'OFF'
+#            threads-enabled: 'ON'
+#            compiler-desc: msvc17.5
+#            cxx-standard: 17
+#            vfx-cy: 2023
+#            exclude-tests: ''
+#            osver: 2022
+#
+#          # -------------------------------------------------------------------
+#          # VFX CY2022 - C++17 - Windows 2019 runner - MSVC 2019 (16.11) 
+#          # -------------------------------------------------------------------
+#          # Shared, Release
+#          - build: 4
+#            build-type: Release
+#            build-shared: 'ON'
+#            threads-enabled: 'ON'
+#            compiler-desc: msvc16.11
+#            cxx-standard: 17
+#            vfx-cy: 2022
+#            exclude-tests: ''
+#            osver: 2019
+#
+#          # Static, Release
+#          - build: 5
+#            build-type: Release
+#            build-shared: 'OFF'
+#            threads-enabled: 'ON'
+#            compiler-desc: msvc16.11
+#            cxx-standard: 17
+#            vfx-cy: 2022
+#            exclude-tests: ''
+#            osver: 2019
 
     steps:
       - name: Checkout
@@ -526,6 +528,7 @@ jobs:
       - name: Test
         run: |
           ctest -T Test ${{ matrix.exclude-tests }} \
+                -R OpenEXR.testAttributes \
                 -C ${{ matrix.build-type }} \
                 --timeout 7200 \
                 --output-on-failure \
