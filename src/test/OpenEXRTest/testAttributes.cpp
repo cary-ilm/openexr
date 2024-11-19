@@ -726,26 +726,33 @@ testTypedAttribute ()
     // Validate the test type
     //
 
+    std::cout << "TestType A;" << std::endl;
+
     TestType A;
     TestType::assert_count (1, 0, 0, 0, 0, 0);
     TestType::reset ();
 
+    std::cout << "TestType B (A);" << std::endl;
     TestType B (A);
     TestType::assert_count (0, 0, 1, 0, 0, 0);
     TestType::reset ();
 
+    std::cout << "B = A;" << std::endl;
     B = A;
     TestType::assert_count (0, 0, 0, 1, 0, 0);
     TestType::reset ();
 
+    std::cout << "A = std::move (B);" << std::endl;
     A = std::move (B);
     TestType::assert_count (0, 0, 0, 0, 0, 1);
     TestType::reset ();
 
+    std::cout << "A = TestType::func ();" << std::endl;
     A = TestType::func ();
     TestType::assert_count (1, 1, 0, 0, 0, 1);
     TestType::reset ();
 
+    std::cout << "A = TestType::arg (B);" << std::endl;
     A = TestType::arg (B);
     TestType::assert_count (0, 2, 1, 0, 1, 1);
     TestType::reset ();

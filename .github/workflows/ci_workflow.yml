@@ -410,7 +410,6 @@ jobs:
     runs-on: windows-${{ matrix.osver }}
     strategy:
       matrix:
-        build: [1, 2, 3, 4, 5]
         include:
           # -------------------------------------------------------------------
           # VFX CY2023 - C++17 - Windows 2022 runner - MSVC 2022 (17.5)
@@ -425,53 +424,6 @@ jobs:
             vfx-cy: 2023
             exclude-tests: ''
             osver: 2022
-
-#          # Shared, Release, Threads OFF
-#          - build: 2
-#            build-type: Release
-#            build-shared: 'ON'
-#            threads-enabled: 'OFF'
-#            compiler-desc: msvc17.5
-#            cxx-standard: 17
-#            vfx-cy: 2023
-#            exclude-tests: ''
-#            osver: 2022
-#
-#          # Static, Release
-#          - build: 3
-#            build-type: Release
-#            build-shared: 'OFF'
-#            threads-enabled: 'ON'
-#            compiler-desc: msvc17.5
-#            cxx-standard: 17
-#            vfx-cy: 2023
-#            exclude-tests: ''
-#            osver: 2022
-#
-#          # -------------------------------------------------------------------
-#          # VFX CY2022 - C++17 - Windows 2019 runner - MSVC 2019 (16.11) 
-#          # -------------------------------------------------------------------
-#          # Shared, Release
-#          - build: 4
-#            build-type: Release
-#            build-shared: 'ON'
-#            threads-enabled: 'ON'
-#            compiler-desc: msvc16.11
-#            cxx-standard: 17
-#            vfx-cy: 2022
-#            exclude-tests: ''
-#            osver: 2019
-#
-#          # Static, Release
-#          - build: 5
-#            build-type: Release
-#            build-shared: 'OFF'
-#            threads-enabled: 'ON'
-#            compiler-desc: msvc16.11
-#            cxx-standard: 17
-#            vfx-cy: 2022
-#            exclude-tests: ''
-#            osver: 2019
 
     steps:
       - name: Checkout
