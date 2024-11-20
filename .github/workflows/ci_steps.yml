@@ -25,6 +25,10 @@ on:
         type: string
       cxx-standard:
         type: string
+      cxx-compiler:
+        type: string
+      cc-compiler:
+        type: string
       build-type:
         type: string
       BUILD_SHARED_LIBS:
@@ -58,6 +62,8 @@ jobs:
       image: ${{ inputs.container }}
 
     env:
+      CXX: ${{ inputs.cxx-compiler }}
+      CC: ${{ inputs.cc-compiler }}
       ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
@@ -107,7 +113,6 @@ jobs:
                 -DBUILD_TESTING=${{ inputs.BUILD_TESTING }} \
                 -DOPENEXR_RUN_FUZZ_TESTS=OFF \
                 -DCMAKE_VERBOSE_MAKEFILE=ON"
-          echo "namespace: " ${{ inputs.namespace }}
           if [ -n "${{ inputs.namespace }}" ]; then
               CMAKE_COMMAND="$CMAKE_COMMAND \
                  -DOPENEXR_IMF_NAMESPACE=${{ inputs.namespace }} \

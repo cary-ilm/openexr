@@ -66,6 +66,8 @@ jobs:
       # Source: https://github.com/AcademySoftwareFoundation/aswf-docker
       container: aswf/ci-openexr:${{ matrix.vfx-cy || '2024' }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
+      cxx-compiler: ${{ matrix.cxx-compiler || 'g++' }}
+      cc-compiler: ${{ matrix.cc-compiler || 'gcc' }}
       build-type: ${{ matrix.build-type || 'Release' }}
       BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS || 'ON' }}
       OPENEXR_ENABLE_THREADING: ${{ matrix.OPENEXR_ENABLE_THREADING || 'ON' }}
@@ -121,6 +123,11 @@ jobs:
           - build: 9
             label: vfx2021
             vfx-cy: 2021
+
+          - build: 10
+            label: clang
+            cxx-compiler: clang++
+            cc-compiler: clang
 
   macOS:
     name: 'macOS.${{ matrix.build}}: ${{ matrix.label }}'
