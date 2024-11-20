@@ -66,6 +66,8 @@ jobs:
       # Source: https://github.com/AcademySoftwareFoundation/aswf-docker
       container: aswf/ci-openexr:${{ matrix.vfx-cy || '2024' }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
+      cxx-compiler: ${{ matrix.cxx-compiler || 'g++' }}
+      cc-compiler: ${{ matrix.cc-compiler || 'gcc' }}
       build-type: ${{ matrix.build-type || 'Release' }}
       BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS || 'ON' }}
       OPENEXR_ENABLE_THREADING: ${{ matrix.OPENEXR_ENABLE_THREADING || 'ON' }}
@@ -77,6 +79,7 @@ jobs:
       OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE || 'OFF' }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
       namespace: ${{ matrix.namespace }}
+      validate_install: ${{ matrix.validate_install || 'ON' }}
     strategy:
       matrix:
         include:
@@ -108,17 +111,22 @@ jobs:
 
           - build: 6
             label: custom namespace
-            namespace: XXX
+            namespace: 'TEST_NAMESPACE'
 
           - build: 7
+            label: clang
+            cxx-compiler: clang++
+            cc-compiler: clang
+
+          - build: 8
             label: vfx2023
             vfx-cy: 2023
 
-          - build: 8
+          - build: 9
             label: vfx2022
             vfx-cy: 2022
 
-          - build: 9
+          - build: 10
             label: vfx2021
             vfx-cy: 2021
 
@@ -142,7 +150,7 @@ jobs:
       OPENEXR_FORCE_INTERNAL_IMATH: ${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH || 'OFF' }}
       OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE || 'OFF' }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
->>>>>>> c9fe7624 (Restructure CI to use reusable steps, and add new checks)
+      validate_install: ${{ matrix.validate_install || 'ON' }}
     strategy:
       matrix:
         include:
@@ -196,6 +204,7 @@ jobs:
       OPENEXR_FORCE_INTERNAL_IMATH: ${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH || 'OFF' }}
       OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE || 'OFF' }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
+      validate_install: ${{ matrix.validate_install || 'ON' }}
     strategy:
       matrix:
         include:
