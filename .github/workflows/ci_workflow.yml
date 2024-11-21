@@ -111,7 +111,7 @@ jobs:
 
           - build: 6
             label: custom namespace
-            namespace: XXX
+            namespace: 'TEST_NAMESPACE'
 
           - build: 7
             label: clang
