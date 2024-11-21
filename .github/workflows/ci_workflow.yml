@@ -117,7 +117,6 @@ jobs:
             label: clang
             cxx-compiler: clang++
             cc-compiler: clang
-            validate_install: 'OFF'
 
           - build: 8
             label: vfx2023
@@ -151,6 +150,7 @@ jobs:
       OPENEXR_FORCE_INTERNAL_IMATH: ${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH || 'OFF' }}
       OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE || 'OFF' }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
+      validate_install: ${{ matrix.validate_install || 'ON' }}
     strategy:
       matrix:
         include:
@@ -204,6 +204,7 @@ jobs:
       OPENEXR_FORCE_INTERNAL_IMATH: ${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH || 'OFF' }}
       OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE || 'OFF' }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
+      validate_install: ${{ matrix.validate_install || 'ON' }}
     strategy:
       matrix:
         include:
