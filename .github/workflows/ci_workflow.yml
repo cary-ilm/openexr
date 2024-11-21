@@ -113,21 +113,22 @@ jobs:
             namespace: XXX
 
           - build: 7
-            label: vfx2023
-            vfx-cy: 2023
-
-          - build: 8
-            label: vfx2022
-            vfx-cy: 2022
-
-          - build: 9
-            label: vfx2021
-            vfx-cy: 2021
-
-          - build: 10
             label: clang
             cxx-compiler: clang++
             cc-compiler: clang
+            validate_install: OFF
+
+          - build: 8
+            label: vfx2023
+            vfx-cy: 2023
+
+          - build: 9
+            label: vfx2022
+            vfx-cy: 2022
+
+          - build: 10
+            label: vfx2021
+            vfx-cy: 2021
 
   macOS:
     name: 'macOS.${{ matrix.build}}: ${{ matrix.label }}'

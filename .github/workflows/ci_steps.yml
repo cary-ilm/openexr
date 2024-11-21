@@ -141,7 +141,6 @@ jobs:
         shell: bash
 
       - name: Prepare install_manifest
-        if: ${{ inputs.validate_install != 'OFF' }}
         # Store the cmake command as the first line of the manifest,
         # and remove the path prefix, so the manifest contains only
         # the local filenames.
@@ -151,7 +150,6 @@ jobs:
         shell: bash
 
       - name: Upload install_manifest.txt
-        if: ${{ inputs.validate_install != 'OFF' }}
         # Upload the manifest to make it possible to download for inspection and debugging
         uses: actions/upload-artifact@v3
         with:
