@@ -116,8 +116,16 @@ def validate_install(candidate_manifest_path, reference_manifest_path, options):
     # Output results
     if missing_files:
         print("Error: The following files should have been installed but weren't:\n  " + '\n  '.join(missing_files))
+        print("If these files have been intentionally deprecated and should no longer be installed via 'make install',")
+        print("then you should remove references to them in the archived install manifests in share/ci/install_manifest/install_manifest.*.*.txt.")
+        print("If they should be installed, something has gone wrong with the project CMake configuration and should be fixed.")
+        print("Or possibly the expected behavior of this CI build has changed in the workflow file, so you should edit the corresponding archived install manifest to bring it in line with the expected output.")
+
     if extra_files:
         print("Error: The following files were installed but were not expected:\n  " + '\n  '.join(extra_files))
+        print("If these are new files introduced to the project and should now be installed,") 
+        print("then you should add references to them in the archived install manifests in share/ci/install_manifest/install_manifest.*.*.txt.")
+        print("Or possibly the expected behavior of this CI build has changed in the workflow file, so you should edit the corresponding archived install manifest to bring it in line with the expected output.")
 
     if missing_files or extra_files:
         return 1
@@ -138,10 +146,12 @@ if __name__ == "__main__":
 
     if not os.path.exists(args.candidate_manifest):
         print(f"candidate manifest does not exist: {args.candidate_manifest}")
+        print("This CI build appears to have failed to create a install_manifest.txt file in the build directory")
         sys.exit(1)
 
     if not os.path.exists(args.reference_manifest):
         print(f"reference manifest does not exist: {args.reference_manifest}")
+        print("The directory share/ci/install_manifest should contain a file whose contents match the install_manifest.txt file for this build, identified with the os name and build number.")
         sys.exit(1)
 
     print(f"candidate_manifest={args.candidate_manifest}")
