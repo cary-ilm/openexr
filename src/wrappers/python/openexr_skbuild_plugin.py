@@ -100,7 +100,7 @@ def dynamic_metadata(
 
     return version
 
-def get_requires_for_dynamic_metadata(
-    _settings: Optional[Dict[str, object]] = None,
-) -> List[str]:
-    return ["cmake"]
+#def get_requires_for_dynamic_metadata(
+#    _settings: Optional[Dict[str, object]] = None,
+#) -> List[str]:
+#    return ["cmake"]
