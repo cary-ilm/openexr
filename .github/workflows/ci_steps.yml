@@ -49,6 +49,8 @@ on:
         type: string
       OPENEXR_FORCE_INTERNAL_DEFLATE:
         type: string
+      OPENEXR_FORCE_INTERNAL_OPENJPH:
+        type: string
       BUILD_TESTING:
         type: string
       namespace:
@@ -113,6 +115,11 @@ jobs:
         if: contains(inputs.os, 'windows') && inputs.msystem == ''
         run: |
           echo "$PATH;C:/Program Files (x86)/Imath/bin;C:/Program Files (x86)/Imath/lib;C:/Program Files (x86)/libdeflate/bin;C:/Program Files (x86)/libdeflate/lib" >> $GITHUB_PATH
+
+      - name: Install OpenJPH
+        # Pre-install OpenJPH so the builds validate finding the external installation
+        if: ${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH == 'OFF' }}
+        run: share/ci/scripts/install_openjph.sh master
         shell: bash
 
       - name: Install help2man
@@ -144,6 +151,7 @@ jobs:
           cmake_args+=("-DOPENEXR_BUILD_TOOLS=${{ inputs.OPENEXR_BUILD_TOOLS }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_IMATH=${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}")
+          cmake_args+=("-DOPENEXR_FORCE_INTERNAL_OPENJPH=${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}")
           cmake_args+=("-DBUILD_TESTING=${{ inputs.BUILD_TESTING }}")
           cmake_args+=("-DOPENEXR_RUN_FUZZ_TESTS=OFF")
           cmake_args+=("-DCMAKE_VERBOSE_MAKEFILE=ON")
@@ -213,5 +221,4 @@ jobs:
         run: |
           share/ci/scripts/validate_install.py "_build/$INSTALL_MANIFEST" "share/ci/install_manifest/$INSTALL_MANIFEST"
         shell: bash
-
 
