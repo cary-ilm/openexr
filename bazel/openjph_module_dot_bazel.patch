@@ -1,6 +1,6 @@
 --- MODULE.bazel
 +++ MODULE.bazel
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,7 @@
 +module(
 +    name = "openjph",
 +    version = "0.21.2",
