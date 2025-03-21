@@ -58,10 +58,11 @@ jobs:
         run: pipx run build --sdist . --outdir wheelhouse
 
       - name: Build wheel
-        uses: pypa/cibuildwheel@ee63bf16da6cddfb925f542f2c7b59ad50e93969 # v2.22.0
+        uses: pypa/cibuildwheel@v2.23
         with:
           output-dir: wheelhouse
         env:
+          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014_aarch64
           CIBW_ARCHS_LINUX: x86_64 
           CIBW_ARCHS_MACOS: x86_64 arm64 universal2
           # Build Python 3.7 through 3.12.
