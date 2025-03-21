@@ -57,6 +57,10 @@ jobs:
           OPENEXR_RELEASE_CANDIDATE_TAG: ${{ github.ref_name }}
         run: pipx run build --sdist . --outdir wheelhouse
 
+      - name: Set MACOSX_DEPLOYMENT_TARGET
+        if: matrix.os == 'macos-13'
+        run: echo "MACOSX_DEPLOYMENT_TARGET=10.15" >> $GITHUB_ENV
+
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.23
         with:
