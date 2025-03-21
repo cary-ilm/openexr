@@ -57,10 +57,6 @@ jobs:
           OPENEXR_RELEASE_CANDIDATE_TAG: ${{ github.ref_name }}
         run: pipx run build --sdist . --outdir wheelhouse
 
-      - name: Set MACOSX_DEPLOYMENT_TARGET
-        if: matrix.os == 'macos-13'
-        run: echo "MACOSX_DEPLOYMENT_TARGET=10.15" >> $GITHUB_ENV
-
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.23
         with:
@@ -69,6 +65,7 @@ jobs:
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014_aarch64
           CIBW_ARCHS_LINUX: x86_64 
           CIBW_ARCHS_MACOS: x86_64 arm64 universal2
+          MACOSX_DEPLOYMENT_TARGET=10.15
           # Build Python 3.7 through 3.12.
           # Skip python 3.6 since scikit-build-core requires 3.7+
           # Skip 32-bit wheels builds on Windows
