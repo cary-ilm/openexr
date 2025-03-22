@@ -14,8 +14,8 @@ on:
   # single arch)
 
   push:
-    branches-ignore:
-      - RB-*
+#    branches-ignore:
+#      - RB-*
     paths:
       - 'src/lib/**'
       - 'src/wrappers/python/**'
