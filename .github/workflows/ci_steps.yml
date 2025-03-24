@@ -31,6 +31,8 @@ on:
         type: string
       build-type:
         type: string
+      msystem:
+        type: string
       BUILD_SHARED_LIBS:
         type: string
       OPENEXR_ENABLE_THREADING:
@@ -71,6 +73,17 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Set Up MSYS2 ${{ inputs.msystem }}
+        if: inputs.msystem == 'MINGW32' || inputs.msystem == 'UCRT64'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ inputs.msystem }}
+          update: true
+          install: >-
+            git
+            ${{ inputs.msystem == 'MINGW32' && 'mingw-w64-i686-cmake mingw-w64-i686-gcc' || '' }}
+            ${{ inputs.msystem == 'UCRT64' && 'mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-gcc' || '' }}
 
       - name: Install Imath
         # Pre-install Imath so the builds validate finding the external installation

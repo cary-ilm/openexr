@@ -195,6 +195,7 @@ jobs:
       OPENEXR_BUILD_TOOLS: ${{ matrix.OPENEXR_BUILD_TOOLS || 'ON' }}
       OPENEXR_FORCE_INTERNAL_IMATH: ${{ matrix.OPENEXR_FORCE_INTERNAL_IMATH || 'OFF' }}
       OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE || 'OFF' }}
+      msystem: ${{ matrix.msystem }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
       validate_install: ${{ matrix.validate_install || 'ON' }}
     strategy:
@@ -230,3 +231,24 @@ jobs:
             label: vfx2022
             os: windows-2019
 
+          - build: 7
+            label: msys2-mingw32
+            msystem: MINGW32
+            validate_install: OFF
+
+          - build: 8
+            label: msys2-mingw32
+            msystem: MINGW32
+            BUILD_SHARED_LIBS: 'OFF'
+            validate_install: OFF
+
+          - build: 9
+            label: msys2-ucrt64
+            msystem: UCRT64
+            validate_install: OFF
+
+          - build: 10
+            label: msys2-ucrt64
+            msystem: UCRT64
+            BUILD_SHARED_LIBS: 'OFF'
+            validate_install: OFF

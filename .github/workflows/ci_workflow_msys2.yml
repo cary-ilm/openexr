@@ -1,0 +1,98 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) Contributors to the OpenEXR Project.
+#
+# GitHub Actions workflow file
+# https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+
+name: CI-msys2
+
+#
+# Build on Windows msys2, with mingw32 and ucrt64.
+#
+# Don't bother with the complete suite of steps from the main CI, a
+# single build will suffice to detect compilation problems.
+#
+# Run on all changes except:
+# - doc file changes
+# - changes to the website, *except* for "website/src", since that
+#   code needs validation.  The website has a separate workflow
+# - changes to the bazel config, since it has its own workflow
+# - changes to the python bindings
+# - changes to workflows other than this one
+
+on:
+  push:
+    paths:
+      - '**'
+      - '!**.md'
+      - '!website/**'
+      - 'website/src/**'
+      - '!bazel/**'
+      - '!src/wrappers/**'
+      - '!.github/workflows/**'
+      - '.github/workflows/ci_workflow_msys2.yml'
+  pull_request:
+    paths:
+      - '**'
+      - '!**.md'
+      - '!website/**'
+      - 'website/src/**'
+      - '!bazel/**'
+      - '!src/wrappers/**'
+      - '!.github/workflows/**'
+      - '.github/workflows/ci_workflow_msys2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  msys2:
+    name: 'Windows ${{ matrix.msystem }}'
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - msystem: MINGW32
+            cmake_package: mingw-w64-i686-cmake
+            gcc_package: mingw-w64-i686-gcc
+          - msystem: UCRT64
+            cmake_package: mingw-w64-ucrt-x86_64-cmake
+            gcc_package: mingw-w64-ucrt-x86_64-gcc
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup MSYS2 ${{ matrix.msystem }}
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: git ${{ matrix.gcc_package }} ${{ matrix.cmake_package }}
+
+      - name: Create build directories
+        run: |
+          mkdir _install
+          mkdir _build
+
+      - name: Configure
+        run: |
+          cmake -B _build -S . \
+            -DCMAKE_INSTALL_PREFIX=_install \
+            -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'
+
+      - name: Build
+        run: |
+          cmake --build _build \
+            --target install \
+            --config Release
+
+      - name: Test
+        run: |
+          ctest -T Test \
+            -C Release \
+            --timeout 7200 \
+            --output-on-failure \
+            -VV
+        working-directory: _build
