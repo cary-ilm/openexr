@@ -135,6 +135,13 @@ jobs:
                  -DILMTHREAD_NAMESPACE=${{ inputs.namespace }} \
                  -DIEX_NAMESPACE=${{ inputs.namespace }}"
           fi
+          if [ -n "${{ inputs.msystem }}" ]; then
+              CMAKE_COMMAND="$CMAKE_COMMAND \
+                  -G "MinGW Makefiles" \
+                  -DCMAKE_C_COMPILER=gcc \
+                  -DCMAKE_CXX_COMPILER=g++"
+          fi
+
           echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
 
           # Remove the os version from the manifest name, so it only
