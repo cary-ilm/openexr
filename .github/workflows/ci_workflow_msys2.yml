@@ -78,6 +78,7 @@ jobs:
             echo CMAKE_MAKE_PROGRAM=mingw32-make >> $GITHUB_ENV
         shell: bash
 
+
       - name: Create build directories
         run: |
           mkdir _install
