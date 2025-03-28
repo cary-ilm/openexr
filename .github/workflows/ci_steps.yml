@@ -84,7 +84,6 @@ jobs:
             git
             ${{ inputs.msystem == 'MINGW32' && 'mingw-w64-i686-cmake mingw-w64-i686-gcc' || '' }}
             ${{ inputs.msystem == 'UCRT64' && 'mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-gcc' || '' }}
-        run: echo "MSYSTEM=${{ inputs.msystem }}" >> $GITHUB_ENV
         shell: bash
         
       - name: Install Imath
