@@ -84,7 +84,6 @@ jobs:
             git
             ${{ inputs.msystem == 'MINGW32' && 'mingw-w64-i686-cmake mingw-w64-i686-gcc' || '' }}
             ${{ inputs.msystem == 'UCRT64' && 'mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-gcc' || '' }}
-        shell: bash
         
       - name: Install Imath
         # Pre-install Imath so the builds validate finding the external installation
