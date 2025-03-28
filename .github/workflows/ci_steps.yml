@@ -90,6 +90,7 @@ jobs:
         run: |
             echo "MSYSTEM=${{ inputs.msystem }}"  >> $GITHUB_ENV
             echo CMAKE_GENERATOR="MinGW Makefiles"  >> $GITHUB_ENV
+            echo CMAKE_MAKE_PROGRAM=mingw32-make >> $GITHUB_ENV
         shell: bash
 
       - name: Install Imath
@@ -161,7 +162,6 @@ jobs:
         run: |
           $CMAKE_COMMAND
         working-directory: _build
-        shell: msys2 {0}
 
       - name: Build
         run: |

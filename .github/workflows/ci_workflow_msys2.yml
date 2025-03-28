@@ -72,10 +72,10 @@ jobs:
           install: git ${{ matrix.gcc_package }} ${{ matrix.cmake_package }}
 
       - name: Set MSYS2 ${{ inputs.msystem }} Environment
-        if: inputs.msystem == 'MINGW32' || inputs.msystem == 'UCRT64'
         run: |
             echo "MSYSTEM=${{ inputs.msystem }}"  >> $GITHUB_ENV
             echo CMAKE_GENERATOR="MinGW Makefiles"  >> $GITHUB_ENV
+            echo CMAKE_MAKE_PROGRAM=mingw32-make >> $GITHUB_ENV
         shell: bash
 
       - name: Create build directories
@@ -85,11 +85,12 @@ jobs:
 
       - name: Configure
         run: |
+          cmake --version
           cmake -B _build -S . \
             -G "MinGW Makefiles" \
             -DCMAKE_INSTALL_PREFIX=_install \
             -DCMAKE_VERBOSE_MAKEFILE:BOOL='ON'
-        shell: msys2 {0}
+        shell: bash
         
       - name: Build
         run: |
