@@ -122,7 +122,7 @@ jobs:
           # Construct the cmake command as a variable, so the
           # Configure step below can execute it, but also so we can store
           # in in the install_manifest as a debugging reference
-          CMAKE_COMMAND="cmake -B . -S .. \
+          CMAKE_ARGS="-B . -S .. \
                 -DCMAKE_INSTALL_PREFIX=../_install \
                 -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
                 -DOPENEXR_CXX_STANDARD=${{ inputs.cxx-standard }} \
@@ -138,18 +138,18 @@ jobs:
                 -DOPENEXR_RUN_FUZZ_TESTS=OFF \
                 -DCMAKE_VERBOSE_MAKEFILE=ON"
           if [ -n "${{ inputs.namespace }}" ]; then
-              CMAKE_COMMAND="$CMAKE_COMMAND \
+              CMAKE_ARGS="$CMAKE_ARGS \
                  -DOPENEXR_IMF_NAMESPACE=${{ inputs.namespace }} \
                  -DILMTHREAD_NAMESPACE=${{ inputs.namespace }} \
                  -DIEX_NAMESPACE=${{ inputs.namespace }}"
           fi
           if [ -n "${{ inputs.msystem }}" ]; then
-              CMAKE_COMMAND="$CMAKE_COMMAND \
+              CMAKE_ARGS="$CMAKE_ARGS \
                   -DCMAKE_C_COMPILER=gcc \
                   -DCMAKE_CXX_COMPILER=g++"
           fi
 
-          echo "CMAKE_COMMAND=$CMAKE_COMMAND" >> $GITHUB_ENV
+          echo "CMAKE_ARGS=$CMAKE_ARGS" >> $GITHUB_ENV
 
           # Remove the os version from the manifest name, so it only
           # contains "ubuntu", "macos", or "windows", so the name is,
@@ -160,8 +160,9 @@ jobs:
 
       - name: Configure
         run: |
-          $CMAKE_COMMAND
+          cmake $CMAKE_ARGS
         working-directory: _build
+        shell: bash
 
       - name: Build
         run: |
@@ -174,7 +175,7 @@ jobs:
         # and remove the path prefix, so the manifest contains only
         # the local filenames.
         run: |
-          echo "# $CMAKE_COMMAND" > "_build/$INSTALL_MANIFEST"
+          echo "# cmake $CMAKE_ARGS" > "_build/$INSTALL_MANIFEST"
           sort _build/install_manifest.txt | sed -e "s:^.*/_install/::" >> "_build/$INSTALL_MANIFEST"
         shell: bash
 
