@@ -137,7 +137,7 @@ jobs:
           fi
           if [ -n "${{ inputs.msystem }}" ]; then
               CMAKE_COMMAND="$CMAKE_COMMAND \
-                  -G "MinGW Makefiles" \
+                  -G 'MinGW Makefiles' \
                   -DCMAKE_C_COMPILER=gcc \
                   -DCMAKE_CXX_COMPILER=g++"
           fi
@@ -153,7 +153,11 @@ jobs:
 
       - name: Configure
         run: |
-          $CMAKE_COMMAND
+          if [[ -n "${{ inputs.msystem }}" ]]; then
+            msys2 -c "$CMAKE_COMMAND"
+          else
+            eval "$CMAKE_COMMAND"
+          fi
         working-directory: _build
         shell: bash
 
