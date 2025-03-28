@@ -84,7 +84,9 @@ jobs:
             git
             ${{ inputs.msystem == 'MINGW32' && 'mingw-w64-i686-cmake mingw-w64-i686-gcc' || '' }}
             ${{ inputs.msystem == 'UCRT64' && 'mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-gcc' || '' }}
-
+        run: echo "MSYSTEM=${{ inputs.msystem }}" >> $GITHUB_ENV
+        shell: bash
+        
       - name: Install Imath
         # Pre-install Imath so the builds validate finding the external installation
         if: ${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'OFF' }}
@@ -153,13 +155,9 @@ jobs:
 
       - name: Configure
         run: |
-          if [[ -n "${{ inputs.msystem }}" ]]; then
-            msys2 -c "$CMAKE_COMMAND"
-          else
-            eval "$CMAKE_COMMAND"
-          fi
+          $CMAKE_COMMAND
         working-directory: _build
-        shell: bash
+        shell: msys2 {0}
 
       - name: Build
         run: |
