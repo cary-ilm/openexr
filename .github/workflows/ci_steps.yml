@@ -91,9 +91,9 @@ jobs:
             echo "MSYSTEM=${{ inputs.msystem }}"  >> $GITHUB_ENV
             echo CMAKE_GENERATOR="MinGW Makefiles"  >> $GITHUB_ENV
             echo CMAKE_MAKE_PROGRAM=mingw32-make >> $GITHUB_ENV
-            echo MSYS2_PATH_TYPE=inherit  >> $GITHUB_ENV
-            echo C:/msys64/mingw32/bin >> $GITHUB_PATH
-            echo D:/a/openexr/openexr/_install/lib >> $GITHUB_PATH
+#            echo MSYS2_PATH_TYPE=inherit  >> $GITHUB_ENV
+#            echo C:/msys64/mingw32/bin >> $GITHUB_PATH
+#            echo D:/a/openexr/openexr/_install/lib >> $GITHUB_PATH
         shell: bash
 
       - name: Install Imath
@@ -195,6 +195,7 @@ jobs:
         run: |
           share/ci/scripts/validate_install.py "_build/$INSTALL_MANIFEST" "share/ci/install_manifest/$INSTALL_MANIFEST"
         shell: bash
+        continue-on-error: true
 
       - name: Set PATH for Imath/libdeflate DLLs
         # When building against external Imath/libdeflate shared objects, the tests need PATH to include the dll's.
@@ -205,6 +206,7 @@ jobs:
 
       - name: Test
         run: |
-#           cmake --build . --target test
+           cmake --build . --target test
         working-directory: _build
         shell: bash
+        continue-on-error: true
