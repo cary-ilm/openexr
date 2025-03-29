@@ -226,7 +226,7 @@ jobs:
 
       - name: Check Dependencies
         run: |
-          "$env:LLVM_PATH" -p "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe"
+          & $env:LLVM_PATH -p "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe"
         shell: pwsh
 
       - name: Test

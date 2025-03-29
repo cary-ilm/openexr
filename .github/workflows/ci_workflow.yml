@@ -237,7 +237,7 @@ jobs:
             validate_install: OFF
 
           - build: 8
-            label: msys2-mingw32
+            label: msys2-mingw32, static
             msystem: MINGW32
             BUILD_SHARED_LIBS: 'OFF'
             validate_install: OFF
@@ -248,7 +248,7 @@ jobs:
             validate_install: OFF
 
           - build: 10
-            label: msys2-ucrt64
+            label: msys2-ucrt64, static
             msystem: UCRT64
             BUILD_SHARED_LIBS: 'OFF'
             validate_install: OFF
