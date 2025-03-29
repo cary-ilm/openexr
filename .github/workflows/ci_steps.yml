@@ -218,12 +218,12 @@ jobs:
           dir "D:/a/openexr/openexr/_install/bin"
           dir "D:/a/openexr/openexr/_install/lib"
 
-#      - name: Check Dependencies
-#        run: |
-#          "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/bin/llvm-objdump.exe" -p D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe
-#        shell: bash
-#
-#     - name: Test
+      - name: Check Dependencies
+        run: |
+          "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/bin/llvm-objdump.exe" -p D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe
+        shell: bash
+
+#      - name: Test
 #        run: |
 #          ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
 #        working-directory: _build
