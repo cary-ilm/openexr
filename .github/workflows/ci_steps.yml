@@ -200,58 +200,11 @@ jobs:
         # When building against external Imath/libdeflate shared objects, the tests need PATH to include the dll's.
         if: contains(inputs.os, 'windows')
         run: |
-          echo "$PATH;C:/Program Files (x86)/Imath/bin;C:/Program Files (x86)/Imath/lib;C:/Program Files (x86)/libdeflate/bin;C:/Program Files (x86)/libdeflate/lib;C:/msys64/mingw32/bin;D:/a/openexr/openexr/_install/lib;:/a/openexr/openexr/_install/bin" >> $GITHUB_PATH
+          echo "$PATH;C:/Program Files (x86)/Imath/bin;C:/Program Files (x86)/Imath/lib;C:/Program Files (x86)/libdeflate/bin;C:/Program Files (x86)/libdeflate/lib" >> $GITHUB_PATH
         shell: bash
-
-#      - name: set path explicitly
-#        run: |
-#          echo "PATH=$PATH;C:/Program Files (x86)/Imath/bin;C:/Program Files (x86)/Imath/lib;C:/Program Files (x86)/libdeflate/bin;C:/Program Files (x86)/libdeflate/lib;C:/msys64/mingw32/bin;D:/a/openexr/openexr/_install/lib;D:/a/openexr/openexr/_install/bin" >> $GITHUB_ENV
-#        
-#      - name: Debug PATH
-#        run: echo "$PATH"
-#        shell: bash
-#
-#      - name: List Installed DLLs
-#        run: |
-#          dir "C:/Program Files (x86)/Imath/bin"
-#          dir "C:/Program Files (x86)/libdeflate/bin"
-#          dir "D:/a/openexr/openexr/_install/bin"
-#          dir "D:/a/openexr/openexr/_install/lib"
-#
-#      - name: Check Dependencies with Alternative Tools
-#        run: |
-#          # First try with dumpbin (which is more commonly available)
-#          $VSInstallPath = (& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath).Trim()
-#          
-#          # Find dumpbin - search in common locations
-#          $DumpbinPaths = @(
-#            "$VSInstallPath\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe",
-#            "$VSInstallPath\VC\Tools\MSVC\*\bin\Hostx86\x86\dumpbin.exe"
-#          )
-#          
-#          $DumpbinPath = Get-Item -Path $DumpbinPaths -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-#          
-#          if ($DumpbinPath) {
-#            Write-Host "Using dumpbin from: $DumpbinPath"
-#            & "$DumpbinPath" /dependents "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe"
-#          } else {
-#            # Try with dependency walker if available in PATH
-#            $DepWalker = "depends.exe"
-#            if (Get-Command $DepWalker -ErrorAction SilentlyContinue) {
-#              Write-Host "Using Dependency Walker"
-#              & $DepWalker /c /f:1 "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe"
-#            } else {
-#              # Last resort - try the built-in Windows tool
-#              Write-Host "Using built-in Windows tools"
-#              & cmd.exe /c where "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe" > dependencies.txt
-#              Get-Content dependencies.txt
-#            }
-#          }
-#        shell: pwsh
 
       - name: Test
         run: |
-           cmake --build . --target test
-#          ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
+#           cmake --build . --target test
         working-directory: _build
         shell: bash
