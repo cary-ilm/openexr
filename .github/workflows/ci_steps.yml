@@ -220,13 +220,14 @@ jobs:
 
       - name: Find LLVM Path
         run: |
-          $VS_PATH = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Llvm -property installationPath
-          echo "LLVM_PATH=$VS_PATH\VC\Tools\Llvm\bin\llvm-objdump.exe" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $VS_PATH = (& "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang -property installationPath).Trim()
+          $LLVM_OBJ_PATH = "$VS_PATH\VC\Tools\Llvm\bin\llvm-objdump.exe"
+          echo "LLVM_PATH=`"$LLVM_OBJ_PATH`"" | Out-File -FilePath $env:GITHUB_ENV -Append
         shell: pwsh
 
       - name: Check Dependencies
         run: |
-          & $env:LLVM_PATH -p "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe"
+          & $env:LLVM_PATH --imports "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe"
         shell: pwsh
 
       - name: Test
