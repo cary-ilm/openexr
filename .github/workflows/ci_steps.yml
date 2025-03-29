@@ -251,7 +251,7 @@ jobs:
 
       - name: Test
         run: |
-           cmake --build _build --target test
+           cmake --build . --target test
 #          ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
         working-directory: _build
         shell: bash
