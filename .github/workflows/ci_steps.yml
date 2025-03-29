@@ -218,16 +218,35 @@ jobs:
           dir "D:/a/openexr/openexr/_install/bin"
           dir "D:/a/openexr/openexr/_install/lib"
 
-      - name: Find LLVM Path
+      - name: Check Dependencies with Alternative Tools
         run: |
-          $VS_PATH = (& "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang -property installationPath).Trim()
-          $LLVM_OBJ_PATH = "$VS_PATH\VC\Tools\Llvm\bin\llvm-objdump.exe"
-          echo "LLVM_PATH=`"$LLVM_OBJ_PATH`"" | Out-File -FilePath $env:GITHUB_ENV -Append
-        shell: pwsh
-
-      - name: Check Dependencies
-        run: |
-          & $env:LLVM_PATH --imports "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe"
+          # First try with dumpbin (which is more commonly available)
+          $VSInstallPath = (& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath).Trim()
+          
+          # Find dumpbin - search in common locations
+          $DumpbinPaths = @(
+            "$VSInstallPath\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe",
+            "$VSInstallPath\VC\Tools\MSVC\*\bin\Hostx86\x86\dumpbin.exe"
+          )
+          
+          $DumpbinPath = Get-Item -Path $DumpbinPaths -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+          
+          if ($DumpbinPath) {
+            Write-Host "Using dumpbin from: $DumpbinPath"
+            & "$DumpbinPath" /dependents "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe"
+          } else {
+            # Try with dependency walker if available in PATH
+            $DepWalker = "depends.exe"
+            if (Get-Command $DepWalker -ErrorAction SilentlyContinue) {
+              Write-Host "Using Dependency Walker"
+              & $DepWalker /c /f:1 "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe"
+            } else {
+              # Last resort - try the built-in Windows tool
+              Write-Host "Using built-in Windows tools"
+              & cmd.exe /c where "D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe" > dependencies.txt
+              Get-Content dependencies.txt
+            }
+          }
         shell: pwsh
 
       - name: Test
