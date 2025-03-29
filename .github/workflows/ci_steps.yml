@@ -207,17 +207,17 @@ jobs:
         run: |
           echo "PATH=$PATH;C:/Program Files (x86)/Imath/bin;C:/Program Files (x86)/Imath/lib;C:/Program Files (x86)/libdeflate/bin;C:/Program Files (x86)/libdeflate/lib;C:/msys64/mingw32/bin;D:/a/openexr/openexr/_install/lib;D:/a/openexr/openexr/_install/bin" >> $GITHUB_ENV
         
-#      - name: Debug PATH
-#        run: echo "$PATH"
-#        shell: bash
-#
-#      - name: List Installed DLLs
-#        run: |
-#          dir "C:/Program Files (x86)/Imath/bin"
-#          dir "C:/Program Files (x86)/libdeflate/bin"
-#          dir "D:/a/openexr/openexr/_install/bin"
-#          dir "D:/a/openexr/openexr/_install/lib"
-#
+      - name: Debug PATH
+        run: echo "$PATH"
+        shell: bash
+
+      - name: List Installed DLLs
+        run: |
+          dir "C:/Program Files (x86)/Imath/bin"
+          dir "C:/Program Files (x86)/libdeflate/bin"
+          dir "D:/a/openexr/openexr/_install/bin"
+          dir "D:/a/openexr/openexr/_install/lib"
+
 #      - name: Check Dependencies
 #        run: |
 #          "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/bin/llvm-objdump.exe" -p D:/a/openexr/openexr/_build/bin/OpenEXRCoreTest.exe
