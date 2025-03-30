@@ -79,20 +79,20 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: ${{ inputs.msystem }}
-          update: true
-          install: >-
-            git
-            ${{ inputs.msystem == 'MINGW32' && 'mingw-w64-i686-cmake mingw-w64-i686-gcc' || '' }}
-            ${{ inputs.msystem == 'UCRT64' && 'mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-gcc' || '' }}
-        
-      - name: Set MSYS2 ${{ inputs.msystem }} Environment
-        if: inputs.msystem == 'MINGW32' || inputs.msystem == 'UCRT64'
-        run: |
-            echo "MSYSTEM=${{ inputs.msystem }}"  >> $GITHUB_ENV
-            echo CMAKE_GENERATOR="MinGW Makefiles"  >> $GITHUB_ENV
-            echo CMAKE_MAKE_PROGRAM=mingw32-make >> $GITHUB_ENV
-        shell: bash
-
+#          update: true
+#          install: >-
+#            git
+#            ${{ inputs.msystem == 'MINGW32' && 'mingw-w64-i686-cmake mingw-w64-i686-gcc' || '' }}
+#            ${{ inputs.msystem == 'UCRT64' && 'mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-gcc' || '' }}
+#        
+#      - name: Set MSYS2 ${{ inputs.msystem }} Environment
+#        if: inputs.msystem == 'MINGW32' || inputs.msystem == 'UCRT64'
+#        run: |
+#            echo "MSYSTEM=${{ inputs.msystem }}"  >> $GITHUB_ENV
+#            echo CMAKE_GENERATOR="MinGW Makefiles"  >> $GITHUB_ENV
+#            echo CMAKE_MAKE_PROGRAM=mingw32-make >> $GITHUB_ENV
+#        shell: bash
+#
       - name: Install Imath
         # Pre-install Imath so the builds validate finding the external installation
         if: ${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'OFF' }}
@@ -143,11 +143,11 @@ jobs:
                  -DILMTHREAD_NAMESPACE=${{ inputs.namespace }} \
                  -DIEX_NAMESPACE=${{ inputs.namespace }}"
           fi
-          if [ -n "${{ inputs.msystem }}" ]; then
-              CMAKE_ARGS="$CMAKE_ARGS \
-                  -DCMAKE_C_COMPILER=gcc \
-                  -DCMAKE_CXX_COMPILER=g++"
-          fi
+#          if [ -n "${{ inputs.msystem }}" ]; then
+#              CMAKE_ARGS="$CMAKE_ARGS \
+#                  -DCMAKE_C_COMPILER=gcc \
+#                  -DCMAKE_CXX_COMPILER=g++"
+#          fi
 
           echo "CMAKE_ARGS=$CMAKE_ARGS" >> $GITHUB_ENV
 
