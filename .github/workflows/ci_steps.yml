@@ -77,13 +77,14 @@ jobs:
       - name: Determine MSYS2 Packages
         if: inputs.msystem != ''
         run: |
-          echo "PACBOY_PACKAGES=cc:p cmake:p" >> $GITHUB_ENV
+          PACKAGES="cc:p cmake:p"
           if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "OFF" ]; then
-            echo "PACBOY_PACKAGES=$PACBOY_PACKAGES imath:p" >> $GITHUB_ENV
+            PACKAGES="$PACKAGES imath:p"
           fi
           if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}" == "OFF" ]; then
-            echo "PACBOY_PACKAGES=$PACBOY_PACKAGES libdeflate:p" >> $GITHUB_ENV
+            PACKAGES="$PACKAGES libdeflate:p"
           fi
+          echo "PACBOY_PACKAGES=$PACKAGES" >> $GITHUB_ENV
         shell: bash
 
       - name: Install MSYS2 ${{ inputs.msystem }}
