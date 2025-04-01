@@ -74,20 +74,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
+      - name: Determine Packages
+        if: inputs.msystem != ''
+        run: |
+          echo "PACBOY_PACKAGES=cc:p cmake:p libdeflate:p" >> $GITHUB_ENV
+          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" != "OFF" ]; then
+            echo "PACBOY_PACKAGES=$PACBOY_PACKAGES imath:p" >> $GITHUB_ENV
+          fi
+          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}" != "OFF" ]; then
+            echo "PACBOY_PACKAGES=$PACBOY_PACKAGES libdeflate:p" >> $GITHUB_ENV
+          fi
+        shell: bash
+
       - name: Install MSYS2 ${{ inputs.msystem }}
         if: inputs.msystem != ''
         uses: msys2/setup-msys2@v2
         with:
           msystem: ${{ inputs.msystem }}
           update: true
-          install: >-
-            git
-          pacboy: >-
-            cc:p
-            cmake:p
-            ${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH != 'OFF' && 'imath:p' || '' }}
-            ${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE != 'OFF' && 'libdeflate:p' || '' }}
-
+          install: git
+          pacboy: ${{ env.PACBOY_PACKAGES }}
 
       - name: Install Imath
         # Pre-install Imath so the builds validate that find_package sees the external installation
