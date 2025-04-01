@@ -85,18 +85,19 @@ jobs:
           pacboy: >-
             cc:p
             cmake:p
-            imath:p
-            libdeflate:p
+            ${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH != 'OFF' && 'imath:p' || '' }}
+            ${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE != 'OFF' && 'libdeflate:p' || '' }}
+
 
       - name: Install Imath
         # Pre-install Imath so the builds validate that find_package sees the external installation
-        if: inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'OFF'
+        if: inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'OFF' && inputs.msystem == ''
         run: share/ci/scripts/install_imath.sh main
         shell: bash
 
       - name: Install libdeflate
         # Pre-install libdeflate so the builds validate that find_package sees the external installation
-        if: inputs.OPENEXR_FORCE_INTERNAL_DEFLATE == 'OFF'
+        if: inputs.OPENEXR_FORCE_INTERNAL_DEFLATE == 'OFF' && inputs.msystem == ''
         run: share/ci/scripts/install_libdeflate.sh master
         shell: bash
 
