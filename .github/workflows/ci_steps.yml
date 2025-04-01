@@ -168,7 +168,9 @@ jobs:
         run: |
           cmake $CMAKE_ARGS
           cmake --build . --target install --config ${{ inputs.build-type }}
-          ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
+          if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
+            ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
+          fi
         working-directory: _build
         shell: bash
 
@@ -178,11 +180,8 @@ jobs:
           cmake --version
           cmake $CMAKE_ARGS
           cmake --build . --target install --config ${{ inputs.build-type }}
-          # TODO: OpenEXRCore.testDWATable fails w/MING32
-          if [ "${{ inputs.msystem }}" != "MINGW32" ]; then
+          if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
             ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
-          else
-            echo "Skipping tests for MINGW32"
           fi
         working-directory: _build
         shell: msys2 {0}
