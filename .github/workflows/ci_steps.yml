@@ -120,7 +120,8 @@ jobs:
         shell: bash
 
       - name: Set PATH for Imath/libdeflate/OpenJPH DLLs
-        # When building against external Imath/libdeflate shared objects, the tests need PATH to include the dll's.
+        # When building against external Imath/libdeflate/OpenJPG
+        # shared objects, the tests need PATH to include the dll's.
         if: contains(inputs.os, 'windows') && inputs.msystem == ''
         run: |
           echo "$PATH;C:/Program Files (x86)/Imath/bin;C:/Program Files (x86)/Imath/lib;C:/Program Files (x86)/libdeflate/bin;C:/Program Files (x86)/libdeflate/lib;C:/Program Files (x86)/openjph/lib;C:/Program Files (x86)/openjph/bin" >> $GITHUB_PATH
@@ -183,12 +184,9 @@ jobs:
         if: inputs.msystem == ''
         run: |
           set -x
-
           cmake --version
           cmake ${{ env.CMAKE_ARGS }}
           cmake --build . --target install --config ${{ inputs.build-type }}
-
-          
           if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
             ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
           fi
