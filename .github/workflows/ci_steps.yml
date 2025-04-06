@@ -197,7 +197,13 @@ jobs:
         if: inputs.msystem != ''
         run: |
           cmake --version
-          cmake ${{ env.CMAKE_ARGS }}
+          if [ "${{ inputs.msystem }}" == "MINGW32" ]; then
+            cmake ${{ env.CMAKE_ARGS }} \
+              -DCMAKE_C_FLAGS='-msse2 -mfpmath=sse' \
+              -DCMAKE_CXX_FLAGS='-msse2 -mfpmath=sse'
+          else
+            cmake ${{ env.CMAKE_ARGS }}
+          fi
           cmake --build . --target install --config ${{ inputs.build-type }}
           if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
             ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
