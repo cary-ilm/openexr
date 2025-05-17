@@ -219,4 +219,3 @@ lib/cmake/openjph/openjph-config.cmake
 lib/cmake/openjph/openjph-config-version.cmake
 lib/openjph.0.21.lib
 lib/pkgconfig/openjph.pc
-
