@@ -214,4 +214,19 @@ jobs:
           share/ci/scripts/validate_install.py "_build/$INSTALL_MANIFEST" "share/ci/install_manifest/$INSTALL_MANIFEST"
         shell: bash
 
+      - name: Website src
+        run: |
+          INSTALL_DIR=$GITHUB_WORKSPACE/_install
+          EXRWRITER_BUILD_DIR=$GITHUB_WORKSPACE/_build.exrwriter
+          cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR -DCMAKE_PREFIX_PATH=$INSTALL_DIR
+          cmake --build $EXRWRITER_BUILD_DIR
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            $EXRWRITER_BUILD_DIR/bin/"${{ inputs.build-type }}"/exrwriter.exe || true
+          else
+            $EXRWRITER_BUILD_DIR/bin/exrwriter
+          fi
 
+
+
+        shell: bash
+        

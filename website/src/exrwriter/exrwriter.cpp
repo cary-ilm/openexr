@@ -5,7 +5,7 @@
 int
 main()
 {
-    int width =  10;
+    int width =  20;
     int height = 10;
         
     Imf::Array2D<Imf::Rgba> pixels(width, height);
