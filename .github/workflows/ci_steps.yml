@@ -222,10 +222,11 @@ jobs:
           EXRWRITER_BUILD_DIR=$GITHUB_WORKSPACE/_build.exrwriter
           cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR \
                 -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
-                -DCMAKE_BUILD_TYPE=${{ inputs.build-type }}
+                -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
+                -DCMAKE_VERBOSE_MAKEFILE=ON
           cmake --build $EXRWRITER_BUILD_DIR --config ${{ inputs.build-type }}
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            $EXRWRITER_BUILD_DIR/bin/"${{ inputs.build-type }}"/exrwriter.exe
+            $EXRWRITER_BUILD_DIR/"${{ inputs.build-type }}"/exrwriter.exe
           else
             $EXRWRITER_BUILD_DIR/exrwriter
             EXRINFO=$INSTALL_DIR/bin/exrinfo
@@ -243,8 +244,8 @@ jobs:
           EXRWRITER_BUILD_DIR=$GITHUB_WORKSPACE/_build.exrwriter
           cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR \
                 -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
-                -DCMAKE_BUILD_TYPE=${{ inputs.build-type }}
+                -DCMAKE_VERBOSE_MAKEFILE=ON
           cmake --build $EXRWRITER_BUILD_DIR --config ${{ inputs.build-type }}
-          $EXRWRITER_BUILD_DIR/bin/"${{ inputs.build-type }}"/exrwriter.exe || true
+          $EXRWRITER_BUILD_DIR/"${{ inputs.build-type }}"/exrwriter.exe
         shell: msys2 {0}
 
