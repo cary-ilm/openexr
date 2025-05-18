@@ -214,19 +214,37 @@ jobs:
           share/ci/scripts/validate_install.py "_build/$INSTALL_MANIFEST" "share/ci/install_manifest/$INSTALL_MANIFEST"
         shell: bash
 
-      - name: Website src
+      - name: Website examples
+        if: inputs.namespace == '' && inputs.msystem == ''
         run: |
+          set -x
           INSTALL_DIR=$GITHUB_WORKSPACE/_install
           EXRWRITER_BUILD_DIR=$GITHUB_WORKSPACE/_build.exrwriter
-          cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR -DCMAKE_PREFIX_PATH=$INSTALL_DIR
-          cmake --build $EXRWRITER_BUILD_DIR
+          cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR \
+                -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
+                -DCMAKE_BUILD_TYPE=${{ inputs.build-type }}
+          cmake --build $EXRWRITER_BUILD_DIR --config ${{ inputs.build-type }}
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            $EXRWRITER_BUILD_DIR/bin/"${{ inputs.build-type }}"/exrwriter.exe || true
+            $EXRWRITER_BUILD_DIR/bin/"${{ inputs.build-type }}"/exrwriter.exe
           else
-            $EXRWRITER_BUILD_DIR/bin/exrwriter
+            $EXRWRITER_BUILD_DIR/exrwriter
+            EXRINFO=$INSTALL_DIR/bin/exrinfo
+            if [ -x "$EXRINFO" ]; then
+                "$EXRINFO" hello.exr
+            fi
           fi
-
-
-
         shell: bash
-        
+
+      - name: Website examples
+        if: inputs.namespace == '' && inputs.msystem != ''
+        run: |
+          set -x
+          INSTALL_DIR=$GITHUB_WORKSPACE/_install
+          EXRWRITER_BUILD_DIR=$GITHUB_WORKSPACE/_build.exrwriter
+          cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR \
+                -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
+                -DCMAKE_BUILD_TYPE=${{ inputs.build-type }}
+          cmake --build $EXRWRITER_BUILD_DIR --config ${{ inputs.build-type }}
+          $EXRWRITER_BUILD_DIR/bin/"${{ inputs.build-type }}"/exrwriter.exe || true
+        shell: msys2 {0}
+
