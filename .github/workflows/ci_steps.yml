@@ -206,7 +206,6 @@ jobs:
           if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
             ctest --test-dir $BUILD_DIR -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
           fi
-        working-directory: _build
         shell: bash
 
       - name: Configure, Build, Test (msys2) # requires msys2 shell
@@ -218,7 +217,6 @@ jobs:
           if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
             ctest --test-dir $BUILD_DIR -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
           fi
-        working-directory: _build
         shell: msys2 {0}
 
       - name: Prepare install_manifest
