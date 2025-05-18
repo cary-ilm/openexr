@@ -121,8 +121,10 @@ readRgba (RgbaInputFile& in, bool reduceMemory, bool reduceTime)
                 {
                     in.readPixels (y);
                 }
-                catch (...)
+                catch (const std::exception& e)
                 {
+                    std::cout << "check failed: " << e.what() << std::endl;
+
                     threw = true;
 
                     //
@@ -132,8 +134,10 @@ readRgba (RgbaInputFile& in, bool reduceMemory, bool reduceTime)
                 }
             }
         }
-        catch (...)
+        catch (const std::exception& e)
         {
+            std::cout << "check failed: " << e.what() << std::endl;
+
             threw = true;
         }
     }
@@ -238,8 +242,10 @@ readScanline (T& in, bool reduceMemory, bool reduceTime)
             {
                 in.readPixels (y);
             }
-            catch (...)
+            catch (const std::exception& e)
             {
+                std::cout << "check failed: " << e.what() << std::endl;
+
                 threw = true;
 
                 //
@@ -249,8 +255,9 @@ readScanline (T& in, bool reduceMemory, bool reduceTime)
             }
         }
     }
-    catch (...)
+    catch (const std::exception& e)
     {
+        std::cout << "check failed: " << e.what() << std::endl;
         threw = true;
     }
 
@@ -394,7 +401,7 @@ readTile (T& in, bool reduceMemory, bool reduceTime)
                             {
                                 in.readTile (x, y, xlevel, ylevel);
                             }
-                            catch (...)
+                            catch (const std::exception& e)
                             {
                                 //
                                 // for one level and mipmapped images,
@@ -404,6 +411,8 @@ readTile (T& in, bool reduceMemory, bool reduceTime)
                                 //
                                 if (isRipMap || xlevel == ylevel)
                                 {
+                                    std::cout << "check failed: " << e.what() << std::endl;
+
                                     threw = true;
 
                                     //
@@ -419,8 +428,10 @@ readTile (T& in, bool reduceMemory, bool reduceTime)
             }
         }
     }
-    catch (...)
+    catch (const std::exception& e)
     {
+        std::cout << "check failed: " << e.what() << std::endl;
+
         threw = true;
     }
 
@@ -562,8 +573,10 @@ readDeepScanLine (T& in, bool reduceMemory, bool reduceTime)
                 {
                     in.readPixels (y);
                 }
-                catch (...)
+                catch (const std::exception& e)
                 {
+                    std::cout << "check failed: " << e.what() << std::endl;
+
                     threw = true;
                     //
                     // in reduceTime mode, fail immediately - the file is corrupt
@@ -573,8 +586,10 @@ readDeepScanLine (T& in, bool reduceMemory, bool reduceTime)
             }
         }
     }
-    catch (...)
+    catch (const std::exception& e)
     {
+        std::cout << "check failed: " << e.what() << std::endl;
+
         threw = true;
     }
     return threw;
@@ -768,7 +783,7 @@ readDeepTile (T& in, bool reduceMemory, bool reduceTime)
                                 }
                             }
 
-                            catch (...)
+                            catch (const std::exception& e)
                             {
                                 //
                                 // for one level and mipmapped images,
@@ -778,6 +793,8 @@ readDeepTile (T& in, bool reduceMemory, bool reduceTime)
                                 //
                                 if (isRipMap || xlevel == ylevel)
                                 {
+                                    std::cout << "check failed: " << e.what() << std::endl;
+
                                     threw = true;
                                     //
                                     // in reduceTime mode, fail immediately - the file is corrupt
@@ -792,8 +809,10 @@ readDeepTile (T& in, bool reduceMemory, bool reduceTime)
             }
         }
     }
-    catch (...)
+    catch (const std::exception& e)
     {
+        std::cout << "check failed: " << e.what() << std::endl;
+
         threw = true;
     }
     return threw;
@@ -836,7 +855,11 @@ readMultiPart (MultiPartInputFile& in, bool reduceMemory, bool reduceTime)
     for (int part = 0; part < in.parts (); ++part)
     {
 
-        if (!enumsValid (in.header (part))) { threw = true; }
+        if (!enumsValid (in.header (part)))
+        {
+            std::cout << "check failed: invalid enums" << std::endl;
+            threw = true;
+        }
 
         bool     widePart      = false;
         bool     largeTiles    = false;
@@ -889,19 +912,22 @@ readMultiPart (MultiPartInputFile& in, bool reduceMemory, bool reduceTime)
         if (!reduceMemory || !widePart)
         {
             bool gotThrow = false;
+            std::string what;
             try
             {
                 InputPart pt (in, part);
                 gotThrow = readScanline (pt, reduceMemory, reduceTime);
             }
-            catch (...)
+            catch (const std::exception& e)
             {
+                what = e.what();
                 gotThrow = true;
             }
             // only 'DeepTiled' parts are expected to throw
             // all others are an error
             if (gotThrow && in.header (part).type () != DEEPTILE)
             {
+                std::cout << "check failed: " << what << std::endl;
                 threw = true;
             }
         }
@@ -909,20 +935,23 @@ readMultiPart (MultiPartInputFile& in, bool reduceMemory, bool reduceTime)
         if (!reduceMemory || !largeTiles)
         {
             bool gotThrow = false;
-
+            std::string what;
+            
             try
             {
                 in.flushPartCache ();
                 TiledInputPart pt (in, part);
                 gotThrow = readTile (pt, reduceMemory, reduceTime);
             }
-            catch (...)
+            catch (const std::exception& e)
             {
+                what = e.what();
                 gotThrow = true;
             }
 
             if (gotThrow && in.header (part).type () == TILEDIMAGE)
             {
+                std::cout << "check failed: " << what << std::endl;
                 threw = true;
             }
         }
@@ -930,6 +959,7 @@ readMultiPart (MultiPartInputFile& in, bool reduceMemory, bool reduceTime)
         if (!reduceMemory || !widePart)
         {
             bool gotThrow = false;
+            std::string what;
 
             try
             {
@@ -937,13 +967,14 @@ readMultiPart (MultiPartInputFile& in, bool reduceMemory, bool reduceTime)
                 DeepScanLineInputPart pt (in, part);
                 gotThrow = readDeepScanLine (pt, reduceMemory, reduceTime);
             }
-            catch (...)
+            catch (const std::exception& e)
             {
                 gotThrow = true;
             }
 
             if (gotThrow && in.header (part).type () == DEEPSCANLINE)
             {
+                std::cout << "check failed: " << what << std::endl;
                 threw = true;
             }
         }
@@ -951,20 +982,23 @@ readMultiPart (MultiPartInputFile& in, bool reduceMemory, bool reduceTime)
         if (!reduceMemory || !largeTiles)
         {
             bool gotThrow = false;
-
+            std::string what;
+            
             try
             {
                 in.flushPartCache ();
                 DeepTiledInputPart pt (in, part);
                 gotThrow = readDeepTile (pt, reduceMemory, reduceTime);
             }
-            catch (...)
+            catch (const std::exception& e)
             {
+                what = e.what();
                 gotThrow = true;
             }
 
             if (gotThrow && in.header (part).type () == DEEPTILE)
             {
+                std::cout << "check failed: " << what << std::endl;
                 threw = true;
             }
         }
@@ -1160,8 +1194,10 @@ runChecks (T& source, bool reduceMemory, bool reduceTime)
 
             threw = readMultiPart (multi, reduceMemory, reduceTime);
         }
-        catch (...)
+        catch (const std::exception& e)
         {
+            std::cout << "check failed: " << e.what() << std::endl;
+
             threw = true;
         }
     }
@@ -1171,80 +1207,115 @@ runChecks (T& source, bool reduceMemory, bool reduceTime)
     {
         {
             bool gotThrow = false;
+            std::string what;
+            
             resetInput (source);
             try
             {
                 RgbaInputFile rgba (source);
                 gotThrow = readRgba (rgba, reduceMemory, reduceTime);
             }
-            catch (...)
+            catch (const std::exception& e)
             {
+                what = e.what();
                 gotThrow = true;
             }
-            if (gotThrow && firstPartType != DEEPTILE) { threw = true; }
+            if (gotThrow && firstPartType != DEEPTILE)
+            {
+                std::cout << "check failed: " << what << std::endl;
+                threw = true;
+            }
         }
         {
             bool gotThrow = false;
+            std::string what;
+            
             resetInput (source);
             try
             {
                 InputFile rgba (source);
                 gotThrow = readScanline (rgba, reduceMemory, reduceTime);
             }
-            catch (...)
+            catch (const std::exception& e)
             {
+                what = e.what();
                 gotThrow = true;
             }
-            if (gotThrow && firstPartType != DEEPTILE) { threw = true; }
+            if (gotThrow && firstPartType != DEEPTILE)
+            {
+                std::cout << "check failed: " << what << std::endl;
+                threw = true;
+            }
         }
     }
 
     if (!reduceMemory || !largeTiles)
     {
         bool gotThrow = false;
+        std::string what;
+        
         resetInput (source);
         try
         {
             TiledInputFile rgba (source);
             gotThrow = readTile (rgba, reduceMemory, reduceTime);
         }
-        catch (...)
+        catch (const std::exception& e)
         {
+            what = e.what();
             gotThrow = true;
         }
-        if (gotThrow && firstPartType == TILEDIMAGE) { threw = true; }
+        if (gotThrow && firstPartType == TILEDIMAGE)
+        {
+            std::cout << "check failed: " << what << std::endl;
+            threw = true;
+        }
     }
 
     if (!reduceMemory)
     {
         bool gotThrow = false;
+        std::string what;
+        
         resetInput (source);
         try
         {
             DeepScanLineInputFile rgba (source);
             gotThrow = readDeepScanLine (rgba, reduceMemory, reduceTime);
         }
-        catch (...)
+        catch (const std::exception& e)
         {
+            what = e.what();
             gotThrow = true;
         }
-        if (gotThrow && firstPartType == DEEPSCANLINE) { threw = true; }
+        if (gotThrow && firstPartType == DEEPSCANLINE)
+        {
+            std::cout << "check failed: " << what << std::endl;
+            threw = true;
+        }
     }
 
     if (!reduceMemory || !largeTiles)
     {
         bool gotThrow = false;
+        std::string what;
+        
         resetInput (source);
         try
         {
             DeepTiledInputFile rgba (source);
             gotThrow = readDeepTile (rgba, reduceMemory, reduceTime);
         }
-        catch (...)
+        catch (const std::exception& e)
         {
+            what = e.what();
             gotThrow = true;
         }
-        if (gotThrow && firstPartType == DEEPTILE) { threw = true; }
+        if (gotThrow && firstPartType == DEEPTILE)
+        {
+            std::cout << "check failed: " << what << std::endl;
+            threw = true;
+        }
     }
 
     CompositeDeepScanLine::setMaximumSampleCount (oldMaxSampleCount);

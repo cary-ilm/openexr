@@ -74,6 +74,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
+      - name: Set Up Directories & Environment
+        run: |
+          set -x
+
+          # Be careful to use consistent paths between Windows and
+          # Linux. Convert backslashed Windows paths to Linux style via cygpath,
+          # i.e. convert D:\a\Imath\Imath to /d/a/Imath/Imath.
+
+          # WORKSPACE is the root of the project directory
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+              WORKSPACE=$(cygpath -u "$GITHUB_WORKSPACE")
+          else
+              WORKSPACE=$GITHUB_WORKSPACE
+          fi
+          echo "WORKSPACE=$WORKSPACE" >> $GITHUB_ENV
+
+          # BUILD_DIR is the CMake build directory
+          BUILD_DIR=$WORKSPACE/_build
+          echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+
+          # INSTALL_DIR is the CMake install directory
+          INSTALL_DIR=$WORKSPACE/_install
+          echo "INSTALL_DIR=$INSTALL_DIR" >> $GITHUB_ENV
+
+          # OPENEXR_PATH is the accumulated path used for executing
+          # binaries during the test steps. Note that the GH shell
+          # silently and automatically adjusts the PATH variable, so
+          # keep the special paths in a separate variable and assign
+          # them to PATH only just prior to execution.
+
+          OPENEXR_PATH=$INSTALL_DIR/bin:$INSTALL_DIR/lib
+          echo "OPENEXR_PATH=$OPENEXR_PATH" >> $GITHUB_ENV
+
+        shell: bash
+
       - name: Determine MSYS2 Packages
         if: inputs.msystem != ''
         run: |
@@ -123,17 +158,13 @@ jobs:
         run: share/ci/scripts/install_help2man.sh
         shell: bash
 
-      - name: Create build directories
-        run: mkdir _install _build _examples
-        shell: bash
-
       - name: Construct CMake command
         run: |
           # Construct the cmake command as a variable, so the
           # Configure step below can execute it, but also so we can store
           # in in the install_manifest as a debugging reference
-          cmake_args=("-B" "." "-S" "..")
-          cmake_args+=("-DCMAKE_INSTALL_PREFIX=../_install")
+          cmake_args=("-B" "$BUILD_DIR" "-S" "$WORKSPACE")
+          cmake_args+=("-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR")
           cmake_args+=("-DCMAKE_BUILD_TYPE=${{ inputs.build-type }}")
           cmake_args+=("-DOPENEXR_CXX_STANDARD=${{ inputs.cxx-standard }}")
           cmake_args+=("-DBUILD_SHARED_LIBS=${{ inputs.BUILD_SHARED_LIBS }}")
@@ -164,7 +195,6 @@ jobs:
           # contains "ubuntu", "macos", or "windows", so the name is,
           # e.g. install_manifest.macos.1.txt
           echo "INSTALL_MANIFEST=$(echo 'install_manifest.${{ inputs.os }}' | cut -d'-' -f1).${{ inputs.build }}.txt" >> $GITHUB_ENV
-        working-directory: _build
         shell: bash
 
       - name: Configure, Build, Test
@@ -172,9 +202,9 @@ jobs:
         run: |
           cmake --version
           cmake ${{ env.CMAKE_ARGS }}
-          cmake --build . --target install --config ${{ inputs.build-type }}
+          cmake --build $BUILD_DIR --target install --config ${{ inputs.build-type }}
           if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
-            ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
+            ctest --test-dir $BUILD_DIR -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
           fi
         working-directory: _build
         shell: bash
@@ -184,9 +214,9 @@ jobs:
         run: |
           cmake --version
           cmake ${{ env.CMAKE_ARGS }}
-          cmake --build . --target install --config ${{ inputs.build-type }}
+          cmake --build $BUILD_DIR --target install --config ${{ inputs.build-type }}
           if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
-            ctest -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
+            ctest --test-dir $BUILD_DIR -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
           fi
         working-directory: _build
         shell: msys2 {0}
@@ -196,8 +226,12 @@ jobs:
         # and remove the path prefix, so the manifest contains only
         # the local filenames.
         run: |
-          echo "# cmake ${{ env.CMAKE_ARGS }}" > "_build/$INSTALL_MANIFEST"
-          sort _build/install_manifest.txt | sed -e "s:^.*/_install/::" >> "_build/$INSTALL_MANIFEST"
+          set -x
+          INSTALL_MANIFEST_PATH="$BUILD_DIR/$INSTALL_MANIFEST"
+          echo "# SPDX-License-Identifier: BSD-3-Clause" > $INSTALL_MANIFEST_PATH
+          echo "# Copyright (c) Contributors to the OpenEXR Project." >> $INSTALL_MANIFEST_PATH
+          echo "# cmake ${{ env.CMAKE_ARGS }}" >> $INSTALL_MANIFEST_PATH
+          sort $BUILD_DIR/install_manifest.txt | sed -e "s:^.*/_install/::" >> "$INSTALL_MANIFEST_PATH"
         shell: bash
 
       - name: Upload install_manifest.txt
@@ -205,26 +239,26 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ env.INSTALL_MANIFEST }}
-          path: _build/${{ env.INSTALL_MANIFEST }}
+          path: ${{ env.INSTALL_MANIFEST_PATH }}
 
       - name: Validate install
         if: ${{ inputs.validate_install == 'ON' }}
         # Validate that the build has installed the proper files by comparing against the appropriate reference manifest
         run: |
-          share/ci/scripts/validate_install.py "_build/$INSTALL_MANIFEST" "share/ci/install_manifest/$INSTALL_MANIFEST"
+          share/ci/scripts/validate_install.py "$INSTALL_MANIFEST_PATH" "share/ci/install_manifest/$INSTALL_MANIFEST"
         shell: bash
 
       - name: Website examples
         if: inputs.namespace == '' && inputs.msystem == ''
         run: |
           set -x
-          INSTALL_DIR=$GITHUB_WORKSPACE/_install
-          EXRWRITER_BUILD_DIR=$GITHUB_WORKSPACE/_build.exrwriter
+          EXRWRITER_BUILD_DIR=$BUILD_DIR.exrwriter
           cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR \
                 -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
                 -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
                 -DCMAKE_VERBOSE_MAKEFILE=ON
           cmake --build $EXRWRITER_BUILD_DIR --config ${{ inputs.build-type }}
+          find $EXRWRITER_BUILD_DIR -ls          
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             $EXRWRITER_BUILD_DIR/"${{ inputs.build-type }}"/exrwriter.exe
           else
@@ -236,16 +270,16 @@ jobs:
           fi
         shell: bash
 
-      - name: Website examples
+      - name: Website examples (msys2)
         if: inputs.namespace == '' && inputs.msystem != ''
         run: |
           set -x
-          INSTALL_DIR=$GITHUB_WORKSPACE/_install
           EXRWRITER_BUILD_DIR=$GITHUB_WORKSPACE/_build.exrwriter
           cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR \
                 -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
                 -DCMAKE_VERBOSE_MAKEFILE=ON
           cmake --build $EXRWRITER_BUILD_DIR --config ${{ inputs.build-type }}
+          find $EXRWRITER_BUILD_DIR -ls          
           $EXRWRITER_BUILD_DIR/"${{ inputs.build-type }}"/exrwriter.exe
         shell: msys2 {0}
 
