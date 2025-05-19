@@ -203,7 +203,9 @@ jobs:
           cmake --version
           cmake ${{ env.CMAKE_ARGS }}
           cmake --build $BUILD_DIR --target install --config ${{ inputs.build-type }}
+          echo "Validating test images..."
           find $BUILD_DIR -name "*.exr" -ls
+
           if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
             ctest --test-dir $BUILD_DIR -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
           fi
@@ -214,8 +216,10 @@ jobs:
         run: |
           cmake --version
           cmake ${{ env.CMAKE_ARGS }}
-          find $BUILD_DIR -name "*.exr" -ls
           cmake --build $BUILD_DIR --target install --config ${{ inputs.build-type }}
+          echo "Validating test images..."
+          find $BUILD_DIR -name "*.exr" -ls
+
           if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
             ctest --test-dir $BUILD_DIR -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
           fi
@@ -259,18 +263,24 @@ jobs:
           EXRWRITER_BUILD_DIR=$BUILD_DIR.exrwriter
           cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR \
                 -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
-                -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
                 -DCMAKE_VERBOSE_MAKEFILE=ON
           cmake --build $EXRWRITER_BUILD_DIR --config ${{ inputs.build-type }}
-          find $EXRWRITER_BUILD_DIR -ls          
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            $EXRWRITER_BUILD_DIR/"${{ inputs.build-type }}"/exrwriter.exe
+            EXRWRITER=$EXRWRITER_BUILD_DIR/Release/exrwriter.exe
+            EXRINFO=$INSTALL_DIR/bin/exrinfo.exe
           else
-            $EXRWRITER_BUILD_DIR/exrwriter
+            EXRWRITER=$EXRWRITER_BUILD_DIR/exrwriter
             EXRINFO=$INSTALL_DIR/bin/exrinfo
+          fi
+          if [ -x "$EXRWRITER" ]; then
+            "$EXRWRITER"
+          else
+            echo "can't find exrwriter: $EXRWRITER"
+          fi
             if [ -x "$EXRINFO" ]; then
                 "$EXRINFO" hello.exr
-            fi
+          else
+            echo "can't find exrinfo: $EXRINFO"
           fi
         shell: bash
 
@@ -283,7 +293,17 @@ jobs:
                 -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
                 -DCMAKE_VERBOSE_MAKEFILE=ON
           cmake --build $EXRWRITER_BUILD_DIR --config ${{ inputs.build-type }}
-          find $EXRWRITER_BUILD_DIR -ls          
-          $EXRWRITER_BUILD_DIR/"${{ inputs.build-type }}"/exrwriter.exe
+          EXRWRITER=$EXRWRITER_BUILD_DIR/Release/exrwriter.exe
+          EXRINFO=$INSTALL_DIR/bin/exrinfo.exe
+          if [ -x "$EXRWRITER" ]; then
+            "$EXRWRITER"
+          else
+            echo "can't find exrwriter: $EXRWRITER"
+          fi
+          if [ -x "$EXRINFO" ]; then
+           "$EXRINFO" hello.exr
+          else
+            echo "can't find exrinfo: $EXRINFO"
+          fi
         shell: msys2 {0}
 
