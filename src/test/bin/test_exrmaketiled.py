@@ -27,38 +27,42 @@ def cleanup():
     print(f"deleting {outimage}")
 atexit.register(cleanup)
 
+def do_run(cmd, expect_error = False):
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+    result = run (cmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    if expect_error and result.returncode == 0:
+        print(f"error: {cmd_string} did not fail as expected")
+        print(f"stdout:\n{result.stdout}")
+        print(f"stderr:\n{result.stderr}")
+        sys.exit(1)
+    if result.returncode != 0 or :
+        print(f"error: {cmd_string} failed: returncode={result.returncode}")
+        print(f"stdout:\n{result.stdout}")
+        print(f"stderr:\n{result.stderr}")
+        sys.exit(1)
+    return result
+
 # no args = usage message
-result = run ([exrmaketiled], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode != 0), "\n"+result.stderr
-assert(result.stderr.startswith ("Usage: ")), "\n"+result.stderr
+result = do_run ([exrmaketiled], True)
+assert result.stderr.startswith ("Usage: ")
 
 # -h = usage message
-result = run ([exrmaketiled, "-h"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("Usage: ")), "\n"+result.stdout
+result = do_run ([exrmaketiled, "-h"])
+assert result.stdout.startswith ("Usage: ")
 
-result = run ([exrmaketiled, "--help"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("Usage: ")), "\n"+result.stdout
+result = do_run ([exrmaketiled, "--help"])
+assert result.stdout.startswith ("Usage: ")
 
 # --version
-result = run ([exrmaketiled, "--version"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("exrmaketiled")), "\n"+result.stdout
-assert(version in result.stdout), "\n"+result.stdout
+result = do_run ([exrmaketiled, "--version"])
+assert result.stdout.startswith ("exrmaketiled")
+assert version in result.stdout
 
-result = run ([exrmaketiled, image, outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(os.path.isfile(outimage)), "\nMissing " + outimage
+result = do_run ([exrmaketiled, image, outimage])
+assert os.path.isfile(outimage)
 
-result = run ([exrinfo, "-v", outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert('tiled image has levels: x 1 y 1' in result.stdout), "\n"+result.stdout
+result = do_run ([exrinfo, "-v", outimage])
+assert 'tiled image has levels: x 1 y 1' in result.stdout
 
 print("success")

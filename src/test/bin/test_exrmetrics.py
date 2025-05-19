@@ -22,38 +22,43 @@ def cleanup():
     print(f"deleting {outimage}")
 atexit.register(cleanup)
 
+def do_run(cmd, expect_error = False):
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+    result = run (cmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    if expect_error and result.returncode == 0:
+        print(f"error: {cmd_string} did not fail as expected")
+        print(f"stdout:\n{result.stdout}")
+        print(f"stderr:\n{result.stderr}")
+        sys.exit(1)
+    if result.returncode != 0 or :
+        print(f"error: {cmd_string} failed: returncode={result.returncode}")
+        print(f"stdout:\n{result.stdout}")
+        print(f"stderr:\n{result.stderr}")
+        sys.exit(1)
+    return result
+
 # no args = usage message
-result = run ([exrmetrics], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode != 0), "\n"+result.stderr
-assert(result.stderr.startswith ("Usage: ")), "\n"+result.stderr
+result = do_run  ([exrmetrics], True)
+assert result.stderr.startswith ("Usage: ")
 
 # -h = usage message
-result = run ([exrmetrics, "-h"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("Usage: ")), "\n"+result.stdout
+result = do_run  ([exrmetrics, "-h"])
+assert result.stdout.startswith ("Usage: ")
 
-result = run ([exrmetrics, "--help"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("Usage: ")), "\n"+result.stdout
+result = do_run  ([exrmetrics, "--help"])
+assert result.stdout.startswith ("Usage: ")
 
 # --version
-result = run ([exrmetrics, "--version"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("exrmetrics")), "\n"+result.stdout
-assert(version in result.stdout), "\n"+result.stdout
+result = do_run  ([exrmetrics, "--version"])
+assert result.stdout.startswith ("exrmetrics")
+assert version in result.stdout
 
 # test missing arguments, using just the -option but no value
 
 for a in ["-p","-l","-16","-z","-t","-i","--passes","-o","--pixelmode","--time"]:
-    result = run ([exrmetrics, a], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-    print(" ".join(result.args))
-    print(result.stderr)
-    assert(result.returncode != 0), "\n"+result.stderr
-    assert("Missing" in result.stderr),"expected 'Missing argument' error"
+    result = do_run  ([exrmetrics, a], True)
+    assert "Missing" in result.stderr
 
 for image in [f"{image_dir}/TestImages/GrayRampsHorizontal.exr",f"{image_dir}/Beachball/multipart.0001.exr",f"{image_dir}/LuminanceChroma/Flowers.exr"]:
     for time in ["none","read","write","reread","read,write","read,reread","read,write,reread"]:
@@ -63,18 +68,14 @@ for image in [f"{image_dir}/TestImages/GrayRampsHorizontal.exr",f"{image_dir}/Be
               command += ["-i",image, "--passes",passes,"--time",time,"-o",outimage]
               if nosize:
                   command += ['--no-size']
-              result = run (command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-              print(" ".join(result.args))
-              print(result.returncode)
-              print(result.stderr)
-              assert(result.returncode == 0), "\n"+result.stderr
-              assert(os.path.isfile(outimage)), "\nMissing " + outimage
+              result = run (command)
+              assert os.path.isfile(outimage)
               if len(result.stdout):
                 # confirm data is valid JSON (will not be true if filename contains quotes)
                 data = json.loads(result.stdout)
-                assert(len(data)==1),"\n Unexpected list size in JSON object"
+                assert len(data) == 1
                 if not nosize:
                   for x in ['file','pixels','compression','part type','total raw size']:
-                     assert(x in data[0]),"\n Missing field "+x
+                     assert x in data[0]
 
 print("success")

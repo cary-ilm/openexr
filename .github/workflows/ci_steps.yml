@@ -230,6 +230,10 @@ jobs:
           echo "# Copyright (c) Contributors to the OpenEXR Project." >> $INSTALL_MANIFEST_PATH
           echo "# cmake ${{ env.CMAKE_ARGS }}" >> $INSTALL_MANIFEST_PATH
           sort $BUILD_DIR/install_manifest.txt | sed -e "s:^.*/_install/::" >> "$INSTALL_MANIFEST_PATH"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+              INSTALL_MANIFEST_PATH=$(cygpath -w $INSTALL_MANIFEST_PATH)
+          fi
+          echo INSTALL_MANIFEST_PATH=$INSTALL_MANIFEST_PATH >> $GITHUB_ENV
         shell: bash
 
       - name: Upload install_manifest.txt

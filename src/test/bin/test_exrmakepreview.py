@@ -17,29 +17,38 @@ assert(os.path.isfile(exrmakepreview)), "\nMissing " + exrmakepreview
 assert(os.path.isfile(exrinfo)), "\nMissing " + exrinfo
 assert(os.path.isdir(image_dir)), "\nMissing " + image_dir
 
+
+def do_run(cmd, expect_error = False):
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+    result = run (cmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    if expect_error and result.returncode == 0:
+        print(f"error: {cmd_string} did not fail as expected")
+        print(f"stdout:\n{result.stdout}")
+        print(f"stderr:\n{result.stderr}")
+        sys.exit(1)
+    if result.returncode != 0 or :
+        print(f"error: {cmd_string} failed: returncode={result.returncode}")
+        print(f"stdout:\n{result.stdout}")
+        print(f"stderr:\n{result.stderr}")
+        sys.exit(1)
+    return result
+
 # no args = usage message
-result = run ([exrmakepreview], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode != 0), "\n"+result.stderr
-assert(result.stderr.startswith ("Usage: ")), "\n"+result.stderr
+result = do_run ([exrmakepreview], True)
+assert result.stderr.startswith ("Usage: ")
 
 # -h = usage message
-result = run ([exrmakepreview, "-h"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("Usage: "))
+result = do_run ([exrmakepreview, "-h"])
+assert result.stdout.startswith ("Usage: ")
 
-result = run ([exrmakepreview, "--help"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("Usage: ")), "\n"+result.stdout
+result = do_run ([exrmakepreview, "--help"])
+assert result.stdout.startswith ("Usage: ")
 
 # --version
-result = run ([exrmakepreview, "--version"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("exrmakepreview")), "\n"+result.stdout
-assert(version in result.stdout), "\n"+result.stdout
+result = do_run ([exrmakepreview, "--version"])
+assert result.stdout.startswith ("exrmakepreview")
+assert version in result.stdout
 
 
 def find_line(keyword, lines):
@@ -56,15 +65,11 @@ def cleanup():
 atexit.register(cleanup)
 
 image = f"{image_dir}/TestImages/GrayRampsHorizontal.exr"
-result = run ([exrmakepreview, "-w", "50", "-e", "1", "-v", image, outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
+result = do_run ([exrmakepreview, "-w", "50", "-e", "1", "-v", image, outimage])
 
-result = run ([exrinfo, "-v", outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
+result = do_run ([exrinfo, "-v", outimage])
 output = result.stdout.split('\n')
-assert("preview 50 x 50" in find_line("  preview", output)), "\n"+result.stdout
+assert "preview 50 x 50" in find_line("  preview", output)
 
 print("success")
 

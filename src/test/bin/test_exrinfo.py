@@ -12,28 +12,35 @@ exrinfo = sys.argv[1]
 image_dir = sys.argv[2]
 version = sys.argv[3]
 
-result = run ([exrinfo, "-h"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("Usage: ")), "\n"+result.stdout
+def do_run(cmd, expect_error = False):
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+    result = run (cmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    if expect_error and result.returncode == 0:
+        print(f"error: {cmd_string} did not fail as expected")
+        print(f"stdout:\n{result.stdout}")
+        print(f"stderr:\n{result.stderr}")
+        sys.exit(1)
+    if result.returncode != 0 or :
+        print(f"error: {cmd_string} failed: returncode={result.returncode}")
+        print(f"stdout:\n{result.stdout}")
+        print(f"stderr:\n{result.stderr}")
+        sys.exit(1)
+    return result
 
-result = run ([exrinfo, "--help"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("Usage: ")), "\n"+result.stdout
+result = do_run ([exrinfo, "-h"], True)
+assert result.stdout.startswith ("Usage: ")
+
+result = do_run ([exrinfo, "--help"])
+assert result.stdout.startswith ("Usage: ")
 
 # --version
-result = run ([exrinfo, "--version"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-print(result.stdout)
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("exrinfo")), "\n"+result.stdout
-assert(version in result.stdout), "\n"+result.stdout
+result = do_run ([exrinfo, "--version"])
+assert result.stdout.startswith ("exrinfo")
+assert version in result.stdout
 
 image = f"{image_dir}/TestImages/GrayRampsHorizontal.exr"
-result = run ([exrinfo, image, "-a", "-v"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
+result = do_run ([exrinfo, image, "-a", "-v"])
 output = result.stdout.split('\n')
 try:
     assert ('pxr24' in output[1])
@@ -47,9 +54,7 @@ except AssertionError:
 # test image as stdio
 with open(image, 'rb') as f:
     data = f.read()
-result = run ([exrinfo, '-', "-a", "-v"], input=data, stdout=PIPE, stderr=PIPE)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
+result = do_run ([exrinfo, '-', "-a", "-v"])
 output = result.stdout.decode().split('\n')
 try:
     assert ('pxr24' in output[1])

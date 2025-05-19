@@ -13,28 +13,36 @@ exrinfo = sys.argv[2]
 image_dir = sys.argv[3]
 version = sys.argv[4]
 
-result = run ([exrmultiview], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode != 0), "\n"+result.stderr
-assert("Usage:" in result.stderr), "\n"+result.stderr
+def do_run(cmd, expect_error = False):
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+    result = run (cmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    if expect_error and result.returncode == 0:
+        print(f"error: {cmd_string} did not fail as expected")
+        print(f"stdout:\n{result.stdout}")
+        print(f"stderr:\n{result.stderr}")
+        sys.exit(1)
+    if result.returncode != 0 or :
+        print(f"error: {cmd_string} failed: returncode={result.returncode}")
+        print(f"stdout:\n{result.stdout}")
+        print(f"stderr:\n{result.stderr}")
+        sys.exit(1)
+    return result
+
+result = do_run  ([exrmultiview], True)
+assert "Usage:" in result.stderr
 
 # -h = usage message
-result = run ([exrmultiview, "-h"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("Usage: ")), "\n"+result.stdout
+result = do_run  ([exrmultiview, "-h"])
+assert result.stdout.startswith ("Usage: ")
 
-result = run ([exrmultiview, "--help"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("Usage: ")), "\n"+result.stdout
+result = do_run  ([exrmultiview, "--help"])
+assert result.stdout.startswith ("Usage: ")
 
 # --version
-result = run ([exrmultiview, "--version"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
-assert(result.stdout.startswith ("exrmultiview")), "\n"+result.stdout
-assert(version in result.stdout), "\n"+result.stdout
+result = do_run  ([exrmultiview, "--version"])
+assert result.stdout.startswith ("exrmultiview")
+assert version in result.stdout
 
 left_image = f"{image_dir}/TestImages/GammaChart.exr"
 right_image = f"{image_dir}/TestImages/GrayRampsHorizontal.exr"
@@ -49,12 +57,10 @@ atexit.register(cleanup)
 
 command = [exrmultiview, "left", left_image, "right", right_image, outimage]
 result = run (command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-print(" ".join(result.args))
-assert(result.returncode == 0)
 
-result = run ([exrinfo, outimage], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+result = do_run  ([exrinfo, outimage])
 print(" ".join(result.args))
-assert(result.returncode == 0), "\n"+result.stderr
+assert result.returncode == 0
 try:
     assert('\'B\': half samp 1 1' in result.stdout)
     assert('\'G\': half samp 1 1' in result.stdout)
