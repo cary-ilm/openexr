@@ -4,9 +4,9 @@
 # Copyright (c) Contributors to the OpenEXR Project.
 
 import sys, os, tempfile, atexit
-from subprocess import PIPE, run
+from do_run import do_run
 
-print(f"testing exr2aces: {sys.argv}")
+print(f"testing exr2aces: {' '.join(sys.argv)}")
 
 exr2aces = sys.argv[1]
 exrinfo = sys.argv[2]
@@ -16,25 +16,6 @@ version = sys.argv[4]
 if not os.path.isfile(exr2aces) or not os.access(exr2aces, os.X_OK):
     print(f"error: no such file: {exr2aces}")
     sys.exit(1)
-
-def do_run(cmd, expect_error = False):
-    cmd_string = " ".join(cmd)
-    print(f"run: {cmd_string}")
-    result = run (cmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-    if expect_error:
-        if result.returncode != 0:
-            return result
-        print(f"error: {cmd_string} did not fail as expected")
-        print(f"stdout:\n{result.stdout}")
-        print(f"stderr:\n{result.stderr}")
-        sys.exit(1)
-            
-    if result.returncode != 0:
-        print(f"error: {cmd_string} failed: returncode={result.returncode}")
-        print(f"stdout:\n{result.stdout}")
-        print(f"stderr:\n{result.stderr}")
-        sys.exit(1)
-    return result
 
 # no args = usage message, error
 result = do_run ([exr2aces], True)
@@ -53,7 +34,7 @@ assert result.stdout.startswith ("exr2aces")
 assert version in result.stdout
 
 # invalid arguments
-result = do_run ([exr2aces, "foo.exr", "bar.exr"])
+result = do_run ([exr2aces, "foo.exr", "bar.exr"], True)
 
 def find_line(keyword, lines):
     for line in lines:

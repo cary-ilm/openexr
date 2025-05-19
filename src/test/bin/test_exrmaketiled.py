@@ -4,7 +4,7 @@
 # Copyright (c) Contributors to the OpenEXR Project.
 
 import sys, os, tempfile, atexit
-from subprocess import PIPE, run
+from do_run import do_run
 
 print(f"testing exrmaketiled: {' '.join(sys.argv)}")
 
@@ -26,22 +26,6 @@ os.close(fd)
 def cleanup():
     print(f"deleting {outimage}")
 atexit.register(cleanup)
-
-def do_run(cmd, expect_error = False):
-    cmd_string = " ".join(cmd)
-    print(cmd_string)
-    result = run (cmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-    if expect_error and result.returncode == 0:
-        print(f"error: {cmd_string} did not fail as expected")
-        print(f"stdout:\n{result.stdout}")
-        print(f"stderr:\n{result.stderr}")
-        sys.exit(1)
-    if result.returncode != 0 or :
-        print(f"error: {cmd_string} failed: returncode={result.returncode}")
-        print(f"stdout:\n{result.stdout}")
-        print(f"stderr:\n{result.stderr}")
-        sys.exit(1)
-    return result
 
 # no args = usage message
 result = do_run ([exrmaketiled], True)

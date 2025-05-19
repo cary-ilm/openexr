@@ -203,6 +203,7 @@ jobs:
           cmake --version
           cmake ${{ env.CMAKE_ARGS }}
           cmake --build $BUILD_DIR --target install --config ${{ inputs.build-type }}
+          find $BUILD_DIR -name "*.exr" -ls
           if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
             ctest --test-dir $BUILD_DIR -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV
           fi
@@ -213,6 +214,7 @@ jobs:
         run: |
           cmake --version
           cmake ${{ env.CMAKE_ARGS }}
+          find $BUILD_DIR -name "*.exr" -ls
           cmake --build $BUILD_DIR --target install --config ${{ inputs.build-type }}
           if [ "${{ inputs.BUILD_TESTING }}" == "ON" ]; then
             ctest --test-dir $BUILD_DIR -T Test -C ${{ inputs.build-type }} --timeout 7200 --output-on-failure -VV

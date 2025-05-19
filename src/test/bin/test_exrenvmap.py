@@ -4,9 +4,9 @@
 # Copyright (c) Contributors to the OpenEXR Project.
 
 import sys, os, tempfile, atexit
-from subprocess import PIPE, run
+from do_run import do_run
 
-print(f"testing exrenvmap: {sys.argv}")
+print(f"testing exrenvmap: {' '.join(sys.argv)}")
 
 exrenvmap = sys.argv[1]
 exrinfo = sys.argv[2]
@@ -28,19 +28,8 @@ def cleanup():
     print(f"deleting {outimage}")
 atexit.register(cleanup)
 
-def do_run(cmd):
-    cmd_string = " ".join(cmd)
-    print(cmd_string)
-    result = run (cmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-    if result.returncode != 0:
-        print(f"error: {cmd_string} failed: returncode={result.returncode}")
-        print(f"stdout:\n{result.stdout}")
-        print(f"stderr:\n{result.stderr}")
-        sys.exit(1)
-    return result.stdout, result.stderr
-
 # no args = usage message
-result = do_run ([exrenvmap])
+result = do_run ([exrenvmap], True)
 assert result.stderr.startswith ("Usage: ")
 
 # -h = usage message
@@ -58,7 +47,7 @@ assert version in result.stdout
 
 # default
 result = do_run ([exrenvmap, latlong_image, outimage])
-assert s.path.isfile(outimage)
+assert os.path.isfile(outimage)
 default_file_size = os.path.getsize(outimage)
 
 result = do_run ([exrenvmap, "-li", latlong_image, outimage])
@@ -80,7 +69,7 @@ result = do_run ([exrenvmap, "-m", latlong_image, outimage])
 assert os.path.isfile(outimage)
 
 result = do_run ([exrinfo, "-v", outimage])
-assert('tiles: tiledesc size 64 x 64 level 1 (mipmap) round 0 (down)' in result.stdout
+assert 'tiles: tiledesc size 64 x 64 level 1 (mipmap) round 0 (down)' in result.stdout
 os.unlink(outimage)
 
 # -c 
@@ -101,10 +90,10 @@ os.unlink(outimage)
 
 # -w 
 
-result = do_run ([exrenvmap, "-w", latlong_image, outimage])
+result = do_run ([exrenvmap, "-w", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
-result = do_run ([exrenvmap, "-w", "-64", latlong_image, outimage])
+result = do_run ([exrenvmap, "-w", "-64", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
 result = do_run ([exrenvmap, "-w", "64", latlong_image, outimage])
@@ -116,42 +105,42 @@ assert 'y tile count: 6 (sz 384)' in result.stdout
 os.unlink(outimage)
 
 # -f (filter)
-result = do_run ([exrenvmap, "-f", latlong_image, outimage])
+result = do_run ([exrenvmap, "-f", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
-result = do_run ([exrenvmap, "-f", "1.1", latlong_image, outimage])
+result = do_run ([exrenvmap, "-f", "1.1", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
-result = do_run ([exrenvmap, "-f", "-1.1", "6", latlong_image, outimage])
+result = do_run ([exrenvmap, "-f", "-1.1", "6", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
-result = do_run ([exrenvmap, "-f", "1.1", "-6", latlong_image, outimage])
+result = do_run ([exrenvmap, "-f", "1.1", "-6", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
 result = do_run ([exrenvmap, "-f", "1.1", "6", latlong_image, outimage])
 assert os.path.isfile(outimage)
 file_size = os.path.getsize(outimage)
-assert file_size != default_file_size)
+assert file_size != default_file_size
 os.unlink(outimage)
 
 # -b (blur)
 result = do_run ([exrenvmap, "-b", latlong_image, outimage])
 assert os.path.isfile(outimage)
 file_size = os.path.getsize(outimage)
-assert file_size != default_file_size)
+assert file_size != default_file_size
 os.unlink(outimage)
 
 # -t 
-result = do_run ([exrenvmap, "-t", latlong_image, outimage])
+result = do_run ([exrenvmap, "-t", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
-result = do_run ([exrenvmap, "-t", "32", latlong_image, outimage])
+result = do_run ([exrenvmap, "-t", "32", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
-result = do_run ([exrenvmap, "-t", "-32", "48", latlong_image, outimage])
+result = do_run ([exrenvmap, "-t", "-32", "48", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
-result = do_run ([exrenvmap, "-t", "32", "-48", latlong_image, outimage])
+result = do_run ([exrenvmap, "-t", "32", "-48", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
 result = do_run ([exrenvmap, "-t", "32", "48", latlong_image, outimage])
@@ -171,10 +160,10 @@ assert 'tiles: tiledesc size 64 x 64 level 0 (single image) round 1 (up)' in res
 os.unlink(outimage)
 
 # -z 
-result = do_run ([exrenvmap, "-z", latlong_image, outimage])
+result = do_run ([exrenvmap, "-z", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
-result = do_run ([exrenvmap, "-z", "xxx", latlong_image, outimage])
+result = do_run ([exrenvmap, "-z", "xxx", latlong_image, outimage], True)
 assert not os.path.isfile(outimage)
 
 for z in ["none", "rle", "zip", "piz", "pxr24", "b44", "b44a", "dwaa", "dwab"]:

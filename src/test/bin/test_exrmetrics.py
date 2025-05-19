@@ -4,7 +4,7 @@
 # Copyright (c) Contributors to the OpenEXR Project.
 
 import sys, os, tempfile, atexit, json
-from subprocess import PIPE, run
+from do_run import do_run
 
 print(f"testing exrmetrics: {' '.join(sys.argv)}")
 
@@ -21,22 +21,6 @@ os.close(fd)
 def cleanup():
     print(f"deleting {outimage}")
 atexit.register(cleanup)
-
-def do_run(cmd, expect_error = False):
-    cmd_string = " ".join(cmd)
-    print(cmd_string)
-    result = run (cmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-    if expect_error and result.returncode == 0:
-        print(f"error: {cmd_string} did not fail as expected")
-        print(f"stdout:\n{result.stdout}")
-        print(f"stderr:\n{result.stderr}")
-        sys.exit(1)
-    if result.returncode != 0 or :
-        print(f"error: {cmd_string} failed: returncode={result.returncode}")
-        print(f"stdout:\n{result.stdout}")
-        print(f"stderr:\n{result.stderr}")
-        sys.exit(1)
-    return result
 
 # no args = usage message
 result = do_run  ([exrmetrics], True)
@@ -68,7 +52,7 @@ for image in [f"{image_dir}/TestImages/GrayRampsHorizontal.exr",f"{image_dir}/Be
               command += ["-i",image, "--passes",passes,"--time",time,"-o",outimage]
               if nosize:
                   command += ['--no-size']
-              result = run (command)
+              result = do_run (command)
               assert os.path.isfile(outimage)
               if len(result.stdout):
                 # confirm data is valid JSON (will not be true if filename contains quotes)

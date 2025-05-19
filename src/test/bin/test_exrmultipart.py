@@ -4,7 +4,7 @@
 # Copyright (c) Contributors to the OpenEXR Project.
 
 import sys, os, tempfile, atexit
-from subprocess import PIPE, run
+from do_run import do_run
 
 print(f"testing exrmultipart: {' '.join(sys.argv)}")
 
@@ -12,22 +12,6 @@ exrmultipart = sys.argv[1]
 exrinfo = sys.argv[2]
 image_dir = sys.argv[3]
 version = sys.argv[4]
-
-def do_run(cmd, expect_error = False):
-    cmd_string = " ".join(cmd)
-    print(cmd_string)
-    result = run (cmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-    if expect_error and result.returncode == 0:
-        print(f"error: {cmd_string} did not fail as expected")
-        print(f"stdout:\n{result.stdout}")
-        print(f"stderr:\n{result.stderr}")
-        sys.exit(1)
-    if result.returncode != 0 or :
-        print(f"error: {cmd_string} failed: returncode={result.returncode}")
-        print(f"stdout:\n{result.stdout}")
-        print(f"stderr:\n{result.stderr}")
-        sys.exit(1)
-    return result
 
 result = do_run  ([exrmultipart], True)
 assert "Usage:" in result.stderr
@@ -55,13 +39,12 @@ def cleanup():
 atexit.register(cleanup)
 
 # combine
-result = do_run ([exrmultipart, "-combine", "-i", f"{image}:0", f"{image}:1", "-o", outimage]
+result = do_run ([exrmultipart, "-combine", "-i", f"{image}:0", f"{image}:1", "-o", outimage])
 
-result = do_run  ([exrinfo, outimage])
+result = do_run ([exrinfo, outimage])
 
 # error: can't convert multipart images
-command = [exrmultipart, "-convert", "-i", image, "-o", outimage]
-result = do_run (command)
+result = do_run ([exrmultipart, "-convert", "-i", image, "-o", outimage], True)
 
 # convert
 singlepart_image = f"{image_dir}/Beachball/singlepart.0001.exr"
@@ -81,8 +64,7 @@ for p in result.stdout.split('\n part ')[1:]:
 
 with tempfile.TemporaryDirectory() as tempdir:
 
-    command = [exrmultipart, "-separate", "-i", image, "-o", f"{tempdir}/separate"]
-    result = run (command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    result = do_run ([exrmultipart, "-separate", "-i", image, "-o", f"{tempdir}/separate"])
 
     for i in range(1, 10):
         s = f"{tempdir}/separate.{i}.exr"
