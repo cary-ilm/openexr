@@ -2,7 +2,7 @@ void
 readChannels(const char fileName[])
 {
     InputFile file (fileName);
-   
+
     // [begin useIterator]
     const ChannelList &channels = file.header().channels();
 
@@ -12,7 +12,7 @@ readChannels(const char fileName[])
         // ...
     }
     // [end useIterator]
-   
+
     // [begin directAccess]
     // const ChannelList &channels = file.header().channels();
 
@@ -20,7 +20,7 @@ readChannels(const char fileName[])
 
     const Channel *channelPtr = channels.findChannel("G");
     // [end directAccess]
-    
+
 }
 
 void
@@ -43,7 +43,7 @@ readLayers (const char fileName[])
         channels.channelsInLayer (*i, layerBegin, layerEnd);
         for (ChannelList::ConstIterator j = layerBegin; j != layerEnd; ++j)
         {
-            cout << "tchannel " << j.name() << endl;
+            cout << "channel " << j.name() << endl;
         }
     }
     // [end layers]

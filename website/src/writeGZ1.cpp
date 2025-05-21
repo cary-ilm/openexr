@@ -7,32 +7,32 @@ writeGZ1 (
     int          width,
     int          height)
 {
-    Header header (width, height);                    // 1
-    header.channels ().insert ("G", Channel (HALF));  // 2
-    header.channels ().insert ("Z", Channel (FLOAT)); // 3
+    Header header (width, height);
+    header.channels ().insert ("G", Channel (HALF));
+    header.channels ().insert ("Z", Channel (FLOAT));
 
-    OutputFile file (fileName, header); // 4
+    OutputFile file (fileName, header);
 
-    FrameBuffer frameBuffer; // 5
-
-    frameBuffer.insert (
-        "G", // name    // 6
-        Slice (
-            HALF,                        // type    // 7
-            (char*) gPixels,             // base    // 8
-            sizeof (*gPixels) * 1,       // xStride // 9
-            sizeof (*gPixels) * width)); // yStride // 10
+    FrameBuffer frameBuffer;
 
     frameBuffer.insert (
-        "Z", // name    // 11
+        "G",                             // name
         Slice (
-            FLOAT,                       // type    // 12
-            (char*) zPixels,             // base    // 13
-            sizeof (*zPixels) * 1,       // xStride // 14
-            sizeof (*zPixels) * width)); // yStride // 15
+            HALF,                        // type
+            (char*) gPixels,             // base
+            sizeof (*gPixels) * 1,       // xStride
+            sizeof (*gPixels) * width)); // yStride
 
-    file.setFrameBuffer (frameBuffer); // 16
-    file.writePixels (height);         // 17
+    frameBuffer.insert (
+        "Z",                             // name
+        Slice (
+            FLOAT,                       // type
+            (char*) zPixels,             // base
+            sizeof (*zPixels) * 1,       // xStride
+            sizeof (*zPixels) * width)); // yStride
+
+    file.setFrameBuffer (frameBuffer);
+    file.writePixels (height);
 }
 // [end writeGZ1]
 
@@ -41,14 +41,14 @@ const half*  gPixels;
 const float* zPixels;
 int x, y, width;
 
-half* G = 
+half* G =
 // [begin compteChannelG]
 (half*)((char*)gPixels + x * sizeof(half) * 1 + y * sizeof(half) * width);
     // = (half*)((char*)gPixels + x * 2 + y * 2 * width);
 // [end compteChannelG]
 
 // [begin compteChannelZ]
-float* Z = 
+float* Z =
 (float*)((char*)zPixels + x * sizeof(float) * 1 + y * sizeof(float) * width);
     // = (float*)((char*)zPixels + x * 4 + y * 4 * width);
 // [end compteChannelZ]

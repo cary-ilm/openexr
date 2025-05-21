@@ -12,7 +12,7 @@ main()
         int                height = dw.max.y - dw.min.y + 1;
 
         Imf::Array2D<Imf::Rgba> pixels(width, height);
-        
+
         file.setFrameBuffer(&pixels[0][0], 1, width);
         file.readPixels(dw.min.y, dw.max.y);
 

@@ -10,24 +10,24 @@ writeTiledRgbaONE2 (
         tileHeight,  // tile size
         ONE_LEVEL,   // level mode
         ROUND_DOWN,  // rounding mode
-        WRITE_RGBA); // channels in file // 1
+        WRITE_RGBA); // channels in file
 
-    Array2D<Rgba> pixels (tileHeight, tileWidth); // 2
+    Array2D<Rgba> pixels (tileHeight, tileWidth);
 
-    for (int tileY = 0; tileY < out.numYTiles (); ++tileY) // 3
+    for (int tileY = 0; tileY < out.numYTiles (); ++tileY)
     {
-        for (int tileX = 0; tileX < out.numXTiles (); ++tileX) // 4
+        for (int tileX = 0; tileX < out.numXTiles (); ++tileX)
         {
-            Box2i range = out.dataWindowForTile (tileX, tileY); // 5
+            Box2i range = out.dataWindowForTile (tileX, tileY);
 
-            generatePixels (pixels, width, height, range); // 6
+            generatePixels (pixels, width, height, range);
 
             out.setFrameBuffer (
                 &pixels[-range.min.y][-range.min.x],
                 1,          // xStride
-                tileWidth); // yStride // 7
+                tileWidth); // yStride
 
-            out.writeTile (tileX, tileY); // 8
+            out.writeTile (tileX, tileY);
         }
     }
 }

@@ -3,20 +3,19 @@ accessPreviewImage (const char fileName[])
 {
     // [begin accessPreviewImage]
     RgbaInputFile file (fileName);
-        
+
     if (file.header().hasPreviewImage())
     {
         const PreviewImage &preview = file.header().previewImage();
-        
+
         for (int y = 0; y < preview.height(); ++y)
         {
             for (int x = 0; x < preview.width(); ++x)
             {
-        
                 const PreviewRgba &pixel = preview.pixel (x, y);
-        
+
                 // ...
-        
+
             }
         }
     }

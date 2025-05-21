@@ -10,13 +10,13 @@ readHeader (const char fileName[])
     const M44fAttribute* cameraTransform =
         file.header ().findTypedAttribute<M44fAttribute> ("cameraTransform");
 
-    if (comments) cout << "commentsn " << comments->value () << endl;
+    if (comments) cout << "comments " << comments->value () << endl;
 
     if (cameraTransform)
-        cout << "cameraTransformn" << cameraTransform->value () << flush;
+        cout << "cameraTransform " << cameraTransform->value () << flush;
 }
 // [end readHeader]
- 
+
 // [begin readComments]
 void
 readComments (const char fileName[], string &comments)

@@ -5,13 +5,13 @@
 //     MIPMAP_LEVELS,
 //     RIPMAP_LEVELS
 // };
-    
+
 // enum LevelRoundingMode
 // {
 //     ROUND_DOWN,
 //     ROUND_UP
 // };
-    
+
 class TileDescription
 {
   public:

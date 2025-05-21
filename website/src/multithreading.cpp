@@ -1,7 +1,7 @@
 char fileName[] = "";
 // [begin main thread create]
 // main, before application threads are created:
-    
+
 setGlobalThreadCount (4);
 // [begin applications input thread]
 // application's input thread

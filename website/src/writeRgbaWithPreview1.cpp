@@ -2,24 +2,24 @@ void
 writeRgbaWithPreview1 (
     const char fileName[], const Array2D<Rgba>& pixels, int width, int height)
 {
-    Array2D<PreviewRgba> previewPixels; // 1
+    Array2D<PreviewRgba> previewPixels;
 
-    int previewWidth;  // 2
-    int previewHeight; // 3
+    int previewWidth;
+    int previewHeight;
 
     makePreviewImage (
         pixels,
         width,
-        height, // 4
+        height,
         previewPixels,
         previewWidth,
         previewHeight);
 
-    Header header (width, height); // 5
+    Header header (width, height);
     header.setPreviewImage (
         PreviewImage (previewWidth, previewHeight, &previewPixels[0][0]));
 
-    RgbaOutputFile file (fileName, header, WRITE_RGBA); // 7
-    file.setFrameBuffer (&pixels[0][0], 1, width);      // 8
-    file.writePixels (height);                          // 9
+    RgbaOutputFile file (fileName, header, WRITE_RGBA);
+    file.setFrameBuffer (&pixels[0][0], 1, width);
+    file.writePixels (height);
 }

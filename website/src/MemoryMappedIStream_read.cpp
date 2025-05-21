@@ -3,7 +3,7 @@ MemoryMappedIStream::read (char c[], int n)
 {
     if (_readPosition >= _fileLength)
         throw InputExc ("Unexpected end of file.");
-    
+
     if (_readPosition + n > _fileLength)
         throw InputExc ("Reading past end of file.");
 
