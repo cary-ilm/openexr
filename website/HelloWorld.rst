@@ -15,12 +15,18 @@ Write an Image
 ==============
 
 This example :download:`exrwriter.cpp <src/exrwriter/exrwriter.cpp>`
-program writes a simple ``hello.exr`` file of an image of 10x10 pixels with
-values that are a ramp in green and blue:
+program writes a simple image ``stripes.exr``:
 
 .. literalinclude:: src/exrwriter/exrwriter.cpp
 
-And the :download:`CMakeLists.txt <src/exrwriter/CMakeLists.txt>` file to build:
+This creates an image 50 pixels wide and 25 pixels high with
+horizontal stripes 5 pixels high:
+
+.. image:: images/stripes.png
+   :align: center           
+
+The :download:`CMakeLists.txt <src/exrwriter/CMakeLists.txt>` file to
+build is:
    
 .. literalinclude:: src/exrwriter/CMakeLists.txt
 

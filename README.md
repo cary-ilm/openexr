@@ -69,13 +69,13 @@ complete details, but to get started, the "Hello, world" [`exrwriter.cpp`](https
     main()
     {
         try {
-            int width =  500;
-            int height = 250;
+            int width =  50;
+            int height = 25;
             
             Imf::Array2D<Imf::Rgba> pixels(height, width);
             for (int y=0; y<height; y++)
             {
-                float c = (y/10 % 2 == 0) ? 1.0 : 0.0;
+                float c = (y/5 % 2 == 0) ? 1.0 : 0.0;
                 for (int x=0; x<width; x++)
                     pixels[y][x] = Imf::Rgba(c,c,c);
             }
@@ -90,8 +90,8 @@ complete details, but to get started, the "Hello, world" [`exrwriter.cpp`](https
         return 0;
     }
 
-This creates an image 500 pixels wide and 250 pixels high with
-horizontal stripes 10 pixels high:
+This creates an image 50 pixels wide and 25 pixels high with
+horizontal stripes 5 pixels high:
 
 ![stripes](website/images/stripes.png)
 
