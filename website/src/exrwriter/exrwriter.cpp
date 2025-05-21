@@ -5,14 +5,17 @@
 int
 main()
 {
-    int width =  20;
-    int height = 10;
+    int width =  500;
+    int height = 250;
         
-    Imf::Array2D<Imf::Rgba> pixels(width, height);
+    Imf::Array2D<Imf::Rgba> pixels(height, width);
     for (int y=0; y<height; y++)
+    {
+        float c = (y/10 % 2 == 0) ? 1.0 : 0.0;
         for (int x=0; x<width; x++)
-            pixels[y][x] = Imf::Rgba(0, x / (width-1.0f), y / (height-1.0f));
-        
+            pixels[y][x] = Imf::Rgba(c,c,c);
+    }
+
     try {
         Imf::RgbaOutputFile file ("hello.exr", width, height, Imf::WRITE_RGBA);
         file.setFrameBuffer (&pixels[0][0], 1, width);
