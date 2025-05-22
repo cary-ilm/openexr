@@ -41,7 +41,7 @@ def cleanup():
 atexit.register(cleanup)
 
 # combine
-result = do_run ([exrmultipart, "-combine", "-i", f"{test_images["multipart"]}:0", f"{test_images["multipart"]}:1", "-o", outimage])
+result = do_run ([exrmultipart, "-combine", "-i", f"{test_images['multipart']}:0", f"{test_images['multipart']}:1", "-o", outimage])
 
 result = do_run ([exrinfo, outimage])
 
