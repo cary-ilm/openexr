@@ -300,6 +300,7 @@ jobs:
           set -x
           WORKSPACE=$GITHUB_WORKSPACE
           INSTALL_DIR=$WORKSPACE/_install
+          ls -l $INSTALL_DIR/lib/cmake/OpenEXR/OpenEXRConfig.cmake
           EXRWRITER_BUILD_DIR=$WORKSPACE/_build.exrwriter
           cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR \
                 -DCMAKE_SYSTEM_NAME=iOS \
