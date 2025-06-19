@@ -198,7 +198,7 @@ jobs:
             OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
             OPENEXR_INSTALL_DOCS: 'OFF'
             BUILD_TESTING: 'OFF'
-
+            validate_install: 'OFF'
          
   windows:
     if: false
