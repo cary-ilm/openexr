@@ -308,7 +308,7 @@ jobs:
                 -DCMAKE_OSX_ARCHITECTURES=arm64 \
                 -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
                 -DCMAKE_FRAMEWORK_PATH=$INSTALL_DIR/Frameworks \
-                -DOpenEXR_DIR=$INSTALL_DIR/lib/cmake \ 
+                -DOpenEXR_DIR=$INSTALL_DIR/Frameworks/OpenEXR.framework/Resources \ 
                 -DCMAKE_VERBOSE_MAKEFILE=ON
           cmake --build $EXRWRITER_BUILD_DIR --config ${{ inputs.build-type }}
           EXRWRITER=$EXRWRITER_BUILD_DIR/exrwriter
