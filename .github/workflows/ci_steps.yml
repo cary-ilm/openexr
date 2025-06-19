@@ -55,6 +55,8 @@ on:
         type: string
       BUILD_TESTING:
         type: string
+      OPENEXR_BUILD_APPLE_FRAMEWORKS:
+        type: string
       namespace:
         type: string
       validate_install:
@@ -158,6 +160,7 @@ jobs:
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_IMATH=${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_OPENJPH=${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}")
+          cmake_args+=("-DOPENEXR_BUILD_APPLE_FRAMEWORKS=${{ inputs.OPENEXR_BUILD_APPLE_FRAMEWORKS }}")
           cmake_args+=("-DBUILD_TESTING=${{ inputs.BUILD_TESTING }}")
           cmake_args+=("-DOPENEXR_RUN_FUZZ_TESTS=OFF")
           cmake_args+=("-DCMAKE_VERBOSE_MAKEFILE=ON")
@@ -172,6 +175,9 @@ jobs:
           fi
           if [ -n "${{ inputs.CMAKE_OSX_ARCHITECTURES }}" ]; then
               cmake_args+=("CMAKE_OSX_ARCHITECTURES='${{ inputs.CMAKE_OSX_ARCHITECTURES }}'")
+          fi
+          if [ "${{ inputs.OPENEXR_BUILD_APPLE_FRAMEWORKS }}" == "ON" ]; then
+              cmake_args+=("-DCMAKE_SYSTEM_NAME=iOS")
           fi
 
           quoted_args=$(printf '%q ' "${cmake_args[@]}")
@@ -249,7 +255,7 @@ jobs:
         # application building against the just-installed openexr
         # libary, to validate the cmake configuration for downstream
         # applications.
-        if: inputs.namespace == '' && inputs.msystem == '' && inputs.OPENEXR_BUILD_EXAMPLES != ''
+        if: inputs.namespace == '' && inputs.msystem == '' && inputs.OPENEXR_BUILD_EXAMPLES != '' && inputs.OPENEXR_BUILD_APPLE_FRAMEWORKS == ''
         run: |
           set -x
           if [[ "$RUNNER_OS" == "Windows" ]]; then
@@ -280,6 +286,35 @@ jobs:
               "$EXRINFO" stripes.exr
           else
               echo "can't find exrinfo: $EXRINFO"
+          fi
+        shell: bash
+
+      - name: Website examples (iOS)
+        # Build the "hello, world" exrwriter example program from the
+        # website, both to confirm it builds and as an example of an
+        # application building against the just-installed openexr
+        # libary, to validate the cmake configuration for downstream
+        # applications.
+        if: inputs.namespace == '' && inputs.msystem == '' && inputs.OPENEXR_BUILD_EXAMPLES != '' && inputs.OPENEXR_BUILD_APPLE_FRAMEWORKS == 'ON'
+        run: |
+          set -x
+          WORKSPACE=$GITHUB_WORKSPACE
+          INSTALL_DIR=$WORKSPACE/_install
+          EXRWRITER_BUILD_DIR=$WORKSPACE/_build.exrwriter
+          cmake -S website/src/exrwriter -B $EXRWRITER_BUILD_DIR \
+                -DCMAKE_SYSTEM_NAME=iOS \
+                -DCMAKE_OSX_SYSROOT=iphoneos \
+                -DCMAKE_OSX_ARCHITECTURES=arm64 \
+                -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
+                -DCMAKE_VERBOSE_MAKEFILE=ON
+          cmake --build $EXRWRITER_BUILD_DIR --config ${{ inputs.build-type }}
+          EXRWRITER=$EXRWRITER_BUILD_DIR/exrwriter
+          EXRINFO=$INSTALL_DIR/bin/exrinfo
+          if [ -x "$EXRWRITER" ]; then
+              "$EXRWRITER"
+          fi
+          if [ -x "$EXRINFO" ]; then
+              "$EXRINFO" stripes.exr
           fi
         shell: bash
 

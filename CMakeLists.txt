@@ -67,6 +67,10 @@ include(cmake/OpenEXRSetup.cmake)
 add_subdirectory(cmake)
 message(STATUS "Configure ${OPENEXR_PACKAGE_NAME}, library API version: ${OPENEXR_LIB_VERSION}")
 
+if (APPLE)
+  option(OPENEXR_BUILD_APPLE_FRAMEWORKS "Build as Apple Frameworks" OFF)
+endif()
+
 # Hint: This can be set to enable custom find_package
 # search paths, probably best to set it when configuring
 # on the command line to cmake instead of setting it
@@ -90,6 +94,9 @@ endif()
 if(OPENEXR_BUILD_TOOLS AND OPENEXR_BUILD_LIBS)
   add_subdirectory(src/bin)
 endif()
+
+
+
 
 # Tell CMake where to find the OpenEXRConfig.cmake file. Makes it possible to call 
 # find_package(OpenEXR) in downstream projects

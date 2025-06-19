@@ -218,6 +218,7 @@ openexr_define_library(OpenEXR
     ImfVersion.h
     ImfWav.h
     ImfXdr.h
+    ${OPENEXR_CONFIG_DIR}/OpenEXRConfig.h
   DEPENDENCIES
     Imath::Imath
     OpenEXR::Config

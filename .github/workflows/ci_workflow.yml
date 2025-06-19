@@ -148,6 +148,7 @@ jobs:
       OPENEXR_FORCE_INTERNAL_DEFLATE: ${{ matrix.OPENEXR_FORCE_INTERNAL_DEFLATE || 'OFF' }}
       OPENEXR_FORCE_INTERNAL_OPENJPH: ${{ matrix.OPENEXR_FORCE_INTERNAL_OPENJPH || 'OFF' }}
       CMAKE_OSX_ARCHITECTURES: ${{ matrix.CMAKE_OSX_ARCHITECTURES }}
+      OPENEXR_BUILD_APPLE_FRAMEWORKS: ${{ matrix.OPENEXR_BUILD_APPLE_FRAMEWORKS || 'OFF' }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
       validate_install: ${{ matrix.validate_install || 'ON' }}
 
@@ -189,6 +190,11 @@ jobs:
           - build: 7
             label: universal2
             CMAKE_OSX_ARCHITECTURES: "x86_64;arm64"
+
+          - build: 8
+            label: Apple Frameworks
+            OPENEXR_BUILD_APPLE_FRAMEWORKS: 'ON'
+            BUILD_TESTING: 'OFF'
 
          
   windows:

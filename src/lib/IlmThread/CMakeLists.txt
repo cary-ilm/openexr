@@ -21,6 +21,7 @@ openexr_define_library(IlmThread
     IlmThreadPool.h
     IlmThreadProcessGroup.h
     IlmThreadSemaphore.h
+    ${OPENEXR_CONFIG_DIR}/IlmThreadConfig.h
   DEPENDENCIES
     OpenEXR::Config
     OpenEXR::Iex

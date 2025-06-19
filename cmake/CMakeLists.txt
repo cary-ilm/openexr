@@ -25,7 +25,7 @@ int main()
     sysconf(_SC_NPROCESSORS_ONLN);
 }
 " OPENEXR_IMF_HAVE_SYSCONF_NPROCESSORS_ONLN
-)    
+)
 
 check_cxx_source_compiles(
 "
@@ -68,6 +68,11 @@ if (UNIX AND NOT APPLE AND NOT BEOS)
   find_library(OPENEXR_EXTRA_MATH_LIB m)
   mark_as_advanced(OPENEXR_EXTRA_MATH_LIB)
 endif()
+
+# Remember the config dir so the OpenEXR, Iex, and IlmThread libraries
+# can install their *Config.h headers there
+
+set(OPENEXR_CONFIG_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "")
 
 configure_file(OpenEXRConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/OpenEXRConfig.h)
 configure_file(OpenEXRConfigInternal.h.in ${CMAKE_CURRENT_BINARY_DIR}/OpenEXRConfigInternal.h)
@@ -115,23 +120,13 @@ if(OPENEXR_ENABLE_THREADING AND Threads_FOUND)
   endif()
 endif()
 
+###################################################
+# Public config headers get installed along with
+# the headers for each library
+
 configure_file(IexConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/IexConfig.h)
 configure_file(IexConfigInternal.h.in ${CMAKE_CURRENT_BINARY_DIR}/IexConfigInternal.h)
 configure_file(IlmThreadConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/IlmThreadConfig.h)
-
-###################################################
-####### Install public config headers
-
-if(OPENEXR_INSTALL)
-install(
-  FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/OpenEXRConfig.h
-    ${CMAKE_CURRENT_BINARY_DIR}/IexConfig.h
-    ${CMAKE_CURRENT_BINARY_DIR}/IlmThreadConfig.h
-  DESTINATION
-    ${CMAKE_INSTALL_INCLUDEDIR}/${OPENEXR_OUTPUT_SUBDIR}
-)
-endif()
 
 ###################################################
 ####### Interface libraries for configs
@@ -172,7 +167,7 @@ add_library(${PROJECT_NAME}::Config ALIAS IlmThreadConfig)
 ###################################################
 ####### Install pkg-config files if requested
 
-if(OPENEXR_INSTALL_PKG_CONFIG)
+if(OPENEXR_INSTALL_PKG_CONFIG AND NOT OPENEXR_BUILD_APPLE_FRAMEWORKS)
 
   # Prepend prefix for includedir only if CMAKE_INSTALL_INCLUDEDIR is relative
   if(IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}")

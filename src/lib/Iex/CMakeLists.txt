@@ -22,6 +22,7 @@ openexr_define_library(Iex
     IexMathIeeeExc.h
     IexNamespace.h
     IexThrowErrnoExc.h
+    ${OPENEXR_CONFIG_DIR}/IexConfig.h
   DEPENDENCIES
     OpenEXR::Config
   )
