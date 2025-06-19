@@ -16,8 +16,8 @@
                 "OPENEXR_FORCE_INTERNAL_OPENJPH": "ON",
                 "OPENEXR_BUILD_TOOLS": "OFF",
                 "OPENEXR_BUILD_EXAMPLES": "OFF",
-                "OPENEXR_BUILD_DOCS": "OFF",
                 "OPENEXR_BUILD_OSS_FUZZ": "ON"
+                "OPENEXR_INSTALL_DOCS": "OFF",
             }
         }
     ]

@@ -22,10 +22,9 @@ function(DEFINE_MANPAGE tool description)
 
     add_custom_command(OUTPUT ${manpage_file}
                    COMMAND
-                   ${HELP2MAN} -n ${description} --output=${manpage_file} -N
-                   ${CMAKE_CURRENT_BINARY_DIR}/../bin/${tool} 
+                   ${HELP2MAN} -n ${description} --output=${manpage_file} -N $<TARGET_FILE:${tool}>
                    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/../bin/${tool}
+                   DEPENDS ${tool}
                    COMMENT "Generating man page for ${tool}"
                    VERBATIM)
 endfunction()
