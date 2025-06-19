@@ -196,6 +196,7 @@ jobs:
             label: Apple Frameworks
             OPENEXR_BUILD_APPLE_FRAMEWORKS: 'ON'
             OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
+            OPENEXR_INSTALL_DOCS: 'OFF'
             BUILD_TESTING: 'OFF'
 
          
