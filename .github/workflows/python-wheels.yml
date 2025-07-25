@@ -72,15 +72,17 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: pipx run build --sdist . --outdir wheelhouse
 
+      - name: Set arm64 macOS environment
+        run: |
+          echo "CIBW_ENVIRONMENT_MACOS_ARM64=MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
+          if python3 -c "import sys; exit(sys.version_info[:2] != (3, 8))"; then
+            echo "CIBW_BEFORE_BUILD_MACOS_ARM64=SYSTEM_VERSION_COMPAT=0" >> $GITHUB_ENV
+          fi
+
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.23
         env:
           CIBW_ARCHS_MACOS: x86_64 arm64 universal2
-          CIBW_ENVIRONMENT_MACOS_ARM64: MACOSX_DEPLOYMENT_TARGET=11.0
-          CIBW_BEFORE_BUILD_MACOS_ARM64: |
-            if python3 -c "import sys; exit(sys.version_info[:2] != (3, 8))"; then
-              export SYSTEM_VERSION_COMPAT=0
-            fi
           # Build Python 3.7 through 3.12.
           # Skip python 3.6 since scikit-build-core requires 3.7+
           # Skip 32-bit wheels builds on Windows
