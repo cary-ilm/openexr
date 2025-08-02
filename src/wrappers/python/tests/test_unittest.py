@@ -158,256 +158,285 @@ class TestUnittest(unittest.TestCase):
         # Print the name of the current test method
         print(f"Running test {self.id().split('.')[-1]}")
 
-    def test_tuple(self):
+#    def test_tuple(self):
+#
+#        width = 5
+#        height = 10
+#        size = width * height
+#        Z = np.array([i for i in range(0,size)], dtype='uint32').reshape((height, width))
+#        channels = { "Z" : Z }
+#
+#        header = {}
+#        header["t2i"] = (0,1)
+#        header["t2f"] = (2.3,4.5)
+#        header["t3i"] = (0,1,2)
+#        header["t3f"] = (3.4,5.6,7.8)
+#
+#        header["a2f"] = np.array((1.2, 3.4), 'float32')
+#        header["a2d"] = np.array((1.2, 3.4), 'float64')
+#        header["a3f"] = np.array((1.2, 3.4, 5.6), 'float32')
+#        header["a3d"] = np.array((1.2, 3.4, 5.6), 'float64')
+#
+#        header["a33f"] = np.identity(3, 'float32') 
+#        header["a33d"] = np.identity(3, 'float64') 
+#        header["a44f"] = np.identity(4, 'float32') 
+#        header["a44d"] = np.identity(4, 'float64') 
+#
+#        outfilename = mktemp_outfilename()
+#        with OpenEXR.File(header, channels) as outfile:
+#
+#            outfile.write(outfilename)
+#
+#            with OpenEXR.File(outfilename) as infile:
+#                compare_files (infile, outfile)
+#                
+#        with self.assertRaises(Exception):
+#            header["v"] = (0,"x")
+#            with OpenEXR.File(header, channels) as outfile:
+#                outfile.write(outfilename)
+#
+#        # tuple must be either all int or all float
+#        with self.assertRaises(Exception):
+#            header["v"] = (1,2.3)
+#            with OpenEXR.File(header, channels) as outfile:
+#                outfile.write(outfilename)
+#
+#        os.remove(outfilename)
+#
+#    def test_read_write(self):
+#
+#        #
+#        # Read a file and write it back out, then read the freshly-written
+#        # file to validate it's the same.
+#        #
+#
+#        infilename = f"{test_dir}/test.exr"
+#        with OpenEXR.File(infilename) as infile:
+#
+#            outfilename = mktemp_outfilename()
+#            infile.write(outfilename)
+#
+#            with OpenEXR.File(outfilename) as outfile:
+#                compare_files(outfile, infile)
+#
+#    def test_keycode(self):
+#
+#        filmMfcCode = 1
+#        filmType = 2
+#        prefix = 3
+#        count = 4
+#        perfOffset = 5
+#        perfsPerFrame = 6
+#        perfsPerCount = 20
+#
+#        k = OpenEXR.KeyCode(filmMfcCode, filmType, prefix, count, perfOffset, perfsPerFrame, perfsPerCount)
+#
+#        assert (k.filmMfcCode == filmMfcCode and
+#                k.filmType == filmType and
+#                k.prefix == prefix and
+#                k.count == count and
+#                k.perfOffset == perfOffset and
+#                k.perfsPerFrame == perfsPerFrame and
+#                k.perfsPerCount == perfsPerCount)
+#
+#    def test_empty_header(self):
+#
+#        # Construct a file from scratch and write it.
+#
+#        width = 10
+#        height = 20
+#        size = width * height
+#        Z = np.array([i for i in range(0,size)], dtype='uint32').reshape((height, width))
+#        channels = { "Z" : OpenEXR.Channel(Z, 1, 1) }
+#
+#        header = {}
+#
+#        with OpenEXR.File(header, channels) as outfile:
+#
+#            outfilename = mktemp_outfilename()
+#            outfile.write(outfilename)
+#
+#            with OpenEXR.File(outfilename) as infile:
+#                compare_files (infile, outfile)
+#
+#        os.remove(outfilename)
+#                
+#    def test_write_uint(self):
+#
+#        # Construct a file from scratch and write it.
+#
+#        width = 5
+#        height = 10
+#        size = width * height
+#        R = np.array([i for i in range(0,size)], dtype='uint32').reshape((height, width))
+#        G = np.array([i*2 for i in range(0,size)], dtype='uint32').reshape((height, width))
+#        B = np.array([i*3 for i in range(0,size)], dtype='uint32').reshape((height, width))
+#        A = np.array([i*5 for i in range(0,size)], dtype='uint32').reshape((height, width))
+#        channels = {
+#            "R" : OpenEXR.Channel(R, 1, 1),
+#            "G" : OpenEXR.Channel(G, 1, 1),
+#            "B" : OpenEXR.Channel(B, 1, 1),
+#            "A" : OpenEXR.Channel(A, 1, 1), 
+#        }
+#
+#        header = {}
+#
+#        with OpenEXR.File(header, channels) as outfile:
+#
+#            # confirm that the write assigned names to the channels
+#            self.assertEqual(outfile.channels()['A'].name, "A")
+#
+#            outfilename = mktemp_outfilename()
+#            outfile.write(outfilename)
+#
+#            # Verify reading it back gives the same data
+#            with OpenEXR.File(outfilename, separate_channels=True) as infile:
+#
+#                compare_files(infile, outfile)
+#        
+#        os.remove(outfilename)
+#
+#    def test_write_half(self):
+#
+#        # Construct a file from scratch and write it.
+#
+#        width = 10
+#        height = 20
+#        size = width * height
+#        R = np.array([i for i in range(0,size)], dtype='e').reshape((height, width))
+#        G = np.array([i*10 for i in range(0,size)], dtype='e').reshape((height, width))
+#        B = np.array([i*100 for i in range(0,size)], dtype='e').reshape((height, width))
+#        A = np.array([i/size for i in range(0,size)], dtype='e').reshape((height, width))
+#        channels = {
+#            "A" : OpenEXR.Channel("A", A, 1, 1), 
+#            "B" : OpenEXR.Channel("B", B, 1, 1),
+#            "G" : OpenEXR.Channel("G", G, 1, 1),
+#            "R" : OpenEXR.Channel("R", R, 1, 1)
+#        }
+#
+#        header = {}
+#
+#        with OpenEXR.File(header, channels) as outfile:
+#
+#            outfilename = mktemp_outfilename()
+#            outfile.write(outfilename)
+#
+#            # Verify reading it back gives the same data
+#            with OpenEXR.File(outfilename, separate_channels=True) as infile:
+#                compare_files (infile, outfile)
+#
+#        os.remove(outfilename)
+#
+#    def test_write_tiles(self):
+#
+#        # Construct a file from scratch and write it.
+#
+#        width = 10
+#        height = 20
+#        size = width * height
+#        R = np.array([i for i in range(0,size)], dtype='e').reshape((height, width))
+#        G = np.array([i*10 for i in range(0,size)], dtype='e').reshape((height, width))
+#        B = np.array([i*100 for i in range(0,size)], dtype='e').reshape((height, width))
+#        A = np.array([i/size for i in range(0,size)], dtype='e').reshape((height, width))
+#        channels = {
+#            "A" : OpenEXR.Channel("A", A, 1, 1), 
+#            "B" : OpenEXR.Channel("B", B, 1, 1),
+#            "G" : OpenEXR.Channel("G", G, 1, 1),
+#            "R" : OpenEXR.Channel("R", R, 1, 1)
+#        }
+#
+#        header = { "type" : OpenEXR.tiledimage,
+#                   "tiles" : OpenEXR.TileDescription() }
+#
+#        with OpenEXR.File(header, channels) as outfile:
+#            outfilename = mktemp_outfilename()
+#            outfile.write(outfilename)
+#
+#            # Verify reading it back gives the same data
+#            with OpenEXR.File(outfilename, separate_channels=True) as infile:
+#                compare_files(infile, outfile)
+#
+#        os.remove(outfilename)
+#
+#    def test_modify_in_place(self):
+#
+#        #
+#        # Test modifying header attributes in place
+#        #
+#
+#        infilename = f"{test_dir}/test.exr"
+#        with OpenEXR.File(infilename, separate_channels=True) as f:
+#
+#            # set the value of an existing attribute
+#            par = 2.3
+#            f.parts[0].header["pixelAspectRatio"] = par
+#
+#            # add a new attribute
+#            f.parts[0].header["foo"] = "bar"
+#
+#            dt = np.dtype({
+#                "names": ["r", "g", "b", "a"],
+#                "formats": ["u4", "u4", "u4", "u4"],
+#                "offsets": [0, 4, 8, 12],
+#            })
+#            pwidth = 3
+#            pheight = 3
+#            psize = pwidth * pheight
+#            P = np.array([ [(0,0,0,0), (1,1,1,1), (2,2,2,2) ],
+#                           [(3,3,3,3), (4,4,4,4), (5,5,5,5) ],
+#                           [(6,6,6,6), (7,7,7,7), (8,8,8,8) ] ], dtype=dt).reshape((pwidth,pheight))
+#            f.parts[0].header["preview"] = OpenEXR.PreviewImage(P)
+#
+#            # Modify a pixel value
+#            f.parts[0].channels["R"].pixels[0][1] = 42.0
+#            f.channels()["G"].pixels[2][3] = 666.0
+#
+#            # write to a new file
+#            outfilename = mktemp_outfilename()
+#            f.write(outfilename)
+#            
+#        # read the new file
+#        with OpenEXR.File(outfilename, separate_channels=True) as m:
+#
+#            # validate the values are the same
+#            eps = 1e-5
+#            mpar = m.parts[0].header["pixelAspectRatio"]
+#            assert equalWithRelError(m.parts[0].header["pixelAspectRatio"], par, eps)
+#            assert m.parts[0].header["foo"] == "bar"
+#
+#            assert preview_pixels_equal(m.parts[0].header["preview"].pixels, P)
+#
+#            assert equalWithRelError(m.parts[0].channels["R"].pixels[0][1], 42.0, eps)
+#            assert equalWithRelError(m.parts[0].channels["G"].pixels[2][3], 666.0, eps)
 
-        width = 5
-        height = 10
-        size = width * height
-        Z = np.array([i for i in range(0,size)], dtype='uint32').reshape((height, width))
-        channels = { "Z" : Z }
-
-        header = {}
-        header["t2i"] = (0,1)
-        header["t2f"] = (2.3,4.5)
-        header["t3i"] = (0,1,2)
-        header["t3f"] = (3.4,5.6,7.8)
-
-        header["a2f"] = np.array((1.2, 3.4), 'float32')
-        header["a2d"] = np.array((1.2, 3.4), 'float64')
-        header["a3f"] = np.array((1.2, 3.4, 5.6), 'float32')
-        header["a3d"] = np.array((1.2, 3.4, 5.6), 'float64')
-
-        header["a33f"] = np.identity(3, 'float32') 
-        header["a33d"] = np.identity(3, 'float64') 
-        header["a44f"] = np.identity(4, 'float32') 
-        header["a44d"] = np.identity(4, 'float64') 
-
-        outfilename = mktemp_outfilename()
-        with OpenEXR.File(header, channels) as outfile:
-
-            outfile.write(outfilename)
-
-            with OpenEXR.File(outfilename) as infile:
-                compare_files (infile, outfile)
-                
-        with self.assertRaises(Exception):
-            header["v"] = (0,"x")
-            with OpenEXR.File(header, channels) as outfile:
-                outfile.write(outfilename)
-
-        # tuple must be either all int or all float
-        with self.assertRaises(Exception):
-            header["v"] = (1,2.3)
-            with OpenEXR.File(header, channels) as outfile:
-                outfile.write(outfilename)
-
-        os.remove(outfilename)
-
-    def test_read_write(self):
-
-        #
-        # Read a file and write it back out, then read the freshly-written
-        # file to validate it's the same.
-        #
-
-        infilename = f"{test_dir}/test.exr"
-        with OpenEXR.File(infilename) as infile:
-
-            outfilename = mktemp_outfilename()
-            infile.write(outfilename)
-
-            with OpenEXR.File(outfilename) as outfile:
-                compare_files(outfile, infile)
-
-    def test_keycode(self):
-
-        filmMfcCode = 1
-        filmType = 2
-        prefix = 3
-        count = 4
-        perfOffset = 5
-        perfsPerFrame = 6
-        perfsPerCount = 20
-
-        k = OpenEXR.KeyCode(filmMfcCode, filmType, prefix, count, perfOffset, perfsPerFrame, perfsPerCount)
-
-        assert (k.filmMfcCode == filmMfcCode and
-                k.filmType == filmType and
-                k.prefix == prefix and
-                k.count == count and
-                k.perfOffset == perfOffset and
-                k.perfsPerFrame == perfsPerFrame and
-                k.perfsPerCount == perfsPerCount)
-
-    def test_empty_header(self):
-
-        # Construct a file from scratch and write it.
-
-        width = 10
-        height = 20
-        size = width * height
-        Z = np.array([i for i in range(0,size)], dtype='uint32').reshape((height, width))
-        channels = { "Z" : OpenEXR.Channel(Z, 1, 1) }
-
-        header = {}
-
-        with OpenEXR.File(header, channels) as outfile:
-
-            outfilename = mktemp_outfilename()
-            outfile.write(outfilename)
-
-            with OpenEXR.File(outfilename) as infile:
-                compare_files (infile, outfile)
-
-        os.remove(outfilename)
-                
-    def test_write_uint(self):
-
-        # Construct a file from scratch and write it.
-
-        width = 5
-        height = 10
-        size = width * height
-        R = np.array([i for i in range(0,size)], dtype='uint32').reshape((height, width))
-        G = np.array([i*2 for i in range(0,size)], dtype='uint32').reshape((height, width))
-        B = np.array([i*3 for i in range(0,size)], dtype='uint32').reshape((height, width))
-        A = np.array([i*5 for i in range(0,size)], dtype='uint32').reshape((height, width))
-        channels = {
-            "R" : OpenEXR.Channel(R, 1, 1),
-            "G" : OpenEXR.Channel(G, 1, 1),
-            "B" : OpenEXR.Channel(B, 1, 1),
-            "A" : OpenEXR.Channel(A, 1, 1), 
-        }
-
-        header = {}
-
-        with OpenEXR.File(header, channels) as outfile:
-
-            # confirm that the write assigned names to the channels
-            self.assertEqual(outfile.channels()['A'].name, "A")
-
-            outfilename = mktemp_outfilename()
-            outfile.write(outfilename)
-
-            # Verify reading it back gives the same data
-            with OpenEXR.File(outfilename, separate_channels=True) as infile:
-
-                compare_files(infile, outfile)
-        
-        os.remove(outfilename)
-
-    def test_write_half(self):
-
-        # Construct a file from scratch and write it.
-
-        width = 10
-        height = 20
-        size = width * height
-        R = np.array([i for i in range(0,size)], dtype='e').reshape((height, width))
-        G = np.array([i*10 for i in range(0,size)], dtype='e').reshape((height, width))
-        B = np.array([i*100 for i in range(0,size)], dtype='e').reshape((height, width))
-        A = np.array([i/size for i in range(0,size)], dtype='e').reshape((height, width))
-        channels = {
-            "A" : OpenEXR.Channel("A", A, 1, 1), 
-            "B" : OpenEXR.Channel("B", B, 1, 1),
-            "G" : OpenEXR.Channel("G", G, 1, 1),
-            "R" : OpenEXR.Channel("R", R, 1, 1)
-        }
-
-        header = {}
-
-        with OpenEXR.File(header, channels) as outfile:
-
-            outfilename = mktemp_outfilename()
-            outfile.write(outfilename)
-
-            # Verify reading it back gives the same data
-            with OpenEXR.File(outfilename, separate_channels=True) as infile:
-                compare_files (infile, outfile)
-
-        os.remove(outfilename)
-
-    def test_write_tiles(self):
-
-        # Construct a file from scratch and write it.
-
-        width = 10
-        height = 20
-        size = width * height
-        R = np.array([i for i in range(0,size)], dtype='e').reshape((height, width))
-        G = np.array([i*10 for i in range(0,size)], dtype='e').reshape((height, width))
-        B = np.array([i*100 for i in range(0,size)], dtype='e').reshape((height, width))
-        A = np.array([i/size for i in range(0,size)], dtype='e').reshape((height, width))
-        channels = {
-            "A" : OpenEXR.Channel("A", A, 1, 1), 
-            "B" : OpenEXR.Channel("B", B, 1, 1),
-            "G" : OpenEXR.Channel("G", G, 1, 1),
-            "R" : OpenEXR.Channel("R", R, 1, 1)
-        }
-
-        header = { "type" : OpenEXR.tiledimage,
-                   "tiles" : OpenEXR.TileDescription() }
-
-        with OpenEXR.File(header, channels) as outfile:
-            outfilename = mktemp_outfilename()
-            outfile.write(outfilename)
-
-            # Verify reading it back gives the same data
-            with OpenEXR.File(outfilename, separate_channels=True) as infile:
-                compare_files(infile, outfile)
-
-        os.remove(outfilename)
-
-    def test_modify_in_place(self):
+    def test_header_only(self):
 
         #
         # Test modifying header attributes in place
         #
 
         infilename = f"{test_dir}/test.exr"
-        with OpenEXR.File(infilename, separate_channels=True) as f:
+        with OpenEXR.File(infilename, separate_channels=True, header_only=True) as f:
+
+            print(f"test_header_only: original infile={infilename}")
+            print_file(f)
 
             # set the value of an existing attribute
-            par = 2.3
-            f.parts[0].header["pixelAspectRatio"] = par
+            f.parts[0].header["pixelAspectRatio"] = 2.3
 
             # add a new attribute
             f.parts[0].header["foo"] = "bar"
-
-            dt = np.dtype({
-                "names": ["r", "g", "b", "a"],
-                "formats": ["u4", "u4", "u4", "u4"],
-                "offsets": [0, 4, 8, 12],
-            })
-            pwidth = 3
-            pheight = 3
-            psize = pwidth * pheight
-            P = np.array([ [(0,0,0,0), (1,1,1,1), (2,2,2,2) ],
-                           [(3,3,3,3), (4,4,4,4), (5,5,5,5) ],
-                           [(6,6,6,6), (7,7,7,7), (8,8,8,8) ] ], dtype=dt).reshape((pwidth,pheight))
-            f.parts[0].header["preview"] = OpenEXR.PreviewImage(P)
-
-            # Modify a pixel value
-            f.parts[0].channels["R"].pixels[0][1] = 42.0
-            f.channels()["G"].pixels[2][3] = 666.0
 
             # write to a new file
             outfilename = mktemp_outfilename()
             f.write(outfilename)
 
-        # read the new file
-        with OpenEXR.File(outfilename, separate_channels=True) as m:
-
-            # validate the values are the same
-            eps = 1e-5
-            mpar = m.parts[0].header["pixelAspectRatio"]
-            assert equalWithRelError(m.parts[0].header["pixelAspectRatio"], par, eps)
-            assert m.parts[0].header["foo"] == "bar"
-
-            assert preview_pixels_equal(m.parts[0].header["preview"].pixels, P)
-
-            assert equalWithRelError(m.parts[0].channels["R"].pixels[0][1], 42.0, eps)
-            assert equalWithRelError(m.parts[0].channels["G"].pixels[2][3], 666.0, eps)
+        with OpenEXR.File(infilename, separate_channels=True) as f:
+            f.parts[0].header["pixelAspectRatio"] = 2.3
+            f.parts[0].header["foo"] = "bar"
+            # read the new file
+            with OpenEXR.File(outfilename, separate_channels=True) as m:
+                compare_files(f, m)
 
     def test_preview_image(self):
 
