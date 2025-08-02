@@ -21,6 +21,7 @@ public:
     PyFile(const std::string& filename, bool separate_channels = false, bool header_only = false);
     PyFile(const py::dict& header, const py::dict& channels);
     PyFile(const py::list& parts);
+    ~PyFile();
 
     py::object   __enter__();
     void         __exit__(py::args args);
@@ -35,7 +36,8 @@ public:
 
 protected:
     
-    bool         header_only;
+    bool                header_only;
+    MultiPartInputFile* _inputFile;
     
     py::object   getAttributeObject(const std::string& name, const Attribute* a);
     
