@@ -8,18 +8,42 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-  
+
 permissions:
   contents: read
 
 jobs:
-  build:
+
+  build_sdist:
+    name: Build sdist
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Install Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: '3.x'
+
+      - name: Create sdist
+        env:
+          CMAKE_MINIMUM_VERSION: 3.15
+        run: pipx run build --sdist . --outdir /tmp/wheelhouse
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sdist
+          path: /tmp/wheelhouse/*.tar.gz
+
+  build_wheels:
     name: Python Wheels - ${{ matrix.os }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             arch: x64
           - os: ubuntu-24.04-arm
             arch: arm64
@@ -39,35 +63,34 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      - name: Install Python 
+      - name: Install Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: '3.x'
 
-      - name: Create sdist
-        # Only create it once.
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: pipx run build --sdist . --outdir wheelhouse
+      - name: Download sdist
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: sdist
+          path: wheelhouse
 
       - name: Build wheel
-        uses: pypa/cibuildwheel@v2.23
-        with:
-          output-dir: wheelhouse
+        uses: pypa/cibuildwheel@faf86a6ed7efa889faf6996aa23820831055001a # v2.23
         env:
           MACOSX_DEPLOYMENT_TARGET: 10.15
           CIBW_ARCHS_MACOS: x86_64 arm64 universal2
-          # Build Python 3.7 through 3.12.
-          # Skip python 3.6 since scikit-build-core requires 3.7+
+          # Build Python 3.8 through 3.13
           # Skip 32-bit wheels builds on Windows
           # Also skip the PyPy builds, since they fail the unit tests
           CIBW_BUILD: "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
           CIBW_SKIP: "*-win32 *_i686"
-          CIBW_TEST_SKIP: "*arm64"
+          CIBW_TEST_SKIP: "*-macosx*arm64"
+          OPENEXR_TEST_IMAGE_REPO: "https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.arch }}
           path: |
@@ -78,7 +101,7 @@ jobs:
     name: Publish Python 🐍 distribution 📦 to PyPI
     needs:
     - build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     environment:
       name: pypi
@@ -89,10 +112,10 @@ jobs:
 
     steps:
 
-    - name: Download ubuntu-latest-x64 artifacts
+    - name: Download ubuntu-24.04-x64 artifacts
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
-        name: wheels-ubuntu-latest-x64
+        name: wheels-ubuntu-24.04-x64
         path: dist
 
     - name: Download ubuntu-24.04-arm-arm64 artifacts
@@ -107,16 +130,16 @@ jobs:
         name: wheels-macos-13-x64
         path: dist
 
-    - name: Download macos-latest-arm64
+    - name: Download macos-24.04-arm64
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
-        name: wheels-macos-latest-arm64
+        name: wheels-macos-24.04-arm64
         path: dist
 
-    - name: Download windows-latest-x64 artifacts
+    - name: Download windows-24.04-x64 artifacts
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
-        name: wheels-windows-latest-x64
+        name: wheels-windows-24.04-x64
         path: dist
 
     - name: Publish distribution 📦 to PyPI
