@@ -46,7 +46,10 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_COMPILER=clang++
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
+            -DOPENEXR_IMATH_REPO=https://github.com/cary-ilm/Imath.git \
+            -DOPENEXR_IMATH_TAG=vec-delete-fix
 
       - name: Build
         run: cmake --build build -- -v
