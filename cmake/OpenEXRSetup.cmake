@@ -257,12 +257,11 @@ endif()
 
 option(OPENEXR_FORCE_INTERNAL_OPENJPH "Force downloading OpenJPH from a git repo" OFF)
 set(OPENEXR_OPENJPH_REPO "https://github.com/aous72/OpenJPH.git" CACHE STRING "OpenJPH git repo URI")
-set(OPENEXR_OPENJPH_TAG "0.21.5" CACHE STRING "OpenJPH git repo tag")
+set(OPENEXR_OPENJPH_TAG "master" CACHE STRING "OpenJPH git repo tag")
 
 if (NOT OPENEXR_FORCE_INTERNAL_OPENJPH)
-  find_package(openjph 0.21 CONFIG QUIET)
+  find_package(openjph CONFIG QUIET)
   if(openjph_FOUND)
-    message(STATUS "Using OpenJPH from ${openjph_DIR}")
     set(EXR_OPENJPH_LIB openjph)
   else()
     # If not found, try pkgconfig
