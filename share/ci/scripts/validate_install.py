@@ -87,7 +87,14 @@ def openexr_version():
     return major, minor, patch
 
 def process_line(line, major, minor, patch, so):
-    return line.strip().split("/_install/", 1)[-1].replace("$MAJOR", major).replace("$MINOR", minor).replace("$PATCH", patch).replace("$SOVERSION", so)
+    line = line.strip().split("/_install/", 1)[-1].replace("$MAJOR", major).replace("$MINOR", minor).replace("$PATCH", patch).replace("$SOVERSION", so)
+    line = line.replace("$OPENJPH_VERSION_MAJOR", os.environ.get("OPENJPH_VERSION_MAJOR"))
+    line = line.replace("$OPENJPH_VERSION_MINOR", os.environ.get("OPENJPH_VERSION_MINOR"))
+    line = line.replace("$OPENJPH_VERSION_PATCH", os.environ.get("OPENJPH_VERSION_PATCH"))
+    line = line.replace("$IMATH_VERSION_MAJOR", os.environ.get("IMATH_VERSION_MAJOR"))
+    line = line.replace("$IMATH_VERSION_MINOR", os.environ.get("IMATH_VERSION_MINOR"))
+    line = line.replace("$IMATH_VERSION_PATCH", os.environ.get("IMATH_VERSION_PATCH"))
+    return line
 
 def load_manifest(path):
     """Load and return the list of files from the install manifest."""
