@@ -208,7 +208,7 @@ jobs:
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/openjph/bin:$PROGRAM_FILES/openjph/lib" >> $GITHUB_ENV
 
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            openjph_version="$PROGRAM_FILES/openjph/inclue/openjph/ojph_version.h"
+            openjph_version="$PROGRAM_FILES/openjph/include/openjph/ojph_version.h"
           else
             openjph_version="/usr/local/include/openjph/ojph_version.h"
           fi
