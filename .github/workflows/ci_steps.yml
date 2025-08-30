@@ -199,7 +199,7 @@ jobs:
           share/ci/scripts/install_openjph.sh 0.22.0
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/openjph/bin:$PROGRAM_FILES/openjph/lib" >> $GITHUB_ENV
 
-          openjph_version="/usr/local/include/openjph/openjph_version.h"
+          openjph_version="/usr/local/include/openjph/ojph_version.h"
           OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MAJOR' "$openjph_version" | awk '{print $3}')
           OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MINOR' "$openjph_version" | awk '{print $3}')
           OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_PATCH' "$openjph_version" | awk '{print $3}')
@@ -291,7 +291,7 @@ jobs:
             echo "IMATH_VERSION_PATCH=$IMATH_VERSION_PATCH" >> $GITHUB_ENV
           fi
           if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}" == "ON" ]; then
-            openjph_version="$INSTALL_DIR/include/openjph/openjph_version.h"
+            openjph_version="$INSTALL_DIR/include/openjph/ojph_version.h"
             OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MAJOR' "$openjph_version" | awk '{print $3}')
             OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MINOR' "$openjph_version" | awk '{print $3}')
             OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_PATCH' "$openjph_version" | awk '{print $3}')
