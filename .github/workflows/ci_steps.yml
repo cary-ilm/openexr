@@ -172,10 +172,15 @@ jobs:
         # Pre-install Imath so the builds validate that find_package sees the external installation
         if: inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'OFF' && inputs.msystem == ''
         run: |
+          set -x
           share/ci/scripts/install_imath.sh main
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/Imath/bin:$PROGRAM_FILES/Imath/lib" >> $GITHUB_ENV
 
-          ImathConfig="/usr/local/include/Imath/ImathConfig.h"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            ImathConfig="$PROGRAM_FILES/Imath/include/Imath/ImathConfig.h"
+          else:
+            ImathConfig="/usr/local/include/Imath/ImathConfig.h"
+          fi
           IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MAJOR' "$ImathConfig" | awk '{print $3}')
           IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MINOR' "$ImathConfig" | awk '{print $3}')
           IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+IMATH_VERSION_PATCH' "$ImathConfig" | awk '{print $3}')
@@ -188,6 +193,7 @@ jobs:
         # Pre-install libdeflate so the builds validate that find_package sees the external installation
         if: inputs.OPENEXR_FORCE_INTERNAL_DEFLATE == 'OFF' && inputs.msystem == ''
         run: |
+          set -x
           share/ci/scripts/install_libdeflate.sh master
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/libdeflate/bin:$PROGRAM_FILES/libdeflate/lib" >> $GITHUB_ENV
         shell: bash
@@ -196,10 +202,15 @@ jobs:
         # Pre-install OpenJPH so the builds validate finding the external installation
         if: inputs.OPENEXR_FORCE_INTERNAL_OPENJPH == 'OFF' && inputs.msystem == ''
         run: |
+          set -x
           share/ci/scripts/install_openjph.sh 0.22.0
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/openjph/bin:$PROGRAM_FILES/openjph/lib" >> $GITHUB_ENV
 
-          openjph_version="/usr/local/include/openjph/ojph_version.h"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            openjph_version="$PROGRAM_FILES/openjph/inclue/openjph/ojph_version.h"
+          else:
+            openjph_version="/usr/local/include/openjph/ojph_version.h"
+          fi
           OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MAJOR' "$openjph_version" | awk '{print $3}')
           OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MINOR' "$openjph_version" | awk '{print $3}')
           OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_PATCH' "$openjph_version" | awk '{print $3}')
