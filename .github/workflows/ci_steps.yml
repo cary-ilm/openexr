@@ -294,7 +294,8 @@ jobs:
 
       - name: Extract internal dependency versions
         run: |
-          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "ON" ]; then
+        D:/a/_temp/msys64/mingw32/lib/cmake/Imath
+          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "ON" || "${{ inputs.msystem }}" != "" ]; then
             ImathConfig="$INSTALL_DIR/include/Imath/ImathConfig.h"
             IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MAJOR' "$ImathConfig" | awk '{print $3}')
             IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MINOR' "$ImathConfig" | awk '{print $3}')
@@ -303,7 +304,7 @@ jobs:
             echo "IMATH_VERSION_MINOR=$IMATH_VERSION_MINOR" >> $GITHUB_ENV
             echo "IMATH_VERSION_PATCH=$IMATH_VERSION_PATCH" >> $GITHUB_ENV
           fi
-          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}" == "ON" ]; then
+          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}" == "ON"  || "${{ inputs.msystem }}" != "" ]; then
             openjph_version="$INSTALL_DIR/include/openjph/ojph_version.h"
             OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MAJOR' "$openjph_version" | awk '{print $3}')
             OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MINOR' "$openjph_version" | awk '{print $3}')
