@@ -279,25 +279,26 @@ jobs:
           "$CMAKE" --build $BUILD_DIR --target install --config ${{ inputs.build-type }}
         shell: msys2 {0}
 
-      - name: Extract dependency versions
-        if: inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'ON':
-          ImathConfig="$INSTALL_DIR/include/Imath/ImathConfig.h"
-          IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MAJOR' "$ImathConfig" | awk '{print $3}')
-          IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MINOR' "$ImathConfig" | awk '{print $3}')
-          IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+IMATH_VERSION_PATCH' "$ImathConfig" | awk '{print $3}')
-          echo "IMATH_VERSION_MAJOR=$IMATH_VERSION_MAJOR" >> $GITHUB_ENV
-          echo "IMATH_VERSION_MINOR=$IMATH_VERSION_MINOR" >> $GITHUB_ENV
-          echo "IMATH_VERSION_PATCH=$IMATH_VERSION_PATCH" >> $GITHUB_ENV
-        fi
-        if: inputs.OPENEXR_FORCE_INTERNAL_OPENJPH == 'ON':
-          openjph_version="$INSTALL_DIR/include/openjph/openjph_version.h"
-          OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MAJOR' "$openjph_version" | awk '{print $3}')
-          OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MINOR' "$openjph_version" | awk '{print $3}')
-          OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_PATCH' "$openjph_version" | awk '{print $3}')
-          echo "OPENJPH_VERSION_MAJOR=$OPENJPH_VERSION_MAJOR" >> $GITHUB_ENV
-          echo "OPENJPH_VERSION_MINOR=$OPENJPH_VERSION_MINOR" >> $GITHUB_ENV
-          echo "OPENJPH_VERSION_PATCH=$OPENJPH_VERSION_PATCH" >> $GITHUB_ENV
-        fi
+      - name: Extract internal dependency versions
+        run: |
+          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "ON" ]; then
+            ImathConfig="$INSTALL_DIR/include/Imath/ImathConfig.h"
+            IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MAJOR' "$ImathConfig" | awk '{print $3}')
+            IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MINOR' "$ImathConfig" | awk '{print $3}')
+            IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+IMATH_VERSION_PATCH' "$ImathConfig" | awk '{print $3}')
+            echo "IMATH_VERSION_MAJOR=$IMATH_VERSION_MAJOR" >> $GITHUB_ENV
+            echo "IMATH_VERSION_MINOR=$IMATH_VERSION_MINOR" >> $GITHUB_ENV
+            echo "IMATH_VERSION_PATCH=$IMATH_VERSION_PATCH" >> $GITHUB_ENV
+          fi
+          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}" == "ON" ]; then
+            openjph_version="$INSTALL_DIR/include/openjph/openjph_version.h"
+            OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MAJOR' "$openjph_version" | awk '{print $3}')
+            OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MINOR' "$openjph_version" | awk '{print $3}')
+            OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_PATCH' "$openjph_version" | awk '{print $3}')
+            echo "OPENJPH_VERSION_MAJOR=$OPENJPH_VERSION_MAJOR" >> $GITHUB_ENV
+            echo "OPENJPH_VERSION_MINOR=$OPENJPH_VERSION_MINOR" >> $GITHUB_ENV
+            echo "OPENJPH_VERSION_PATCH=$OPENJPH_VERSION_PATCH" >> $GITHUB_ENV
+          fi
         shell: bash
 
       - name: Test
