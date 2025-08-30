@@ -178,9 +178,10 @@ jobs:
 
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             ImathConfig="$PROGRAM_FILES/Imath/include/Imath/ImathConfig.h"
-          else:
+          else
             ImathConfig="/usr/local/include/Imath/ImathConfig.h"
           fi
+          echo "ImathConfig=$ImathConfig"
           IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MAJOR' "$ImathConfig" | awk '{print $3}')
           IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MINOR' "$ImathConfig" | awk '{print $3}')
           IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+IMATH_VERSION_PATCH' "$ImathConfig" | awk '{print $3}')
@@ -208,9 +209,10 @@ jobs:
 
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             openjph_version="$PROGRAM_FILES/openjph/inclue/openjph/ojph_version.h"
-          else:
+          else
             openjph_version="/usr/local/include/openjph/ojph_version.h"
           fi
+          echo "openjph_version=$openjph_version"
           OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MAJOR' "$openjph_version" | awk '{print $3}')
           OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MINOR' "$openjph_version" | awk '{print $3}')
           OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_PATCH' "$openjph_version" | awk '{print $3}')
