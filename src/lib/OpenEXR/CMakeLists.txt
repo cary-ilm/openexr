@@ -227,3 +227,11 @@ openexr_define_library(OpenEXR
     OpenEXR::IlmThread
     OpenEXR::OpenEXRCore
   )
+
+if (DEFINED EXR_OPENJPH_LIB)
+  if (BUILD_SHARED_LIBS)
+    target_link_libraries(OpenEXR PRIVATE ${EXR_OPENJPH_LIB})
+  else()
+    target_link_libraries(OpenEXR PUBLIC ${EXR_OPENJPH_LIB})
+  endif()
+endif()
