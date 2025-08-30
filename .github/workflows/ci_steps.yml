@@ -175,19 +175,6 @@ jobs:
           set -x
           share/ci/scripts/install_imath.sh main
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/Imath/bin:$PROGRAM_FILES/Imath/lib" >> $GITHUB_ENV
-
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            ImathConfig="$PROGRAM_FILES/Imath/include/Imath/ImathConfig.h"
-          else
-            ImathConfig="/usr/local/include/Imath/ImathConfig.h"
-          fi
-          echo "ImathConfig=$ImathConfig"
-          IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MAJOR' "$ImathConfig" | awk '{print $3}')
-          IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MINOR' "$ImathConfig" | awk '{print $3}')
-          IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+IMATH_VERSION_PATCH' "$ImathConfig" | awk '{print $3}')
-          echo "IMATH_VERSION_MAJOR=$IMATH_VERSION_MAJOR" >> $GITHUB_ENV
-          echo "IMATH_VERSION_MINOR=$IMATH_VERSION_MINOR" >> $GITHUB_ENV
-          echo "IMATH_VERSION_PATCH=$IMATH_VERSION_PATCH" >> $GITHUB_ENV
         shell: bash
 
       - name: Install libdeflate
@@ -206,20 +193,6 @@ jobs:
           set -x
           share/ci/scripts/install_openjph.sh 0.22.0
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/openjph/bin:$PROGRAM_FILES/openjph/lib" >> $GITHUB_ENV
-
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            openjph_version="$PROGRAM_FILES/openjph/include/openjph/ojph_version.h"
-          else
-            openjph_version="/usr/local/include/openjph/ojph_version.h"
-          fi
-          echo "openjph_version=$openjph_version"
-          OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MAJOR' "$openjph_version" | awk '{print $3}')
-          OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MINOR' "$openjph_version" | awk '{print $3}')
-          OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_PATCH' "$openjph_version" | awk '{print $3}')
-          echo "OPENJPH_VERSION_MAJOR=$OPENJPH_VERSION_MAJOR" >> $GITHUB_ENV
-          echo "OPENJPH_VERSION_MINOR=$OPENJPH_VERSION_MINOR" >> $GITHUB_ENV
-          echo "OPENJPH_VERSION_PATCH=$OPENJPH_VERSION_PATCH" >> $GITHUB_ENV
-        shell: bash
 
       - name: Install help2man
         # TODO: this could go in the ASWF Linux docker
@@ -292,29 +265,6 @@ jobs:
           "$CMAKE" --build $BUILD_DIR --target install --config ${{ inputs.build-type }}
         shell: msys2 {0}
 
-      - name: Extract internal dependency versions
-        run: |
-        D:/a/_temp/msys64/mingw32/lib/cmake/Imath
-          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "ON" || "${{ inputs.msystem }}" != "" ]; then
-            ImathConfig="$INSTALL_DIR/include/Imath/ImathConfig.h"
-            IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MAJOR' "$ImathConfig" | awk '{print $3}')
-            IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+IMATH_VERSION_MINOR' "$ImathConfig" | awk '{print $3}')
-            IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+IMATH_VERSION_PATCH' "$ImathConfig" | awk '{print $3}')
-            echo "IMATH_VERSION_MAJOR=$IMATH_VERSION_MAJOR" >> $GITHUB_ENV
-            echo "IMATH_VERSION_MINOR=$IMATH_VERSION_MINOR" >> $GITHUB_ENV
-            echo "IMATH_VERSION_PATCH=$IMATH_VERSION_PATCH" >> $GITHUB_ENV
-          fi
-          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}" == "ON"  || "${{ inputs.msystem }}" != "" ]; then
-            openjph_version="$INSTALL_DIR/include/openjph/ojph_version.h"
-            OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MAJOR' "$openjph_version" | awk '{print $3}')
-            OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_MINOR' "$openjph_version" | awk '{print $3}')
-            OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENJPH_VERSION_PATCH' "$openjph_version" | awk '{print $3}')
-            echo "OPENJPH_VERSION_MAJOR=$OPENJPH_VERSION_MAJOR" >> $GITHUB_ENV
-            echo "OPENJPH_VERSION_MINOR=$OPENJPH_VERSION_MINOR" >> $GITHUB_ENV
-            echo "OPENJPH_VERSION_PATCH=$OPENJPH_VERSION_PATCH" >> $GITHUB_ENV
-          fi
-        shell: bash
-
       - name: Test
         if: inputs.BUILD_TESTING == 'ON' && inputs.RUN_TESTING == 'ON' && inputs.msystem == ''
         run: |
@@ -360,9 +310,29 @@ jobs:
 
       - name: Validate install
         if: inputs.validate_install == 'ON'
-        # Validate that the build has installed the proper files by comparing against the appropriate reference manifest
+        # Validate that the build has installed the proper files by
+        #  comparing against the appropriate reference manifest
         run: |
           set -x
+
+          OpenEXRConfig=$INSTALL_DIR/include/OpenEXRConfig.h
+          echo "OpenEXRConfig=$OpenEXRConfig"
+          IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_MAJOR' "$OpenEXRConfig" | awk '{print $3}')
+          IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_MINOR' "$OpenEXRConfig" | awk '{print $3}')
+          IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_PATCH' "$OpenEXRConfig" | awk '{print $3}')
+          IMATH_SOVERSION=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_SOVERSION' "$OpenEXRConfig" | awk '{print $3}')
+          echo "IMATH_VERSION_MAJOR=$IMATH_VERSION_MAJOR" >> $GITHUB_ENV
+          echo "IMATH_VERSION_MINOR=$IMATH_VERSION_MINOR" >> $GITHUB_ENV
+          echo "IMATH_VERSION_PATCH=$IMATH_VERSION_PATCH" >> $GITHUB_ENV
+          echo "IMATH_SOVERSION=$IMATH_SOVERSION" >> $GITHUB_ENV
+
+          OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENEXR_OPENJPH_VERSION_MAJOR' "$OpenEXRConfig" | awk '{print $3}')
+          OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENEXR_OPENJPH_VERSION_MINOR' "$OpenEXRConfig" | awk '{print $3}')
+          OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENEXR_OPENJPH_VERSION_PATCH' "$OpenEXRConfig" | awk '{print $3}')
+          echo "OPENJPH_VERSION_MAJOR=$OPENJPH_VERSION_MAJOR" >> $GITHUB_ENV
+          echo "OPENJPH_VERSION_MINOR=$OPENJPH_VERSION_MINOR" >> $GITHUB_ENV
+          echo "OPENJPH_VERSION_PATCH=$OPENJPH_VERSION_PATCH" >> $GITHUB_ENV
+
           share/ci/scripts/validate_install.py "$INSTALL_MANIFEST_PATH" "share/ci/install_manifest/$INSTALL_MANIFEST_FILENAME"
         shell: bash
 
