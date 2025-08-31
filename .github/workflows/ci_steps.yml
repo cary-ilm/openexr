@@ -301,21 +301,14 @@ jobs:
           echo "OpenEXRConfig=$OpenEXRConfig"
           cat "$OpenEXRConfig"
 
-          IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_MAJOR' "$OpenEXRConfig" | awk '{print $3}')
-          IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_MINOR' "$OpenEXRConfig" | awk '{print $3}')
-          IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_PATCH' "$OpenEXRConfig" | awk '{print $3}')
-          IMATH_SOVERSION=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_SOVERSION' "$OpenEXRConfig" | awk '{print $3}')
-          echo "IMATH_VERSION_MAJOR=$IMATH_VERSION_MAJOR" >> $GITHUB_ENV
-          echo "IMATH_VERSION_MINOR=$IMATH_VERSION_MINOR" >> $GITHUB_ENV
-          echo "IMATH_VERSION_PATCH=$IMATH_VERSION_PATCH" >> $GITHUB_ENV
-          echo "IMATH_SOVERSION=$IMATH_SOVERSION" >> $GITHUB_ENV
+          export IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_MAJOR' "$OpenEXRConfig" | awk '{print $3}')
+          export IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_MINOR' "$OpenEXRConfig" | awk '{print $3}')
+          export IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_PATCH' "$OpenEXRConfig" | awk '{print $3}')
+          export IMATH_SOVERSION=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_SOVERSION' "$OpenEXRConfig" | awk '{print $3}')
 
-          OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENEXR_OPENJPH_VERSION_MAJOR' "$OpenEXRConfig" | awk '{print $3}')
-          OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENEXR_OPENJPH_VERSION_MINOR' "$OpenEXRConfig" | awk '{print $3}')
-          OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENEXR_OPENJPH_VERSION_PATCH' "$OpenEXRConfig" | awk '{print $3}')
-          echo "OPENJPH_VERSION_MAJOR=$OPENJPH_VERSION_MAJOR" >> $GITHUB_ENV
-          echo "OPENJPH_VERSION_MINOR=$OPENJPH_VERSION_MINOR" >> $GITHUB_ENV
-          echo "OPENJPH_VERSION_PATCH=$OPENJPH_VERSION_PATCH" >> $GITHUB_ENV
+          export OPENJPH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENEXR_OPENJPH_VERSION_MAJOR' "$OpenEXRConfig" | awk '{print $3}')
+          export OPENJPH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENEXR_OPENJPH_VERSION_MINOR' "$OpenEXRConfig" | awk '{print $3}')
+          export OPENJPH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENEXR_OPENJPH_VERSION_PATCH' "$OpenEXRConfig" | awk '{print $3}')
 
           share/ci/scripts/validate_install.py "$INSTALL_MANIFEST_PATH" "share/ci/install_manifest/$INSTALL_MANIFEST_FILENAME"
         shell: bash
