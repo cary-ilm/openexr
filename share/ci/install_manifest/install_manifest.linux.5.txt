@@ -230,6 +230,6 @@ lib64/cmake/openjph/openjph-targets.cmake
 lib64/cmake/openjph/openjph-config.cmake
 lib64/cmake/openjph/openjph-config-version.cmake
 lib64/libopenjph.so
-lib64/libopenjph.so.$OPENJPH_VERSION_MAJOR.$OPENJPH_VERSION_MINOR
-lib64/libopenjph.so.$OPENJPH_VERSION_MAJOR.$OPENJPH_VERSION_MINOR.$OPENJPH_VERSION_PATCH
+lib64/libopenjph.so.${OPENJPH_VERSION_MAJOR}.${OPENJPH_VERSION_MINOR}
+lib64/libopenjph.so.${OPENJPH_VERSION_MAJOR}.${OPENJPH_VERSION_MINOR}.${OPENJPH_VERSION_PATCH}
 lib64/pkgconfig/openjph.pc

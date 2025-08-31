@@ -229,7 +229,7 @@ lib/cmake/openjph/openjph-targets-release.cmake
 lib/cmake/openjph/openjph-targets.cmake
 lib/cmake/openjph/openjph-config.cmake
 lib/cmake/openjph/openjph-config-version.cmake
-lib/libopenjph.$OPENJPH_VERSION_MAJOR.$OPENJPH_VERSION_MINOR.$OPENJPH_VERSION_PATCH.dylib
-lib/libopenjph.$OPENJPH_VERSION_MAJOR.$OPENJPH_VERSION_MINOR.dylib
+lib/libopenjph.${OPENJPH_VERSION_MAJOR}.${OPENJPH_VERSION_MINOR}.${OPENJPH_VERSION_PATCH}.dylib
+lib/libopenjph.${OPENJPH_VERSION_MAJOR}.${OPENJPH_VERSION_MINOR}.dylib
 lib/libopenjph.dylib
 lib/pkgconfig/openjph.pc

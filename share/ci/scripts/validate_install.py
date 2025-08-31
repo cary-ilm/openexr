@@ -119,7 +119,7 @@ def process_line(line):
                 sys.exit(1)
             return var_val
         return match.group(0)
-    return re.sub(pattern, replacer, line)
+    return re.sub(pattern, replacer, line).rstrip()
 
 def load_manifest(path):
     """Load and return the list of files from the install manifest."""
