@@ -86,25 +86,59 @@ def openexr_version():
 
     return major, minor, patch
 
-def process_line(line, major, minor, patch, so):
-    line = line.strip().split("/_install/", 1)[-1].replace("$MAJOR", major).replace("$MINOR", minor).replace("$PATCH", patch).replace("$SOVERSION", so)
-    line = line.replace("$OPENJPH_VERSION_MAJOR", os.environ.get("OPENJPH_VERSION_MAJOR"))
-    line = line.replace("$OPENJPH_VERSION_MINOR", os.environ.get("OPENJPH_VERSION_MINOR"))
-    line = line.replace("$OPENJPH_VERSION_PATCH", os.environ.get("OPENJPH_VERSION_PATCH"))
-    line = line.replace("$IMATH_VERSION_MAJOR", os.environ.get("IMATH_VERSION_MAJOR"))
-    line = line.replace("$IMATH_VERSION_MINOR", os.environ.get("IMATH_VERSION_MINOR"))
-    line = line.replace("$IMATH_VERSION_PATCH", os.environ.get("IMATH_VERSION_PATCH"))
-    return line
+def process_line(line):
+    """
+    Replaces all occurrences of $VAR or ${VAR} with the value of VAR
+    if VAR is set in the environment.
+
+    Args:
+        line (str): The input string containing potential environment variables.
+
+    Returns:
+        str: The string with environment variables replaced by their values.
+    """
+    # The regular expression looks for two patterns:
+    # 1. \$(\w+): dollar sign followed by one or more word characters (letters, numbers, underscore).
+    # 2. \${(\w+)}: dollar sign, a literal opening brace, one or more word characters, iteral closing brace. 
+    # The | operator combines these two patterns.
+    pattern = r'\$(?:([a-zA-Z0-9]+)|{(\w+)})'
+
+    def replacer(match):
+        var_name = match.group(1)
+        if var_name:
+            var_val = os.environ.get(var_name, match.group(0))
+            if var_val == None:
+                print(f"no such env var: {var_name}")
+                sys.exit(1)
+            return var_val
+        var_name = match.group(2)
+        if var_name:
+            var_val = os.environ.get(var_name, match.group(0))
+            if var_val == None:
+                print(f"no such env var: {var_name}")
+                sys.exit(1)
+            return var_val
+        return match.group(0)
+    return re.sub(pattern, replacer, line)
 
 def load_manifest(path):
     """Load and return the list of files from the install manifest."""
-    major, minor, patch = openexr_version()
-    so = openexr_soversion()
     with open(path, 'r') as file:
-        return sorted(process_line(line, major, minor, patch, so) for line in file if line[0]!='#')
+        return sorted(process_line(line) for line in file if line[0]!='#')
 
 def validate_install(candidate_manifest_path, reference_manifest_path, options):
     """Main function to verify the installed files."""
+
+    major, minor, patch = openexr_version()
+    so = openexr_soversion()
+    os.environ["MAJOR"] = major
+    os.environ["MINOR"] = minor
+    os.environ["PATCH"] = patch
+    os.environ["SOVERSION"] = so
+
+    print("environment:")
+    for key, value in os.environ.items():
+        print(f"  {key}: {value}")    
 
     candidate_manifest = load_manifest(candidate_manifest_path)
     reference_manifest = load_manifest(reference_manifest_path)

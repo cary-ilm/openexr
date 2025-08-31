@@ -190,7 +190,7 @@ include/OpenEXR/openexr_version.h
 include/OpenEXR/ImfHTCompressor.h
 lib/Iex-$MAJOR_$MINOR.lib
 lib/IlmThread-$MAJOR_$MINOR.lib
-lib/Imath-3_2.lib
+lib/Imath-${IMATH_VERSION_MAJOR}_${IMATH_VERSION_MINOR}.lib
 lib/OpenEXR-$MAJOR_$MINOR.lib
 lib/OpenEXRCore-$MAJOR_$MINOR.lib
 lib/OpenEXRUtil-$MAJOR_$MINOR.lib
