@@ -319,6 +319,12 @@ if(NOT EXR_OPENJPH_LIB)
   set(EXR_OPENJPH_LIB openjph)
 endif()
 
+# Print all CMake variables and their values
+get_cmake_property(_vars VARIABLES)
+foreach(_var ${_vars})
+    message(STATUS "${_var} = ${${_var}}")
+endforeach()
+
 if (NOT EXR_OPENJPH_LIB)
   message(ERROR "Failed to find OpenJPH")
 endif()
