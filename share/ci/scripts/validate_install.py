@@ -98,7 +98,7 @@ def process_line(line):
         str: The string with environment variables replaced by their values.
     """
     # The regular expression looks for two patterns:
-    # 1. \$(\w+): dollar sign followed by one or more word characters (letters, numbers, underscore).
+    # 1. \$([a-zA-Z0-9]+): dollar sign followed by alpha-numeric characters (no underscore allowed).
     # 2. \${(\w+)}: dollar sign, a literal opening brace, one or more word characters, iteral closing brace. 
     # The | operator combines these two patterns.
     pattern = r'\$(?:([a-zA-Z0-9]+)|{(\w+)})'
@@ -128,17 +128,6 @@ def load_manifest(path):
 
 def validate_install(candidate_manifest_path, reference_manifest_path, options):
     """Main function to verify the installed files."""
-
-    major, minor, patch = openexr_version()
-    so = openexr_soversion()
-    os.environ["MAJOR"] = major
-    os.environ["MINOR"] = minor
-    os.environ["PATCH"] = patch
-    os.environ["SOVERSION"] = so
-
-    print("environment:")
-    for key, value in os.environ.items():
-        print(f"  {key}: {value}")    
 
     candidate_manifest = load_manifest(candidate_manifest_path)
     reference_manifest = load_manifest(reference_manifest_path)

@@ -302,6 +302,11 @@ jobs:
           echo "OpenEXRConfig=$OpenEXRConfig"
           cat "$OpenEXRConfig"
 
+          export OPENEXR_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENEXR_VERSION_MAJOR' "$OpenEXRConfig" | awk '{print $3}')
+          export OPENEXR_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENEXR_VERSION_MINOR' "$OpenEXRConfig" | awk '{print $3}')
+          export OPENEXR_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENEXR_VERSION_PATCH' "$OpenEXRConfig" | awk '{print $3}')
+          export OPENEXR_SOVERSION=$(grep -E '^#define[[:space:]]+OPENEXR_SOVERSION' "$OpenEXRConfig" | awk '{print $3}')
+
           export IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_MAJOR' "$OpenEXRConfig" | awk '{print $3}')
           export IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_MINOR' "$OpenEXRConfig" | awk '{print $3}')
           export IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_PATCH' "$OpenEXRConfig" | awk '{print $3}')
