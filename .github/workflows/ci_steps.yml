@@ -299,6 +299,8 @@ jobs:
 
           OpenEXRConfig=$INSTALL_DIR/include/OpenEXR/OpenEXRConfig.h
           echo "OpenEXRConfig=$OpenEXRConfig"
+          cat "OpenEXRConfig=$OpenEXRConfig"
+
           IMATH_VERSION_MAJOR=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_MAJOR' "$OpenEXRConfig" | awk '{print $3}')
           IMATH_VERSION_MINOR=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_MINOR' "$OpenEXRConfig" | awk '{print $3}')
           IMATH_VERSION_PATCH=$(grep -E '^#define[[:space:]]+OPENEXR_IMATH_VERSION_PATCH' "$OpenEXRConfig" | awk '{print $3}')
