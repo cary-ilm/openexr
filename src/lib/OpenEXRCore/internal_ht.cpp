@@ -242,12 +242,12 @@ ht_undo_impl (
                  y < image_height + decode->chunk.start_y;
                  y++)
             {
-                for (int16_t line_c = 0; line_c < decode->channel_count;
+                for (int line_c = 0; line_c < decode->channel_count;
                      line_c++)
                 {
                     if (y % decode->channels[line_c].y_samples != 0) continue;
 
-                    if (line_c == static_cast<ojph::ui32>(file_c))
+                    if (line_c == file_c)
                     {
                         cur_line = cs.pull (next_comp);
                         assert (next_comp == c);
