@@ -115,23 +115,53 @@ struct ThreadPool::Data
 {
     using ProviderPtr = std::shared_ptr<ThreadPoolProvider>;
 
-    Data ();
-    Data (ThreadPoolProvider *p);
-    ~Data ();
-    Data (const Data&)            = delete;
-    Data& operator= (const Data&) = delete;
-    Data (Data&&)                 = default;
-    Data& operator= (Data&&)      = delete;
+    Data();
+    Data(ThreadPoolProvider* p);
+    ~Data();
+    Data(const Data&)            = delete;
+    Data& operator=(const Data&) = delete;
 
-    ProviderPtr getProvider () const { return std::atomic_load (&_provider); }
-
-    void setProvider (ProviderPtr provider)
+#if defined(__cpp_lib_atomic_shared_ptr) && __cpp_lib_atomic_shared_ptr >= 201711
+    // Atomic shared_ptr case (C++20+)
+    Data(Data&& other) noexcept
     {
-        ProviderPtr curp = std::atomic_exchange (&_provider, provider);
-        if (curp && curp != provider) curp->finish ();
+        // Atomically steal the provider from "other"
+        ProviderPtr tmp = other._provider.exchange(nullptr);
+        _provider.store(std::move(tmp));
     }
 
+    Data& operator=(Data&& other) = delete; // keep as before
+#else
+    // Pre-C++20, normal shared_ptr is movable
+    Data(Data&&) = default;
+    Data& operator=(Data&&) = delete;
+#endif
+
+    ProviderPtr getProvider() const
+    {
+#if defined(__cpp_lib_atomic_shared_ptr) && __cpp_lib_atomic_shared_ptr >= 201711
+        return _provider.load();
+#else
+        return std::atomic_load(&_provider);
+#endif
+    }
+
+    void setProvider(ProviderPtr provider)
+    {
+#if defined(__cpp_lib_atomic_shared_ptr) && __cpp_lib_atomic_shared_ptr >= 201711
+        ProviderPtr curp = _provider.exchange(provider);
+#else
+        ProviderPtr curp = std::atomic_exchange(&_provider, provider);
+#endif
+        if (curp && curp != provider)
+            curp->finish();
+    }
+
+#if defined(__cpp_lib_atomic_shared_ptr) && __cpp_lib_atomic_shared_ptr >= 201711
+    std::atomic<std::shared_ptr<ThreadPoolProvider>> _provider;
+#else
     std::shared_ptr<ThreadPoolProvider> _provider;
+#endif
 };
 
 namespace
@@ -467,8 +497,12 @@ ThreadPool::Data::Data ()
     // empty
 }
 
-ThreadPool::Data::Data (ThreadPoolProvider *p)
-    : _provider (p)
+ThreadPool::Data::Data (ThreadPoolProvider* p)
+#if defined(__cpp_lib_atomic_shared_ptr) && __cpp_lib_atomic_shared_ptr >= 201711
+    : _provider(std::shared_ptr<ThreadPoolProvider>(p))
+#else
+    : _provider(p)
+#endif
 {
     // empty
 }
