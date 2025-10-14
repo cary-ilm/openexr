@@ -261,6 +261,20 @@ the pixel data are *not* offset by this value.
     >>> height,width
     (846, 1240)
 
+Reading Only Select Parts
+-------------------------
+
+The ``File`` constructor takes an optional list argument
+``only_parts`` that specifies a list of parts, identified either by
+integer index or string name, to be read. If the list is not empty,
+all parts not listed are skipped. The ``File``'s ``parts`` list
+contains only the identified parts.
+
+.. code-block::
+
+    with OpenEXR.File("multipart.exr", only_parts=[1,2,3,"rgba_right"]) as f:
+        assert len(f.parts) == 4
+
 OpenEXR.Channel
 ---------------
 

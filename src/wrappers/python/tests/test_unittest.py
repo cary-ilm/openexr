@@ -248,6 +248,27 @@ class TestUnittest(unittest.TestCase):
             with OpenEXR.File(buf) as reread:
                 compare_files(reread, infile)
 
+    def test_read_only_parts(self):
+
+        infilename = f"{test_dir}/multipart.exr"
+        with OpenEXR.File(infilename, only_parts=[1,2,3,"rgba_right"]) as f:
+            assert len(f.parts) == 4
+            assert f.parts[0].name() == "rgba_right"
+            assert f.parts[1].name() == "depth_left"
+            assert f.parts[2].name() == "forward_left"
+            assert f.parts[3].name() == "whitebarmask_left"
+            
+        with open(infilename, "rb") as f:
+            raw = f.read()
+        buf = BytesIO(raw)
+
+        with OpenEXR.File(buf, only_parts=[1,2,3,"rgba_right"]) as f:
+            assert len(f.parts) == 4
+            assert f.parts[0].name() == "rgba_right"
+            assert f.parts[1].name() == "depth_left"
+            assert f.parts[2].name() == "forward_left"
+            assert f.parts[3].name() == "whitebarmask_left"
+
     def test_keycode(self):
 
         filmMfcCode = 1
@@ -447,6 +468,7 @@ class TestUnittest(unittest.TestCase):
         #
 
         multipartfilename = f"{test_dir}/multipart.exr"
+        multipartfilename = mktemp_outfilename()
 
         height, width = (20, 10)
         Z = np.zeros((height, width), dtype='f')

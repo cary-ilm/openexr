@@ -352,17 +352,17 @@ PyFile::PyFile(const py::dict& header, const py::dict& channels,
 //
 
 PyFile::PyFile(const std::string& filename, bool separate_channels,
-               bool header_only, int num_threads)
+               bool header_only, int num_threads, const py::list& only_parts)
     : filename(filename),
       _header_only(header_only),
       _num_threads(num_threads < 0 ? globalThreadCount() : num_threads),
       _inputFile(std::make_unique<MultiPartInputFile>(filename.c_str(), _num_threads))
 {
-    readPartsFromOpenInput(separate_channels);
+    readPartsFromOpenInput(separate_channels, only_parts);
 }
 
-PyFile::PyFile(py::object binary_stream, bool separate_channels, 
-               bool header_only, int num_threads)
+PyFile::PyFile(py::object binary_stream, bool separate_channels, bool header_only,
+               int num_threads, const py::list& only_parts)
     : filename("<buffer>"),
       _header_only(header_only),
       _num_threads(num_threads < 0 ? globalThreadCount() : num_threads)
@@ -376,15 +376,20 @@ PyFile::PyFile(py::object binary_stream, bool separate_channels,
 
     _readStream = std::make_unique<PythonBinaryIStream>(std::move(binary_stream));
     _inputFile  = std::make_unique<MultiPartInputFile>(*_readStream, _num_threads);
-    readPartsFromOpenInput(separate_channels);
+    readPartsFromOpenInput(separate_channels, only_parts);
 }
 
 void
-PyFile::readPartsFromOpenInput(bool separate_channels)
-{
+PyFile::readPartsFromOpenInput(bool separate_channels, const py::list& only_parts)
+{       
     for (int part_index = 0; part_index < _inputFile->parts(); part_index++)
     {
         const Header& header = _inputFile->header(part_index);
+
+        if (!only_parts.empty() &&
+            (!only_parts.contains(part_index) &&
+             (!header.hasName() || !only_parts.contains(header.name()))))
+            continue;
 
         PyPart P;
 
@@ -3152,11 +3157,12 @@ PYBIND11_MODULE(OpenEXR, m)
              "    Number of threads for multithreaded I/O and encode/decode of the File.\n"
              "\n"
              )
-        .def(py::init<std::string,bool,bool,int>(),
+         .def(py::init<std::string,bool,bool,int,py::list>(),
              py::arg("filename"),
              py::arg("separate_channels")=false,
              py::arg("header_only")=false,
              py::arg("num_threads")=-1,
+             py::arg("only_parts")=py::list(),
              "Initialize a File by reading the image from the given filename.\n"
              "\n"
              "Parameters\n"
@@ -3170,6 +3176,8 @@ PYBIND11_MODULE(OpenEXR, m)
              "    If True, read only the header metadata, not the image pixel data.\n"
              "num_threads : int\n"
              "    Number of threads for multithreaded I/O and encode/decode of the File.\n"
+             "only_parts : list\n"
+             "    List of part indices and/or names to read (int or str). If empty, read all parts.\n"
              "\n"
              "Example\n"
              "-------  \n"
@@ -3199,11 +3207,12 @@ PYBIND11_MODULE(OpenEXR, m)
              ">>> P0 = OpenEXR.Part({}, {\"Z\" : Z0 })\n"
              ">>> P1 = OpenEXR.Part({}, {\"Z\" : Z1 })\n"
              ">>> f = OpenEXR.File([P0, P1])")
-        .def(py::init<py::object, bool, bool, int>(),
+         .def(py::init<py::object,bool,bool,int,py::list>(),
              py::arg("stream"),
              py::arg("separate_channels") = false,
              py::arg("header_only") = false,
-             py::arg("num_threads")=-1,
+             py::arg("num_threads") = -1,
+             py::arg("only_parts") = py::list(),
              "Initialize a File by reading from a binary stream.\n"
              "\n"
              "The stream must implement read(), tell(), and seek() and contain a\n"
@@ -3219,7 +3228,9 @@ PYBIND11_MODULE(OpenEXR, m)
              "header_only : bool\n"
              "    Same as for the filename constructor.\n"
              "num_threads : int\n"
-             "    Number of threads for multithreaded I/O and encode/decode for this File.\n")
+             "    Number of threads for multithreaded I/O and encode/decode for this File.\n"
+             "only_parts : list\n"
+             "    List of part indices and/or names to read (int or str). If empty, read all parts.\n")
         .def(py::init<py::dict,py::dict,int>(),
              py::arg("header"),
              py::arg("channels"),

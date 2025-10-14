@@ -60,9 +60,10 @@ class PyFile
 public:
     PyFile(int num_threads = -1);
     PyFile(const std::string& filename, bool separate_channels = false,
-           bool header_only = false, int num_threads = -1);
+           bool header_only = false, int num_threads = -1,
+           const py::list& part_indices = py::list());
     PyFile(py::object binary_stream, bool separate_channels = false, bool header_only = false,
-           int num_threads = -1);
+           int num_threads = -1, const py::list& part_indices = py::list());
     PyFile(const py::dict& header, const py::dict& channels,
            int num_threads = -1);
     PyFile(const py::list& parts, int num_threads = -1);
@@ -81,7 +82,8 @@ public:
 
 private:
 
-    void readPartsFromOpenInput(bool separate_channels);
+    void readPartsFromOpenInput(bool separate_channels,
+                                const py::list& only_parts);
     void runMultiPartOutput(MultiPartOutputFile& outfile, const std::vector<Header>& headers);
     std::vector<Header> buildOutputHeaders();
 
