@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) Contributors to the OpenEXR Project.
+
+name: scratch
+
+on:
+
+  push:
+    paths:
+      - '**'
+  pull_request:
+    paths:
+      - '**'
+
+permissions:
+  contents: read
+
+jobs:
+  build_wheels:
+    name: scratch
+    runs-on: windows-2022
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: build
+        run: bash scratch.sh
+        shell: bash
