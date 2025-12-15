@@ -16,8 +16,9 @@ cmake -B _build -S . \
   -DOPENEXR_FORCE_INTERNAL_DEFLATE=OFF \
   -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
   -DBUILD_TESTING=ON \
-  -DOPENEXR_CORE_USE_NAMESPACE=ON \
   -DOPENEXR_RUN_FUZZ_TESTS=OFF \
   -DCMAKE_VERBOSE_MAKEFILE=ON
+
+cmake --version
 
 cmake --build _build --target install --config Release
