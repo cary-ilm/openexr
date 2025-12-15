@@ -17,6 +17,8 @@ cmake -B _build -S . \
   -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
   -DBUILD_TESTING=ON \
   -DOPENEXR_RUN_FUZZ_TESTS=OFF \
+  "-DCMAKE_C_FLAGS=-msse2 -mfpmath=sse" \
+  "-DCMAKE_CXX_FLAGS=-msse2 -mfpmath=sse" \
   -DCMAKE_VERBOSE_MAKEFILE=ON
 
 cmake --version
