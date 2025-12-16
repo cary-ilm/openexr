@@ -2,6 +2,8 @@
 
 set -x
 
+rm -rf _build
+
 cmake -B _build -S . \
   -DCMAKE_INSTALL_PREFIX=_install \
   -DCMAKE_BUILD_TYPE=Release \
@@ -24,3 +26,5 @@ cmake -B _build -S . \
 cmake --version
 
 cmake --build _build --target install --config Release
+
+find . -ls
