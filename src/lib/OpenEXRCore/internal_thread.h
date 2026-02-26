@@ -8,27 +8,14 @@
 
 #include "openexr_config.h"
 
-// Thread-safe single initiatization, using InitOnceExecuteOnce on Windows,
-// pthread_once elsewhere, or a simple variable if threading is completely disabled.
+// Thread-safe single initialization using C11 threads.h where available,
+// pthread on macOS, Windows native primitives on Windows, or a simple
+// variable if threading is completely disabled.
+
 #if ILMTHREAD_THREADING_ENABLED
-#    ifdef _WIN32
-#        include <windows.h>
-#        define ONCE_FLAG_INIT INIT_ONCE_STATIC_INIT
-typedef INIT_ONCE once_flag;
-static BOOL CALLBACK
-once_init_fn (PINIT_ONCE once, PVOID param, PVOID* ctx)
-{
-    void (*fn) (void) = (void (*) (void)) param;
-    fn ();
-    return TRUE;
-}
-static inline void
-call_once (once_flag* flag, void (*func) (void))
-{
-    InitOnceExecuteOnce (flag, once_init_fn, (PVOID) func, NULL);
-}
-#    elif !defined(ONCE_FLAG_INIT)
-#        include <pthread.h>
+
+#if defined(__APPLE__)
+#include <pthread.h>
 #        define ONCE_FLAG_INIT PTHREAD_ONCE_INIT
 typedef pthread_once_t once_flag;
 static inline void
@@ -36,22 +23,9 @@ call_once (once_flag* flag, void (*func) (void))
 {
     (void) pthread_once (flag, func);
 }
-#    endif
-
-#else /* !ILMTHREAD_THREADING_ENABLED */
-
-#    ifndef ONCE_FLAG_INIT
-#        define ONCE_FLAG_INIT 0
-typedef int once_flag;
-static inline void
-call_once (once_flag* flag, void (*func) (void))
-{
-    if (!*flag) {
-        *flag = 1;
-        func ();
-    }
-}
-#    endif
+#else
+#include <threads.h>
+#endif
 
 #endif /* ILMTHREAD_THREADING_ENABLED */
 
