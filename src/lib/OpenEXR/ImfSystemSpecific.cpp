@@ -10,6 +10,8 @@
 #include "OpenEXRConfigInternal.h"
 #if defined(_MSC_VER)
 #    include <intrin.h>
+#elif defined(IMF_HAVE_SSE2) && defined(__GNUC__) && !defined(__e2k__)
+#    include <cpuid.h>
 #endif
 
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_ENTER
@@ -18,15 +20,13 @@ namespace
 {
 #if defined(IMF_HAVE_SSE2) && defined(__GNUC__) && !defined(__e2k__)
 
-// Helper functions for gcc + SSE enabled
+// Use __get_cpuid from <cpuid.h> instead of inline asm so PIC builds work
+// (inline asm clobbers %ebx which may be the PIC base register). See issue #128.
 void
-cpuid (int n, int& eax, int& ebx, int& ecx, int& edx)
+cpuid (unsigned int n, unsigned int& eax, unsigned int& ebx, unsigned int& ecx,
+       unsigned int& edx)
 {
-    __asm__ __volatile__ (
-        "cpuid"
-        : /* Output  */ "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
-        : /* Input   */ "a"(n)
-        : /* Clobber */);
+    __get_cpuid (n, &eax, &ebx, &ecx, &edx);
 }
 
 #elif defined(_MSC_VER) &&                                                     \
@@ -34,31 +34,46 @@ cpuid (int n, int& eax, int& ebx, int& ecx, int& edx)
 
 // Helper functions for MSVC
 void
-cpuid (int n, int& eax, int& ebx, int& ecx, int& edx)
+cpuid (unsigned int n, unsigned int& eax, unsigned int& ebx, unsigned int& ecx,
+       unsigned int& edx)
 {
     int cpuInfo[4] = {-1};
-    __cpuid (cpuInfo, n);
-    eax = cpuInfo[0];
-    ebx = cpuInfo[1];
-    ecx = cpuInfo[2];
-    edx = cpuInfo[3];
+    __cpuid (cpuInfo, static_cast<int> (n));
+    eax = static_cast<unsigned int> (cpuInfo[0]);
+    ebx = static_cast<unsigned int> (cpuInfo[1]);
+    ecx = static_cast<unsigned int> (cpuInfo[2]);
+    edx = static_cast<unsigned int> (cpuInfo[3]);
 }
 
 #else // IMF_HAVE_SSE2 && __GNUC__ && !__e2k__
 
 // Helper functions for generic compiler - all disabled
 void
-cpuid (int n, int& eax, int& ebx, int& ecx, int& edx)
+cpuid (unsigned int n, unsigned int& eax, unsigned int& ebx, unsigned int& ecx,
+       unsigned int& edx)
 {
     eax = ebx = ecx = edx = 0;
 }
 
 #endif // IMF_HAVE_SSE2 && __GNUC__ && !__e2k__
 
-#ifdef IMF_HAVE_GCC_INLINEASM_X86
+#if defined(_MSC_VER) &&                                                     \
+    (defined(_M_IX86) || (defined(_M_AMD64) && !defined(_M_ARM64EC)))
 
 void
-xgetbv (int n, int& eax, int& edx)
+xgetbv (unsigned int n, unsigned int& eax, unsigned int& edx)
+{
+    unsigned long long v = _xgetbv (static_cast<int> (n));
+    eax = static_cast<unsigned int> (v & 0xffffffffu);
+    edx = static_cast<unsigned int> (v >> 32);
+}
+
+#elif defined(IMF_HAVE_GCC_INLINEASM_X86)
+
+// No GCC intrinsic or cpuid.h wrapper for xgetbv; inline asm is required.
+// xgetbv does not clobber %ebx so PIC is not affected (unlike cpuid).
+void
+xgetbv (unsigned int n, unsigned int& eax, unsigned int& edx)
 {
     __asm__ __volatile__ ("xgetbv"
                           : /* Output  */ "=a"(eax), "=d"(edx)
@@ -66,15 +81,15 @@ xgetbv (int n, int& eax, int& edx)
                           : /* Clobber */);
 }
 
-#else //  IMF_HAVE_GCC_INLINEASM_X86
+#else
 
 void
-xgetbv (int n, int& eax, int& edx)
+xgetbv (unsigned int n, unsigned int& eax, unsigned int& edx)
 {
     eax = edx = 0;
 }
 
-#endif //  IMF_HAVE_GCC_INLINEASM_X86
+#endif
 
 } // namespace
 
@@ -111,9 +126,8 @@ CpuId::CpuId ()
     f16c = true;
 #    endif
 #else // x86/x86_64
-    bool osxsave = false;
-    int  max     = 0;
-    int  eax, ebx, ecx, edx;
+    bool         osxsave = false;
+    unsigned int max = 0, eax, ebx, ecx, edx;
 
     cpuid (0, max, ebx, ecx, edx);
     if (max > 0)
