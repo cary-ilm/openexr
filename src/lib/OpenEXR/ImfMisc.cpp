@@ -23,6 +23,8 @@
 #include <ImfTileDescription.h>
 #include <ImfXdr.h>
 
+#include <cstring>
+
 #include <codecvt>
 #include <locale>
 
@@ -260,6 +262,10 @@ numLinesInBuffer (Compressor* compressor)
     return compressor ? compressor->numScanLines () : 1;
 }
 
+// Frame-buffer xStride / deep sampleStride may be arbitrary, so pixel addresses
+// are not necessarily aligned for half/float/uint loads and stores. Use memcpy
+// for those accesses to avoid SIGBUS on strict 32-bit ARM (issue #2134).
+
 void
 copyIntoFrameBuffer (
     const char*&       readPtr,
@@ -293,7 +299,7 @@ copyIntoFrameBuffer (
 
                 while (writePtr <= endPtr)
                 {
-                    *(unsigned int*) writePtr = fillVal;
+                    memcpy (writePtr, &fillVal, sizeof (unsigned int));
                     writePtr += xStride;
                 }
             }
@@ -306,7 +312,7 @@ copyIntoFrameBuffer (
 
                 while (writePtr <= endPtr)
                 {
-                    *(half*) writePtr = fillVal;
+                    memcpy (writePtr, &fillVal, sizeof (half));
                     writePtr += xStride;
                 }
             }
@@ -319,7 +325,7 @@ copyIntoFrameBuffer (
 
                 while (writePtr <= endPtr)
                 {
-                    *(float*) writePtr = fillVal;
+                    memcpy (writePtr, &fillVal, sizeof (float));
                     writePtr += xStride;
                 }
             }
@@ -348,8 +354,9 @@ copyIntoFrameBuffer (
 
                         while (writePtr <= endPtr)
                         {
-                            Xdr::read<CharPtrIO> (
-                                readPtr, *(unsigned int*) writePtr);
+                            unsigned int ui;
+                            Xdr::read<CharPtrIO> (readPtr, ui);
+                            memcpy (writePtr, &ui, sizeof (unsigned int));
                             writePtr += xStride;
                         }
                         break;
@@ -360,7 +367,8 @@ copyIntoFrameBuffer (
                         {
                             half h;
                             Xdr::read<CharPtrIO> (readPtr, h);
-                            *(unsigned int*) writePtr = halfToUint (h);
+                            unsigned int v = halfToUint (h);
+                            memcpy (writePtr, &v, sizeof (unsigned int));
                             writePtr += xStride;
                         }
                         break;
@@ -371,7 +379,8 @@ copyIntoFrameBuffer (
                         {
                             float f;
                             Xdr::read<CharPtrIO> (readPtr, f);
-                            *(unsigned int*) writePtr = floatToUint (f);
+                            unsigned int v = floatToUint (f);
+                            memcpy (writePtr, &v, sizeof (unsigned int));
                             writePtr += xStride;
                         }
                         break;
@@ -392,7 +401,8 @@ copyIntoFrameBuffer (
                         {
                             unsigned int ui;
                             Xdr::read<CharPtrIO> (readPtr, ui);
-                            *(half*) writePtr = uintToHalf (ui);
+                            half h = uintToHalf (ui);
+                            memcpy (writePtr, &h, sizeof (half));
                             writePtr += xStride;
                         }
                         break;
@@ -401,7 +411,9 @@ copyIntoFrameBuffer (
 
                         while (writePtr <= endPtr)
                         {
-                            Xdr::read<CharPtrIO> (readPtr, *(half*) writePtr);
+                            half h;
+                            Xdr::read<CharPtrIO> (readPtr, h);
+                            memcpy (writePtr, &h, sizeof (half));
                             writePtr += xStride;
                         }
                         break;
@@ -412,7 +424,8 @@ copyIntoFrameBuffer (
                         {
                             float f;
                             Xdr::read<CharPtrIO> (readPtr, f);
-                            *(half*) writePtr = floatToHalf (f);
+                            half h = floatToHalf (f);
+                            memcpy (writePtr, &h, sizeof (half));
                             writePtr += xStride;
                         }
                         break;
@@ -433,7 +446,8 @@ copyIntoFrameBuffer (
                         {
                             unsigned int ui;
                             Xdr::read<CharPtrIO> (readPtr, ui);
-                            *(float*) writePtr = float (ui);
+                            float f = float (ui);
+                            memcpy (writePtr, &f, sizeof (float));
                             writePtr += xStride;
                         }
                         break;
@@ -444,7 +458,8 @@ copyIntoFrameBuffer (
                         {
                             half h;
                             Xdr::read<CharPtrIO> (readPtr, h);
-                            *(float*) writePtr = float (h);
+                            float f = float (h);
+                            memcpy (writePtr, &f, sizeof (float));
                             writePtr += xStride;
                         }
                         break;
@@ -453,7 +468,9 @@ copyIntoFrameBuffer (
 
                         while (writePtr <= endPtr)
                         {
-                            Xdr::read<CharPtrIO> (readPtr, *(float*) writePtr);
+                            float f;
+                            Xdr::read<CharPtrIO> (readPtr, f);
+                            memcpy (writePtr, &f, sizeof (float));
                             writePtr += xStride;
                         }
                         break;
@@ -496,8 +513,10 @@ copyIntoFrameBuffer (
 
                         while (writePtr <= endPtr)
                         {
-                            half h                    = *(half*) readPtr;
-                            *(unsigned int*) writePtr = halfToUint (h);
+                            half h;
+                            memcpy (&h, readPtr, sizeof (half));
+                            unsigned int v = halfToUint (h);
+                            memcpy (writePtr, &v, sizeof (unsigned int));
                             readPtr += sizeof (half);
                             writePtr += xStride;
                         }
@@ -512,7 +531,8 @@ copyIntoFrameBuffer (
                             for (size_t i = 0; i < sizeof (float); ++i)
                                 ((char*) &f)[i] = readPtr[i];
 
-                            *(unsigned int*) writePtr = floatToUint (f);
+                            unsigned int v = floatToUint (f);
+                            memcpy (writePtr, &v, sizeof (unsigned int));
                             readPtr += sizeof (float);
                             writePtr += xStride;
                         }
@@ -538,7 +558,8 @@ copyIntoFrameBuffer (
                             for (size_t i = 0; i < sizeof (unsigned int); ++i)
                                 ((char*) &ui)[i] = readPtr[i];
 
-                            *(half*) writePtr = uintToHalf (ui);
+                            half h = uintToHalf (ui);
+                            memcpy (writePtr, &h, sizeof (half));
                             readPtr += sizeof (unsigned int);
                             writePtr += xStride;
                         }
@@ -558,7 +579,7 @@ copyIntoFrameBuffer (
                         {
                             while (writePtr <= endPtr)
                             {
-                                *(half*) writePtr = *(half*) readPtr;
+                                memcpy (writePtr, readPtr, sizeof (half));
                                 readPtr += sizeof (half);
                                 writePtr += xStride;
                             }
@@ -574,7 +595,8 @@ copyIntoFrameBuffer (
                             for (size_t i = 0; i < sizeof (float); ++i)
                                 ((char*) &f)[i] = readPtr[i];
 
-                            *(half*) writePtr = floatToHalf (f);
+                            half h = floatToHalf (f);
+                            memcpy (writePtr, &h, sizeof (half));
                             readPtr += sizeof (float);
                             writePtr += xStride;
                         }
@@ -599,7 +621,8 @@ copyIntoFrameBuffer (
                             for (size_t i = 0; i < sizeof (unsigned int); ++i)
                                 ((char*) &ui)[i] = readPtr[i];
 
-                            *(float*) writePtr = float (ui);
+                            float f = float (ui);
+                            memcpy (writePtr, &f, sizeof (float));
                             readPtr += sizeof (unsigned int);
                             writePtr += xStride;
                         }
@@ -609,8 +632,10 @@ copyIntoFrameBuffer (
 
                         while (writePtr <= endPtr)
                         {
-                            half h             = *(half*) readPtr;
-                            *(float*) writePtr = float (h);
+                            half h;
+                            memcpy (&h, readPtr, sizeof (half));
+                            float f = float (h);
+                            memcpy (writePtr, &f, sizeof (float));
                             readPtr += sizeof (half);
                             writePtr += xStride;
                         }
@@ -696,7 +721,7 @@ copyIntoDeepFrameBuffer (
                             y - yOffsetForSampleCount);
                         for (int i = 0; i < count; i++)
                         {
-                            *(unsigned int*) writePtr = fillVal;
+                            memcpy (writePtr, &fillVal, sizeof (unsigned int));
                             writePtr += sampleStride;
                         }
                     }
@@ -725,7 +750,7 @@ copyIntoDeepFrameBuffer (
                             y - yOffsetForSampleCount);
                         for (int i = 0; i < count; i++)
                         {
-                            *(half*) writePtr = fillVal;
+                            memcpy (writePtr, &fillVal, sizeof (half));
                             writePtr += sampleStride;
                         }
                     }
@@ -754,7 +779,7 @@ copyIntoDeepFrameBuffer (
                             y - yOffsetForSampleCount);
                         for (int i = 0; i < count; i++)
                         {
-                            *(float*) writePtr = fillVal;
+                            memcpy (writePtr, &fillVal, sizeof (float));
                             writePtr += sampleStride;
                         }
                     }
@@ -801,8 +826,9 @@ copyIntoDeepFrameBuffer (
 
                                 for (int i = 0; i < count; i++)
                                 {
-                                    Xdr::read<CharPtrIO> (
-                                        readPtr, *(unsigned int*) writePtr);
+                                    unsigned int ui;
+                                    Xdr::read<CharPtrIO> (readPtr, ui);
+                                    memcpy (writePtr, &ui, sizeof (unsigned int));
                                     writePtr += sampleStride;
                                 }
                             }
@@ -837,7 +863,8 @@ copyIntoDeepFrameBuffer (
                                 {
                                     half h;
                                     Xdr::read<CharPtrIO> (readPtr, h);
-                                    *(unsigned int*) writePtr = halfToUint (h);
+                                    unsigned int v = halfToUint (h);
+                                    memcpy (writePtr, &v, sizeof (unsigned int));
                                     writePtr += sampleStride;
                                 }
                             }
@@ -871,7 +898,8 @@ copyIntoDeepFrameBuffer (
                                 {
                                     float f;
                                     Xdr::read<CharPtrIO> (readPtr, f);
-                                    *(unsigned int*) writePtr = floatToUint (f);
+                                    unsigned int v = floatToUint (f);
+                                    memcpy (writePtr, &v, sizeof (unsigned int));
                                     writePtr += sampleStride;
                                 }
                             }
@@ -914,7 +942,8 @@ copyIntoDeepFrameBuffer (
                                 {
                                     unsigned int ui;
                                     Xdr::read<CharPtrIO> (readPtr, ui);
-                                    *(half*) writePtr = uintToHalf (ui);
+                                    half h = uintToHalf (ui);
+                                    memcpy (writePtr, &h, sizeof (half));
                                     writePtr += sampleStride;
                                 }
                             }
@@ -947,8 +976,9 @@ copyIntoDeepFrameBuffer (
 
                                 for (int i = 0; i < count; i++)
                                 {
-                                    Xdr::read<CharPtrIO> (
-                                        readPtr, *(half*) writePtr);
+                                    half h;
+                                    Xdr::read<CharPtrIO> (readPtr, h);
+                                    memcpy (writePtr, &h, sizeof (half));
                                     writePtr += sampleStride;
                                 }
                             }
@@ -981,7 +1011,8 @@ copyIntoDeepFrameBuffer (
                                 {
                                     float f;
                                     Xdr::read<CharPtrIO> (readPtr, f);
-                                    *(half*) writePtr = floatToHalf (f);
+                                    half h = floatToHalf (f);
+                                    memcpy (writePtr, &h, sizeof (half));
                                     writePtr += sampleStride;
                                 }
                             }
@@ -1024,7 +1055,8 @@ copyIntoDeepFrameBuffer (
                                 {
                                     unsigned int ui;
                                     Xdr::read<CharPtrIO> (readPtr, ui);
-                                    *(float*) writePtr = float (ui);
+                                    float f = float (ui);
+                                    memcpy (writePtr, &f, sizeof (float));
                                     writePtr += sampleStride;
                                 }
                             }
@@ -1059,7 +1091,8 @@ copyIntoDeepFrameBuffer (
                                 {
                                     half h;
                                     Xdr::read<CharPtrIO> (readPtr, h);
-                                    *(float*) writePtr = float (h);
+                                    float f = float (h);
+                                    memcpy (writePtr, &f, sizeof (float));
                                     writePtr += sampleStride;
                                 }
                             }
@@ -1091,8 +1124,9 @@ copyIntoDeepFrameBuffer (
 
                                 for (int i = 0; i < count; i++)
                                 {
-                                    Xdr::read<CharPtrIO> (
-                                        readPtr, *(float*) writePtr);
+                                    float f;
+                                    Xdr::read<CharPtrIO> (readPtr, f);
+                                    memcpy (writePtr, &f, sizeof (float));
                                     writePtr += sampleStride;
                                 }
                             }
@@ -1179,8 +1213,10 @@ copyIntoDeepFrameBuffer (
                             {
                                 for (int i = 0; i < count; i++)
                                 {
-                                    half h = *(half*) readPtr;
-                                    *(unsigned int*) writePtr = halfToUint (h);
+                                    half h;
+                                    memcpy (&h, readPtr, sizeof (half));
+                                    unsigned int v = halfToUint (h);
+                                    memcpy (writePtr, &v, sizeof (unsigned int));
                                     readPtr += sizeof (half);
                                     writePtr += sampleStride;
                                 }
@@ -1215,7 +1251,8 @@ copyIntoDeepFrameBuffer (
                                     for (size_t i = 0; i < sizeof (float); ++i)
                                         ((char*) &f)[i] = readPtr[i];
 
-                                    *(unsigned int*) writePtr = floatToUint (f);
+                                    unsigned int v = floatToUint (f);
+                                    memcpy (writePtr, &v, sizeof (unsigned int));
                                     readPtr += sizeof (float);
                                     writePtr += sampleStride;
                                 }
@@ -1261,7 +1298,8 @@ copyIntoDeepFrameBuffer (
                                          ++i)
                                         ((char*) &ui)[i] = readPtr[i];
 
-                                    *(half*) writePtr = uintToHalf (ui);
+                                    half h = uintToHalf (ui);
+                                    memcpy (writePtr, &h, sizeof (half));
                                     readPtr += sizeof (unsigned int);
                                     writePtr += sampleStride;
                                 }
@@ -1290,7 +1328,7 @@ copyIntoDeepFrameBuffer (
                             {
                                 for (int i = 0; i < count; i++)
                                 {
-                                    *(half*) writePtr = *(half*) readPtr;
+                                    memcpy (writePtr, readPtr, sizeof (half));
                                     readPtr += sizeof (half);
                                     writePtr += sampleStride;
                                 }
@@ -1324,7 +1362,8 @@ copyIntoDeepFrameBuffer (
                                     for (size_t i = 0; i < sizeof (float); ++i)
                                         ((char*) &f)[i] = readPtr[i];
 
-                                    *(half*) writePtr = floatToHalf (f);
+                                    half h = floatToHalf (f);
+                                    memcpy (writePtr, &h, sizeof (half));
                                     readPtr += sizeof (float);
                                     writePtr += sampleStride;
                                 }
@@ -1370,7 +1409,8 @@ copyIntoDeepFrameBuffer (
                                          ++i)
                                         ((char*) &ui)[i] = readPtr[i];
 
-                                    *(float*) writePtr = float (ui);
+                                    float f = float (ui);
+                                    memcpy (writePtr, &f, sizeof (float));
                                     readPtr += sizeof (unsigned int);
                                     writePtr += sampleStride;
                                 }
@@ -1399,8 +1439,10 @@ copyIntoDeepFrameBuffer (
                             {
                                 for (int i = 0; i < count; i++)
                                 {
-                                    half h             = *(half*) readPtr;
-                                    *(float*) writePtr = float (h);
+                                    half h;
+                                    memcpy (&h, readPtr, sizeof (half));
+                                    float f = float (h);
+                                    memcpy (writePtr, &f, sizeof (float));
                                     readPtr += sizeof (half);
                                     writePtr += sampleStride;
                                 }
@@ -1511,11 +1553,13 @@ convertInPlace (
             }
             break;
 
-        case OPENEXR_IMF_INTERNAL_NAMESPACE::HALF:
+            case OPENEXR_IMF_INTERNAL_NAMESPACE::HALF:
 
             for (size_t j = 0; j < numPixels; ++j)
             {
-                Xdr::write<CharPtrIO> (writePtr, *(const half*) readPtr);
+                half h;
+                memcpy (&h, readPtr, sizeof (half));
+                Xdr::write<CharPtrIO> (writePtr, h);
                 readPtr += sizeof (half);
             }
             break;
@@ -1563,8 +1607,9 @@ copyFromFrameBuffer (
 
                 while (localReadPtr <= endPtr)
                 {
-                    Xdr::write<CharPtrIO> (
-                        localWritePtr, *(const unsigned int*) localReadPtr);
+                    unsigned int ui;
+                    memcpy (&ui, localReadPtr, sizeof (unsigned int));
+                    Xdr::write<CharPtrIO> (localWritePtr, ui);
                     localReadPtr += xStride;
                 }
                 break;
@@ -1573,8 +1618,9 @@ copyFromFrameBuffer (
 
                 while (localReadPtr <= endPtr)
                 {
-                    Xdr::write<CharPtrIO> (
-                        localWritePtr, *(const half*) localReadPtr);
+                    half h;
+                    memcpy (&h, localReadPtr, sizeof (half));
+                    Xdr::write<CharPtrIO> (localWritePtr, h);
                     localReadPtr += xStride;
                 }
                 break;
@@ -1583,8 +1629,9 @@ copyFromFrameBuffer (
 
                 while (localReadPtr <= endPtr)
                 {
-                    Xdr::write<CharPtrIO> (
-                        localWritePtr, *(const float*) localReadPtr);
+                    float f;
+                    memcpy (&f, localReadPtr, sizeof (float));
+                    Xdr::write<CharPtrIO> (localWritePtr, f);
                     localReadPtr += xStride;
                 }
                 break;
@@ -1615,7 +1662,7 @@ copyFromFrameBuffer (
 
                 while (localReadPtr <= endPtr)
                 {
-                    *(half*) localWritePtr = *(const half*) localReadPtr;
+                    memcpy (localWritePtr, localReadPtr, sizeof (half));
                     localWritePtr += sizeof (half);
                     localReadPtr += xStride;
                 }
@@ -1689,8 +1736,9 @@ copyFromDeepFrameBuffer (
                     const char* readPtr = ((const char**) ptr)[0];
                     for (unsigned int i = 0; i < count; i++)
                     {
-                        Xdr::write<CharPtrIO> (
-                            writePtr, *(const unsigned int*) readPtr);
+                        unsigned int ui;
+                        memcpy (&ui, readPtr, sizeof (unsigned int));
+                        Xdr::write<CharPtrIO> (writePtr, ui);
                         readPtr += sampleStride;
                     }
                 }
@@ -1712,8 +1760,9 @@ copyFromDeepFrameBuffer (
                     const char* readPtr = ((const char**) ptr)[0];
                     for (unsigned int i = 0; i < count; i++)
                     {
-                        Xdr::write<CharPtrIO> (
-                            writePtr, *(const half*) readPtr);
+                        half h;
+                        memcpy (&h, readPtr, sizeof (half));
+                        Xdr::write<CharPtrIO> (writePtr, h);
                         readPtr += sampleStride;
                     }
                 }
@@ -1736,8 +1785,9 @@ copyFromDeepFrameBuffer (
                     const char* readPtr = ((const char**) ptr)[0];
                     for (unsigned int i = 0; i < count; i++)
                     {
-                        Xdr::write<CharPtrIO> (
-                            writePtr, *(const float*) readPtr);
+                        float f;
+                        memcpy (&f, readPtr, sizeof (float));
+                        Xdr::write<CharPtrIO> (writePtr, f);
                         readPtr += sampleStride;
                     }
                 }
@@ -1795,7 +1845,7 @@ copyFromDeepFrameBuffer (
                     const char* readPtr = ((const char**) ptr)[0];
                     for (unsigned int i = 0; i < count; i++)
                     {
-                        *(half*) writePtr = *(const half*) readPtr;
+                        memcpy (writePtr, readPtr, sizeof (half));
                         writePtr += sizeof (half);
                         readPtr += sampleStride;
                     }
@@ -1891,7 +1941,8 @@ fillChannelWithZeroes (
 
                 for (size_t j = 0; j < xSize; ++j)
                 {
-                    *(half*) writePtr = half (0);
+                    static const half h0 = half (0);
+                    memcpy (writePtr, &h0, sizeof (half));
                     writePtr += sizeof (half);
                 }
                 break;

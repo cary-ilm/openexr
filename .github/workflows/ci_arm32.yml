@@ -47,7 +47,9 @@ jobs:
         with:
           arch: armv7
           distro: ubuntu22.04
-          envs: GITHUB_REPOSITORY GITHUB_SHA
+          env: |
+            GITHUB_REPOSITORY=${{ github.repository }}
+            GITHUB_SHA=${{ github.sha }}
           install: |
             apt-get update -qq
             apt-get install -y -qq cmake ninja-build build-essential git
@@ -59,6 +61,7 @@ jobs:
             git checkout "${GITHUB_SHA}"
             cmake -B _build -S . -G Ninja \
               -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_CXX_FLAGS="-Wno-abi" \
               -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
               -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
               -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
@@ -75,8 +78,10 @@ jobs:
         uses: uraimo/run-on-arch-action@aa8e672a03e10b403401927ea2ceda57e1b68ac3  # v3
         with:
           arch: armv6
-          distro: ubuntu22.04
-          envs: GITHUB_REPOSITORY GITHUB_SHA
+          distro: bullseye
+          env: |
+            GITHUB_REPOSITORY=${{ github.repository }}
+            GITHUB_SHA=${{ github.sha }}
           install: |
             apt-get update -qq
             apt-get install -y -qq cmake ninja-build build-essential git
@@ -88,6 +93,7 @@ jobs:
             git checkout "${GITHUB_SHA}"
             cmake -B _build -S . -G Ninja \
               -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_CXX_FLAGS="-Wno-abi" \
               -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
               -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
               -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
