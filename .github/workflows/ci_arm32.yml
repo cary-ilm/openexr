@@ -37,6 +37,11 @@ on:
 permissions:
   contents: read
 
+# run-on-arch-action still declares node20; GitHub is moving JS actions to Node 24.
+# See https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   armv7:
     name: ARMv7 (QEMU)
@@ -67,7 +72,8 @@ jobs:
               -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
               -DBUILD_TESTING=ON
             cmake --build _build
-            ctest --test-dir _build --output-on-failure
+            # ctest --test-dir needs CMake 3.20+; Debian bullseye (armv6) has 3.18
+            (cd _build && ctest --output-on-failure)
 
   # armv6 is slower under QEMU and more likely to hit unaligned Bus errors; enable if needed.
   armv6:
@@ -99,4 +105,4 @@ jobs:
               -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
               -DBUILD_TESTING=ON
             cmake --build _build
-            ctest --test-dir _build --output-on-failure
+            (cd _build && ctest --output-on-failure)
