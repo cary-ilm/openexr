@@ -48,8 +48,8 @@ jobs:
           arch: armv7
           distro: ubuntu22.04
           env: |
-            GITHUB_REPOSITORY=${{ github.repository }}
-            GITHUB_SHA=${{ github.sha }}
+            GITHUB_REPOSITORY: ${{ github.repository }}
+            GITHUB_SHA: ${{ github.sha }}
           install: |
             apt-get update -qq
             apt-get install -y -qq cmake ninja-build build-essential git
@@ -80,8 +80,8 @@ jobs:
           arch: armv6
           distro: bullseye
           env: |
-            GITHUB_REPOSITORY=${{ github.repository }}
-            GITHUB_SHA=${{ github.sha }}
+            GITHUB_REPOSITORY: ${{ github.repository }}
+            GITHUB_SHA: ${{ github.sha }}
           install: |
             apt-get update -qq
             apt-get install -y -qq cmake ninja-build build-essential git
