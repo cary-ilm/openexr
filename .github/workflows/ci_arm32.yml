@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
+#
+# Build and test on 32-bit ARM (armv7, and optionally armv6) via QEMU emulation.
+# GitHub does not provide native armv6/armv7 runners; this uses uraimo/run-on-arch-action.
+# Reproduces Bus error failures on armv6/armv7 (issue #2134), likely from unaligned
+# memory access; use internal deps to avoid external lib alignment/SIMD differences.
+#
+# Debugging Bus error without hardware: run this workflow or use QEMU locally
+# (e.g. qemu-user-static + debootstrap armhf). On real ARM, use:
+#   echo 4 | sudo tee /proc/cpu/alignment   # SIGBUS on unaligned access
+# then run under gdb to get the faulting address and fix unaligned loads/stores
+# (e.g. via memcpy or explicit alignment).
+
+name: "CI (ARM 32-bit)"
+
+on:
+  push:
+    paths:
+      - '**'
+      - '!**.md'
+      - '!website/**'
+      - '!bazel/**'
+      - '!src/wrappers/**'
+      - '!.github/workflows/**'
+      - '.github/workflows/ci_arm32.yml'
+  pull_request:
+    paths:
+      - '**'
+      - '!**.md'
+      - '!website/**'
+      - '!bazel/**'
+      - '!src/wrappers/**'
+      - '!.github/workflows/**'
+      - '.github/workflows/ci_arm32.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  armv7:
+    name: ARMv7 (QEMU)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and test on ARMv7
+        uses: uraimo/run-on-arch-action@aa8e672a03e10b403401927ea2ceda57e1b68ac3  # v3
+        with:
+          arch: armv7
+          distro: ubuntu22.04
+          envs: GITHUB_REPOSITORY GITHUB_SHA
+          install: |
+            apt-get update -qq
+            apt-get install -y -qq cmake ninja-build build-essential git
+          run: |
+            set -e
+            git clone --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" src
+            cd src
+            git fetch --depth 1 origin "${GITHUB_SHA}"
+            git checkout "${GITHUB_SHA}"
+            cmake -B _build -S . -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
+              -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
+              -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+              -DBUILD_TESTING=ON
+            cmake --build _build
+            ctest --test-dir _build --output-on-failure
+
+  # armv6 is slower under QEMU and more likely to hit unaligned Bus errors; enable if needed.
+  armv6:
+    name: ARMv6 (QEMU)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and test on ARMv6
+        uses: uraimo/run-on-arch-action@aa8e672a03e10b403401927ea2ceda57e1b68ac3  # v3
+        with:
+          arch: armv6
+          distro: ubuntu22.04
+          envs: GITHUB_REPOSITORY GITHUB_SHA
+          install: |
+            apt-get update -qq
+            apt-get install -y -qq cmake ninja-build build-essential git
+          run: |
+            set -e
+            git clone --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" src
+            cd src
+            git fetch --depth 1 origin "${GITHUB_SHA}"
+            git checkout "${GITHUB_SHA}"
+            cmake -B _build -S . -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
+              -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
+              -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+              -DBUILD_TESTING=ON
+            cmake --build _build
+            ctest --test-dir _build --output-on-failure
