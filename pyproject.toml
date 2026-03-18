@@ -71,7 +71,7 @@ OPENEXR_FORCE_INTERNAL_IMATH = 'ON'
 OPENEXR_FORCE_INTERNAL_OPENJPH = 'ON'
 OPENEXR_TEST_LIBRARIES = 'OFF'
 BUILD_SHARED_LIBS = 'OFF'
-CMAKE_OSX_DEPLOYMENT_TARGET = '10.15'
+CMAKE_OSX_DEPLOYMENT_TARGET = '11.0'
 CMAKE_POSITION_INDEPENDENT_CODE = 'ON'
 CMAKE_VERBOSE_MAKEFILE = 'ON'
 
@@ -88,4 +88,9 @@ manylinux-aarch64-image = "manylinux2014"
 
 # Needed for full C++17 support
 [tool.cibuildwheel.macos.environment]
-MACOSX_DEPLOYMENT_TARGET = "10.15"
+MACOSX_DEPLOYMENT_TARGET = "11.0"
+# GitHub macOS runners often have Homebrew LLVM earlier on PATH. Linking that
+# LLVM pulls in libunwind with minimum macOS 14; delocate rejects that vs older
+# wheel tags. Xcode's clang links the system unwinder and avoids that.
+CC = "/usr/bin/clang"
+CXX = "/usr/bin/clang++"
