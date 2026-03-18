@@ -245,9 +245,10 @@ namespace ojph {
     struct stores_list
     {
       // Payload (coded_lists + bitstream) must start at a multiple of 16 bytes.
-      // Otherwise coded_lists::buf can be 4 mod 8; memcpy/fwrite on strict
-      // 32-bit ARM may use ldrd and SIGBUS (e.g. OpenEXR HT flush).
-      static constexpr ui32 payload_base_offset ()
+      // Otherwise coded_lists::buf can be 4 mod 8, which causes misalignment
+      // on 32-bit architectures. So round sizeof(stores_list) to next
+      // multiple of 16.
+      static constexpr ui32 offset16()
       {
         return (ui32) ((sizeof (stores_list) + 15u) & ~15u);
       }
@@ -255,7 +256,7 @@ namespace ojph {
       {
         this->next_store = NULL;
         this->orig_size = this->available = available_bytes;
-        this->orig_data = this->data = (ui8*)this + payload_base_offset ();
+        this->orig_data = this->data = (ui8*)this + offset16();
       }
       void restart()
       {
@@ -265,7 +266,7 @@ namespace ojph {
       }
       static ui32 eval_store_bytes(ui32 available_bytes)
       { // calculates how many bytes need to be allocated
-        return available_bytes + payload_base_offset ();
+        return available_bytes + offset16();
       }
       stores_list *next_store;
       ui8 *orig_data, *data;
