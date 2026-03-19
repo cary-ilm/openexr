@@ -89,8 +89,8 @@ manylinux-aarch64-image = "manylinux2014"
 # Needed for full C++17 support
 [tool.cibuildwheel.macos.environment]
 MACOSX_DEPLOYMENT_TARGET = "11.0"
-# GitHub macOS runners often have Homebrew LLVM earlier on PATH. Linking that
-# LLVM pulls in libunwind with minimum macOS 14; delocate rejects that vs older
-# wheel tags. Xcode's clang links the system unwinder and avoids that.
+# CC/CXX alone are not always honored by CMake. Toolchain forces Xcode clang
+# so the extension does not link Homebrew LLVM’s libunwind (delocate failure).
+CMAKE_ARGS = "-DCMAKE_TOOLCHAIN_FILE={project}/src/wrappers/python/cmake/macos_xcode_clang.cmake"
 CC = "/usr/bin/clang"
 CXX = "/usr/bin/clang++"
