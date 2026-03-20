@@ -91,6 +91,7 @@ manylinux-aarch64-image = "manylinux2014"
 MACOSX_DEPLOYMENT_TARGET = "14.0"
 # CC/CXX alone are not always honored by CMake. Toolchain forces Xcode clang
 # so the extension does not link Homebrew LLVM’s libunwind (delocate failure).
-CMAKE_ARGS = "-DCMAKE_TOOLCHAIN_FILE={project}/src/wrappers/python/cmake/macos_xcode_clang.cmake"
+# {project} is not substituted in env; pass compilers directly to avoid Homebrew LLVM libunwind
+CMAKE_ARGS = "-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++"
 CC = "/usr/bin/clang"
 CXX = "/usr/bin/clang++"
