@@ -71,7 +71,7 @@ OPENEXR_FORCE_INTERNAL_IMATH = 'ON'
 OPENEXR_FORCE_INTERNAL_OPENJPH = 'ON'
 OPENEXR_TEST_LIBRARIES = 'OFF'
 BUILD_SHARED_LIBS = 'OFF'
-CMAKE_OSX_DEPLOYMENT_TARGET = '14.0'
+CMAKE_OSX_DEPLOYMENT_TARGET = '10.15'
 CMAKE_POSITION_INDEPENDENT_CODE = 'ON'
 CMAKE_VERBOSE_MAKEFILE = 'ON'
 
@@ -88,10 +88,7 @@ manylinux-aarch64-image = "manylinux2014"
 
 # Needed for full C++17 support
 [tool.cibuildwheel.macos.environment]
-MACOSX_DEPLOYMENT_TARGET = "14.0"
-# CC/CXX alone are not always honored by CMake. Toolchain forces Xcode clang
-# so the extension does not link Homebrew LLVM’s libunwind (delocate failure).
-# {project} is not substituted in env; pass compilers directly to avoid Homebrew LLVM libunwind
+MACOSX_DEPLOYMENT_TARGET = "10.15"
+# pass compilers directly to avoid Homebrew LLVM libunwind
 CMAKE_ARGS = "-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++"
-CC = "/usr/bin/clang"
-CXX = "/usr/bin/clang++"
+
