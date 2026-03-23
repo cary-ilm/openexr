@@ -945,13 +945,73 @@ def add_release_section_to_changes(label, prs, repo_slug, release_date):
         f.write("\n".join(new_lines) + "\n")
     return f"## Version {version} ({date_str})"
 
+def pr_labels(line):
+    """
+    Return label names for PR *pr_number* that start with lowercase ``v``.
+    """
 
-def main():
-    if len(sys.argv) < 3:
-        print("Usage: python release.py <notes|news|draft|candidate|cherry|changes> <tag-or-label> [date]")
+    LOG_PR_SUFFIX_RE = re.compile(r"\(#(\d+)\)\s*$")
+    m = LOG_PR_SUFFIX_RE.search(line)
+    if not m:
+        return ""
+    pr_number = m.group(1)
+    result = run(
+        ["gh", "pr", "view", pr_number, "--json", "labels"],
+        stdout=PIPE,
+        stderr=PIPE,
+        universal_newlines=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return ""
+    try:
+        data = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        return ""
+    out = []
+    for lab in data.get("labels") or []:
+        name = lab.get("name") or ""
+        if name.startswith("v"):
+            out.append(name)
+    return " ".join(out)
+
+def cmd_log():
+    """
+    Run ``git log`` and print commits annotated with the release labels for the associated PRs
+    """
+
+    # Output looks like:
+    # v3.4.7  3978976a Bump pypa/cibuildwheel from 3.3 to 3.4 (#2287)
+    #         b19cfec2 Bump github/codeql-action from 4.32.4 to 4.32.5 (#2286)
+    # v3.4.7  50ea61bd Fix build failure with glibc 2.43 due to C11 threads.h conflicts (#2262)
+
+    result = run(
+        ["git", "log", "--pretty=format:%h %s"],
+        stdout=PIPE,
+        stderr=PIPE,
+        universal_newlines=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr or "git log failed\n")
         sys.exit(1)
 
-    action = sys.argv[1]
+    for line in result.stdout.splitlines():
+        l = pr_labels(line)
+        print(f"{l:7} {line}")
+
+def main():
+
+    if len(sys.argv) > 1:
+        action = sys.argv[1]
+        if action == "log":
+            cmd_log()
+            return
+
+    if len(sys.argv) < 3:
+        print("Usage: python release.py <notes|news|draft|candidate|cherry|changes|log> <tag-or-label> [date]")
+        sys.exit(1)
+
     tag = sys.argv[2]
     # Strip leading 'v' and trailing '-rc<candidate>' if necessary
     base_tag = tag.lstrip('v').split('-rc')[0]
@@ -1027,4 +1087,7 @@ def main():
         print(f"{project} {version} is staged for release at tag <a href={url}/releases/tag/{tag}>{tag}</a> and will be released officially {date_string} barring any issues. <br><br> {html_notes}")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(130)
