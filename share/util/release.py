@@ -217,7 +217,7 @@ def gh_pr_view(pr_number):
             "gh",
             "pr",
             "view",
-            str(pr_number),
+            pr_number,
             "--json",
             "title,author",
         ],
@@ -230,6 +230,136 @@ def gh_pr_view(pr_number):
         sys.stderr.write(result.stderr or "gh pr view failed\n")
         sys.exit(1)
     return json.loads(result.stdout)
+
+
+def gh_security_advisories_cve_titles() -> dict[str, str]:
+    """
+    List all repository security advisories for the current repo via ``gh api``
+    (``GET .../security-advisories``, paginated). Build a dict mapping each
+    assigned ``CVE-YYYY-NNNN`` id (uppercase) to the advisory ``summary``
+    (GitHub's short title). Entries without ``cve_id`` are omitted.
+
+    Requires ``gh`` authentication with permission to read repository security
+    advisories. Returns ``{}`` if ``gh`` fails, the repo cannot be resolved, or
+    the response is not a JSON array. If multiple advisories share the same
+    ``cve_id``, the first wins.
+    """
+    r = run(
+        ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+        stdout=PIPE,
+        stderr=PIPE,
+        universal_newlines=True,
+        check=False,
+    )
+    if r.returncode != 0:
+        return {}
+    nwo = (r.stdout or "").strip()
+    if "/" not in nwo:
+        return {}
+
+    r2 = run(
+        [
+            "gh",
+            "api",
+            f"repos/{nwo}/security-advisories",
+            "--paginate",
+        ],
+        stdout=PIPE,
+        stderr=PIPE,
+        universal_newlines=True,
+        check=False,
+    )
+    if r2.returncode != 0:
+        return {}
+
+    try:
+        items = json.loads(r2.stdout or "[]")
+    except json.JSONDecodeError:
+        return {}
+
+    if not isinstance(items, list):
+        return {}
+
+    out: dict[str, str] = {}
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        cve = item.get("cve_id")
+        if not cve or not isinstance(cve, str):
+            continue
+        key = cve.strip().upper()
+        summary = item.get("summary")
+        title = summary.strip() if isinstance(summary, str) else ""
+        if key not in out:
+            out[key] = title
+    return out
+
+
+# Line must contain address / addresses / addressed / addressing (word-boundary);
+# collect every CVE-YYYY-nnnn on that line.
+PR_LINE_ADDRESS_RE = re.compile(r"(?i)\bAddress(?:es|ed|ing)?\b")
+CVE_ID_RE = re.compile(r"CVE-\d{4}-\d+", re.IGNORECASE)
+
+def pr_addressed_cves(pr_number: str) -> str:
+    """
+    Scan the GitHub PR description, issue comments, and review bodies.
+    On each line that contains ``Address``, ``Addresses``, ``address``, etc.
+    (case-insensitive, word-boundary match), collect every substring
+    matching ``CVE-<year>-<number>``. Return those CVE ids in first-seen
+    order, comma-separated, with no spaces. Return ``""`` if none match.
+
+    This approximates prose of the form "Address ... CVE-..."; multiple CVEs
+    on one line and multiple matching lines are all included.
+    """
+
+    if not pr_number:
+        return ""
+
+    result = run(
+        [
+            "gh",
+            "pr",
+            "view",
+            pr_number,
+            "--json",
+            "body,comments,reviews",
+        ],
+        stdout=PIPE,
+        stderr=PIPE,
+        universal_newlines=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr or "gh pr view failed\n")
+        sys.exit(1)
+    data = json.loads(result.stdout or "{}")
+    blocks = []
+    body = data.get("body")
+    if body:
+        blocks.append(body)
+    for c in data.get("comments") or []:
+        if isinstance(c, dict):
+            b = c.get("body")
+            if b:
+                blocks.append(b)
+    for r in data.get("reviews") or []:
+        if isinstance(r, dict):
+            b = r.get("body")
+            if b:
+                blocks.append(b)
+
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for block in blocks:
+        for line in block.splitlines():
+            if not PR_LINE_ADDRESS_RE.search(line):
+                continue
+            for m in CVE_ID_RE.finditer(line):
+                cve = m.group(0).upper()
+                if cve not in seen:
+                    seen.add(cve)
+                    ordered.append(cve)
+    return " ".join(ordered)
 
 
 MERGED_PR_HEADING_RE = re.compile(
@@ -258,7 +388,7 @@ def parse_pr_blocks_dict(lines, i, stop_at_workflow_heading):
             break
         mo = PR_BULLET_RE.match(line.strip())
         if mo:
-            pr = int(mo.group(1))
+            pr = mo.group(1)
             bullet = line
             if i + 1 < n:
                 nxt = lines[i + 1]
@@ -303,19 +433,19 @@ def parse_section(lines):
     merged_prs = {}
     if i < n and MERGED_PR_HEADING_RE.match(lines[i].strip()):
         i += 1
-        merged_prs, i = _parse_pr_blocks_dict(lines, i, stop_at_workflow_heading=True)
+        merged_prs, i = parse_pr_blocks_dict(lines, i, stop_at_workflow_heading=True)
 
     merged_workflow_prs = {}
     if i < n and MERGED_WORKFLOW_HEADING_RE.match(lines[i].strip()):
         i += 1
-        merged_workflow_prs, i = _parse_pr_blocks_dict(lines, i, stop_at_workflow_heading=False)
+        merged_workflow_prs, i = parse_pr_blocks_dict(lines, i, stop_at_workflow_heading=False)
 
     return heading, merged_prs, merged_workflow_prs
 
-def pr_is_workflow_only(pr_number: int) -> bool:
+def pr_is_workflow_only(pr_number: str) -> bool:
     """Return True if every file changed by the PR is under .github/workflows/."""
     result = run(
-        ["gh", "pr", "view", str(pr_number), "--json", "files",
+        ["gh", "pr", "view", pr_number, "--json", "files",
          "--jq", "[.files[].path]"],
         stdout=PIPE, stderr=PIPE, universal_newlines=True, check=False,
     )
@@ -324,6 +454,7 @@ def pr_is_workflow_only(pr_number: int) -> bool:
         sys.exit(1)
     paths = json.loads(result.stdout or "[]")
     return bool(paths) and all(p.startswith(".github/workflows/") for p in paths)
+
 def cmd_changes(tag, prs):
     """
     Add a section to CHANGES.md for the given release if one doesn't already exist, and add the given PR 
@@ -369,7 +500,7 @@ def cmd_changes(tag, prs):
         )
         sys.exit(1)
 
-    release_date = datetime.now() + timedelta(days=3)
+    release_date = datetime.now() + timedelta(days=2)
     date_str = release_date.strftime("%B %e, %Y")
 
     if section_index is not None:
@@ -398,6 +529,7 @@ def cmd_changes(tag, prs):
     # Format the list entry for each new PR:
     # * [number](url)
     # title
+    cves = []
     for pr_number in prs:
         info = gh_pr_view(pr_number)
         title = info.get("title") or ""
@@ -411,6 +543,11 @@ def cmd_changes(tag, prs):
             merged_workflow_prs[pr_number] = pr_block
         else:
             merged_prs[pr_number] = pr_block
+        c = pr_addressed_cves(pr_number)
+        if c:
+            cves += c.split(' ')
+
+    advisory_titles = gh_security_advisories_cve_titles()
 
     with open("CHANGES.md", "w", encoding="utf-8", newline="\n") as f:
         if toc is None:
@@ -427,6 +564,13 @@ def cmd_changes(tag, prs):
             f.write("\n".join(lines[:header_index]) + "\n")
         # Write the release section
         f.write("\n".join(section_heading))
+        if len(cves) > 0:
+            f.write("\n### Security\n")
+            f.write(f"\nThis release addresses the following Security Vulnerabilities:\n")
+            for cve in dict.fromkeys(cves):
+                title = advisory_titles.get(cve, "")
+                suffix = f" {title}" if title else ""
+                f.write(f"* [{cve}](https://www.cve.org/CVERecord?id={cve}){suffix}\n")
         f.write("\n### Merged Pull Requests\n\n")
         for pr, value in sorted(merged_prs.items(), reverse=True):
             f.write(value + "\n")
@@ -516,14 +660,14 @@ def pr_labels(line):
     """line is from `git log --pretty:format='%h %s'`, so for
     squash/merge commits, it ends in (#<pr>).
 
-    Return the release-related labels for the identified PR, i.e.
+    Return the pr nmber and its release-related labels, i.e.
     labels of the form 'v<major>.<minor>.<patch>'
     """
 
     LOG_PR_SUFFIX_RE = re.compile(r"\(#(\d+)\)\s*$")
     m = LOG_PR_SUFFIX_RE.search(line)
     if not m:
-        return ""
+        return "", ""
     pr_number = m.group(1)
     result = run(
         ["gh", "pr", "view", pr_number, "--json", "labels"],
@@ -533,17 +677,17 @@ def pr_labels(line):
         check=False,
     )
     if result.returncode != 0:
-        return ""
+        return pr_number, ""
     try:
         data = json.loads(result.stdout or "{}")
     except json.JSONDecodeError:
-        return ""
+        return pr_number, ""
     out = []
     for lab in data.get("labels") or []:
         name = lab.get("name") or ""
         if name.startswith("v"):
             out.append(name)
-    return " ".join(out)
+    return pr_number, " ".join(out)
 
 def cmd_log():
     """
@@ -567,8 +711,9 @@ def cmd_log():
         sys.exit(1)
 
     for line in result.stdout.splitlines():
-        l = pr_labels(line)
-        print(f"{l:7} {line}")
+        pr, l = pr_labels(line)
+        cves = pr_addressed_cves(pr)
+        print(f"{l:7} {line} {cves}")
 
 def main():
 
