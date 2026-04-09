@@ -6,7 +6,13 @@ set -ex
 
 PYBIND11_VERSION="$1"
 
-SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
+# See install_imath.sh: avoid broken Git Bash sudo on Windows runners.
+case "$(uname -s 2>/dev/null)" in
+  MINGW*|MSYS*) SUDO="" ;;
+  *)
+    SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
+    ;;
+esac
 
 git clone https://github.com/pybind/pybind11.git
 cd pybind11

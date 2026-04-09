@@ -12,8 +12,15 @@ set -ex
 
 TAG="$1"
 
-# The sudo is nececessary since the installation goes to /usr/local.
-SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
+# sudo is for installs under /usr/local on Unix. Git Bash on Windows
+# (including windows-11-arm) has a sudo stub that is disabled on GitHub
+# runners, so do not use it there.
+case "$(uname -s 2>/dev/null)" in
+  MINGW*|MSYS*) SUDO="" ;;
+  *)
+    SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
+    ;;
+esac
 
 git clone https://github.com/AcademySoftwareFoundation/Imath.git
 cd Imath
