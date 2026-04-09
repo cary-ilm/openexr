@@ -52,9 +52,13 @@ permissions:
 #
 # If you add jobs, you must add a corresponding
 # share/ci/install_manifest file.
+#
+# TEMPORARY (debug windows-11-arm): linux + macOS jobs are off; windows matrix
+# is only build 12. Re-enable full matrix before merging to main.
 
 jobs:
   linux:
+    if: false
     name: 'Linux.${{ matrix.build}}: ${{ matrix.label }}'
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
@@ -160,6 +164,7 @@ jobs:
             validate_install: 'OFF'
 
   macOS:
+    if: false
     name: 'macOS.${{ matrix.build}}: ${{ matrix.label }}'
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
@@ -277,63 +282,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - build: 1
-            label: Release
-
-          - build: 2
-            label: Debug
-            build-type: Debug
-
-          - build: 3
-            label: static
-            BUILD_SHARED_LIBS: 'OFF'
-
-          - build: 4
-            label: threads=OFF
-            # TODO: this currently fails to compile; switch to OFF once the fix is in.
-            OPENEXR_ENABLE_THREADING: 'ON'
-
-          - build: 5
-            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
-            OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
-            OPENEXR_INSTALL_DOCS: 'OFF'
-            OPENEXR_BUILD_EXAMPLES: 'OFF'
-            OPENEXR_BUILD_TOOLS: 'OFF'
-            OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
-            OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
-            OPENEXR_FORCE_INTERNAL_OPENJPH: 'ON'
-            BUILD_TESTING: 'OFF'
-
-          - build: 6
-            label: vfx2023
-            os: windows-2022
-
-            # Build w/msys2, mingw32 and ucrt64, shared and static.
-
-          - build: 7
-            label: msys2-mingw32
-            msystem: MINGW32
-
-          - build: 8
-            label: msys2-mingw32, static
-            msystem: MINGW32
-            BUILD_SHARED_LIBS: 'OFF'
-
-          - build: 9
-            label: msys2-ucrt64
-            msystem: UCRT64
-
-          - build: 10
-            label: msys2-ucrt64, static
-            msystem: UCRT64
-            BUILD_SHARED_LIBS: 'OFF'
-
-          - build: 11
-            label: c++20
-            cxx-standard: 20
-            RUN_TESTING: OFF
-            validate_install: OFF
-
+          # TEMPORARY: full windows matrix restored when windows-11-arm is fixed.
           - build: 12
             label: windows-11-arm (MSVC ARM64)
             os: windows-11-arm
