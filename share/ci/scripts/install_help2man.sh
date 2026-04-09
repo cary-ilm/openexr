@@ -8,7 +8,15 @@ HELP2MAN_VERSION="1.49.3"
 HELP2MAN_URL="https://mirror.cs.odu.edu/gnu/help2man/help2man-$HELP2MAN_VERSION.tar.xz"
 HELP2MAN_DIR="help2man-$HELP2MAN_VERSION"
 
-SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
+# See install_imath.sh: avoid broken Git Bash sudo on Windows runners.
+uname_s="$(uname -s 2>/dev/null)"
+if [[ "${uname_s}" == MINGW* ]] || [[ "${uname_s}" == MSYS* ]]; then
+  SUDO=""
+elif command -v sudo >/dev/null 2>&1; then
+  SUDO=sudo
+else
+  SUDO=""
+fi
 
 # Download help2man source code
 echo "Downloading help2man version $HELP2MAN_VERSION..."
