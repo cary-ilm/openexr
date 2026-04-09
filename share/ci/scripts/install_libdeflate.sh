@@ -22,6 +22,16 @@ case "$(uname -s 2>/dev/null)" in
     ;;
 esac
 
+CMAKE_WIN_ARCH=()
+case "$(uname -s 2>/dev/null)" in
+  MINGW*|MSYS*)
+    if [[ "${RUNNER_ARCH:-}" == "ARM64" ]] ||
+       [[ "$(uname -m 2>/dev/null)" =~ ^(aarch64|arm64|ARM64)$ ]]; then
+      CMAKE_WIN_ARCH=("-A" "ARM64")
+    fi
+    ;;
+esac
+
 git clone https://github.com/ebiggers/libdeflate
 cd libdeflate
 
@@ -29,7 +39,7 @@ git checkout ${TAG}
 
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake "${CMAKE_WIN_ARCH[@]}" -DCMAKE_BUILD_TYPE=Release ..
 $SUDO cmake --build . \
       --target install \
       --config Release \

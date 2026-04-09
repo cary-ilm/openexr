@@ -22,13 +22,26 @@ case "$(uname -s 2>/dev/null)" in
     ;;
 esac
 
+# Visual Studio generator: on windows-11-arm, CMake may otherwise select the x64
+# toolset; OpenJPH then enables AVX sources (see src/core/CMakeLists.txt), which
+# fails for ARM64. Match the OpenEXR job: -A ARM64.
+CMAKE_WIN_ARCH=()
+case "$(uname -s 2>/dev/null)" in
+  MINGW*|MSYS*)
+    if [[ "${RUNNER_ARCH:-}" == "ARM64" ]] ||
+       [[ "$(uname -m 2>/dev/null)" =~ ^(aarch64|arm64|ARM64)$ ]]; then
+      CMAKE_WIN_ARCH=("-A" "ARM64")
+    fi
+    ;;
+esac
+
 git clone https://github.com/aous72/OpenJPH.git
 cd OpenJPH
 
 git checkout ${TAG}
 
 cd build
-cmake -DOJPH_ENABLE_TIFF_SUPPORT=OFF -DCMAKE_BUILD_TYPE=Release .. 
+cmake "${CMAKE_WIN_ARCH[@]}" -DOJPH_ENABLE_TIFF_SUPPORT=OFF -DCMAKE_BUILD_TYPE=Release ..
 $SUDO cmake --build . \
       --target install \
       --config Release \

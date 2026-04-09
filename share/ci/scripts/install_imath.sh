@@ -22,12 +22,22 @@ case "$(uname -s 2>/dev/null)" in
     ;;
 esac
 
+CMAKE_WIN_ARCH=()
+case "$(uname -s 2>/dev/null)" in
+  MINGW*|MSYS*)
+    if [[ "${RUNNER_ARCH:-}" == "ARM64" ]] ||
+       [[ "$(uname -m 2>/dev/null)" =~ ^(aarch64|arm64|ARM64)$ ]]; then
+      CMAKE_WIN_ARCH=("-A" "ARM64")
+    fi
+    ;;
+esac
+
 git clone https://github.com/AcademySoftwareFoundation/Imath.git
 cd Imath
 
 git checkout ${TAG}
 
-cmake -S . -B _build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+cmake -S . -B _build "${CMAKE_WIN_ARCH[@]}" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 $SUDO cmake --build _build \
       --target install \
       --config Release \
