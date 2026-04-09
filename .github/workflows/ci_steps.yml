@@ -55,6 +55,8 @@ on:
         type: string
       CMAKE_OSX_ARCHITECTURES:
         type: string
+      cmake-windows-platform:
+        type: string
       BUILD_TESTING:
         type: string
       RUN_TESTING:
@@ -253,6 +255,9 @@ jobs:
           if [ "${{ inputs.msystem }}" == "MINGW32" ]; then
             cmake_args+=("-DCMAKE_C_FLAGS=-msse2 -mfpmath=sse")
             cmake_args+=("-DCMAKE_CXX_FLAGS=-msse2 -mfpmath=sse")
+          fi
+          if [ -n "${{ inputs.cmake-windows-platform }}" ] && [ "$RUNNER_OS" == "Windows" ]; then
+            cmake_args+=("-A" "${{ inputs.cmake-windows-platform }}")
           fi
           if [ -n "${{ inputs.CMAKE_OSX_ARCHITECTURES }}" ]; then
               cmake_args+=("CMAKE_OSX_ARCHITECTURES='${{ inputs.CMAKE_OSX_ARCHITECTURES }}'")
