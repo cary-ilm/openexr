@@ -12,8 +12,10 @@
 #include <ImfVersion.h>
 #include <assert.h>
 #include <exception>
+#include <filesystem>
 #include <iostream>
 #include <stdio.h>
+#include <string>
 
 #include "TestUtilFStream.h"
 
@@ -85,6 +87,49 @@ testFile2 (const char fileName[], bool exists, bool exrFile, bool tiledFile)
          << (tiledFile ? "is tiled" : "is not tiled") << endl;
 }
 
+//
+// Regression: UTF-8 filenames (GitHub #292). Uses only the const char* API.
+//
+void
+testUtf8Filename ()
+{
+    namespace fs = std::filesystem;
+
+    const std::string utf8Name (
+        "openexr_isOpenExrFile_\xc3\xa9\xe6\x97\xa5_\xd1\x84.exr");
+    const fs::path src = fs::path (ILM_IMF_TEST_IMAGEDIR) / "comp_none.exr";
+    const fs::path dst = fs::temp_directory_path () / fs::u8path (utf8Name);
+
+    std::error_code ec;
+    fs::copy_file (src, dst, fs::copy_options::overwrite_existing, ec);
+    if (ec)
+    {
+        cout << "skipping UTF-8 path test (could not copy fixture): "
+             << ec.message () << endl;
+        return;
+    }
+
+    struct Cleanup
+    {
+        fs::path p;
+        ~Cleanup ()
+        {
+            std::error_code e;
+            std::filesystem::remove (p, e);
+        }
+    } cleanup{dst};
+
+    bool tiled = false, deep = false, multiPart = false;
+
+    bool ok = isOpenExrFile (utf8Name.c_str (), tiled, deep, multiPart);
+    assert (ok);
+    assert (!tiled && !deep && !multiPart);
+
+    assert (isOpenExrFile (utf8Name.c_str ()));
+
+    cout << "UTF-8 filename isOpenExrFile ok\n";
+}
+
 } // namespace
 
 void
@@ -102,6 +147,8 @@ testMagic (const std::string&)
         testFile2 (ILM_IMF_TEST_IMAGEDIR "invalid.exr", true, false, false);
         testFile2 (
             ILM_IMF_TEST_IMAGEDIR "does_not_exist.exr", false, false, false);
+
+        testUtf8Filename ();
 
         cout << "ok\n" << endl;
     }
