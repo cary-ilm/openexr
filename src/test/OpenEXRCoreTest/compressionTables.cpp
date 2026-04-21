@@ -382,6 +382,16 @@ testLutHeader ()
         for (size_t element = 0; element < workers[i]->numElements ();
              ++element)
         {
+            if (internal_test_ns::closestData[elementIdx] !=
+                workers[i]->elements ()[element])
+            {
+                std::cout << "testLutHeader: elementIdx=" << elementIdx
+                          << " " << internal_test_ns::closestData[elementIdx]
+                          << " != i=" << i
+                          << " " << workers[i]->elements ()[element]
+                          << std::endl;
+            }
+
             EXRCORE_TEST (
                 internal_test_ns::closestData[elementIdx] ==
                 workers[i]->elements ()[element]);
