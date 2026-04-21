@@ -29,7 +29,7 @@ test1 ()
     // performed.
     //
 
-    std::cout << "invalid operations / exception handling off" << std::endl;
+    std::cout << "test1: invalid operations / exception handling off" << std::endl;
 
     IEX_INTERNAL_NAMESPACE::mathExcOn (0);
 
@@ -51,6 +51,7 @@ test1 ()
 void
 test2a ()
 {
+    std::cout << "test2a..." << std::endl;
     try
     {
         print (divide (1, 0)); // division by zero
@@ -59,11 +60,13 @@ test2a ()
     {
         std::cout << "caught exception: " << e.what () << std::endl;
     }
+    std::cout << "test2a...done." << std::endl;
 }
 
 void
 test2b ()
 {
+    std::cout << "test2b..." << std::endl;
     try
     {
         print (root (-1)); // invalid operation
@@ -72,11 +75,14 @@ test2b ()
     {
         std::cout << "caught exception: " << e.what () << std::endl;
     }
+    std::cout << "test2b...done." << std::endl;
 }
 
 void
 test2c ()
 {
+    std::cout << "test2c..." << std::endl;
+    
     try
     {
         print (grow (1000, 100)); // overflow
@@ -85,6 +91,8 @@ test2c ()
     {
         std::cout << "caught exception: " << e.what () << std::endl;
     }
+
+    std::cout << "test2c...done." << std::endl;
 }
 
 void
@@ -96,7 +104,7 @@ test2 ()
     // performed.
     //
 
-    std::cout << "invalid operations / exception handling on" << std::endl;
+    std::cout << "test2: invalid operations / exception handling on" << std::endl;
 
     IEX_INTERNAL_NAMESPACE::mathExcOn (
         IEX_INTERNAL_NAMESPACE::IEEE_OVERFLOW |
@@ -123,7 +131,7 @@ test3 ()
     (defined(IEX_HAVE_SIGCONTEXT_CONTROL_REGISTER_SUPPORT) ||                  \
      defined(IEX_HAVE_CONTROL_REGISTER_SUPPORT))
 
-    std::cout << "getMathExc()" << std::endl;
+    std::cout << "test3: getMathExc()" << std::endl;
 
     int when = 0;
 
@@ -151,6 +159,8 @@ test3 ()
 
     IEX_INTERNAL_NAMESPACE::mathExcOn (when);
     assert (IEX_INTERNAL_NAMESPACE::getMathExcOn () == when);
+#else
+    std::cout << "skipping test3." << std::endl;
 #endif
 }
 
