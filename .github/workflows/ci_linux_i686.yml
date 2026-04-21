@@ -36,6 +36,10 @@ jobs:
   linux-i686:
     name: Linux i686 (-m32)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # upload-artifact requires write under default read-only workflow token.
+      actions: write
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -73,3 +77,13 @@ jobs:
           set -ex
           ctest --test-dir _build --output-on-failure --timeout 7200
         shell: bash
+
+      # CTest writes detailed output under _build/Testing (see Temporary/LastTest.log).
+      - name: Upload CTest logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-i686-ctest-logs
+          path: _build/Testing
+          if-no-files-found: ignore
+          retention-days: 14
