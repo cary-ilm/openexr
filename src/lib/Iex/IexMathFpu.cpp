@@ -252,7 +252,17 @@ restoreControlRegs (const ucontext_t& ucon, bool clearExceptions)
 
     _fpstate* kfp = reinterpret_cast<_fpstate*> (ucon.uc_mcontext.fpregs);
 #        if defined(__linux__) && defined(__i386__)
-    setMxcsr (kfp->magic == 0 ? kfp->mxcsr : 0, clearExceptions);
+    //
+    // Choose MXCSR from the signal-frame _fpstate when magic == 0 (kernel
+    // layout matches this struct); otherwise read it from the CPU because
+    // the saved mxcsr offset may not apply. LDMXCSR must not be given 0,
+    // which is not a valid control value on x86—substitute 0x1f80 (typical
+    // default) before setMxcsr clears sticky exception bits per
+    // clearExceptions.
+    //
+    uint32_t mxcsr = (kfp->magic == 0) ? kfp->mxcsr : getMxcsr ();
+    if (mxcsr == 0) mxcsr = 0x1f80;
+    setMxcsr (mxcsr, clearExceptions);
 #        else
     setMxcsr (kfp->mxcsr, clearExceptions);
 #        endif
