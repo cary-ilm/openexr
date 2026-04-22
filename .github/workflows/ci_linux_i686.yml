@@ -6,6 +6,10 @@
 # Linux (e.g. issue #1284 / testOptimizedInterleavePatterns).
 #
 # Pattern: standalone workflow, same path filters as ci_freebsd.yml.
+#
+# Diagnostic toggles (env at job level — set to 0/false before merge):
+#   I686_CI_IEX_ONLY: 1 = build only IexTest and run only OpenEXR.Iex (faster CI debugging).
+#   I686_CI_ASAN:     1 = add -fsanitize=address (may need 32-bit libasan; see Install step).
 
 name: CI (Linux i686)
 
@@ -36,6 +40,15 @@ jobs:
   linux-i686:
     name: Linux i686 (-m32)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # upload-artifact requires write under default read-only workflow token.
+      actions: write
+    env:
+      # TEMPORARY: set to 0 before merging a green PR — narrows build/test for Iex-only debugging.
+      I686_CI_IEX_ONLY: "1"
+      # Set to 1 to try AddressSanitizer on the i686 test binary (install step adds common 32-bit asan packages when non-zero).
+      I686_CI_ASAN: "0"
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -45,17 +58,31 @@ jobs:
           set -ex
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build \
-            gcc-multilib g++-multilib libc6-dev-i386
+            gcc-multilib g++-multilib libc6-dev-i386 gdb
+          # Optional 32-bit ASan runtime (package names vary by Ubuntu; ignore missing).
+          if [[ "${I686_CI_ASAN}" == "1" ]]; then
+            sudo apt-get install -y lib32asan8 lib32ubsan1 || true
+            sudo apt-get install -y libasan8 || true
+          fi
+        shell: bash
 
       - name: Configure
         run: |
           set -ex
+          EXTRA_C=""
+          EXTRA_CXX=""
+          EXTRA_LD=""
+          if [[ "${I686_CI_ASAN}" == "1" ]]; then
+            EXTRA_C=" -g -O1 -fsanitize=address -fno-omit-frame-pointer"
+            EXTRA_CXX=" -g -O1 -fsanitize=address -fno-omit-frame-pointer"
+            EXTRA_LD=" -fsanitize=address"
+          fi
           cmake -B _build -S . -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_FLAGS=-m32 \
-            -DCMAKE_CXX_FLAGS=-m32 \
-            -DCMAKE_EXE_LINKER_FLAGS=-m32 \
-            -DCMAKE_SHARED_LINKER_FLAGS=-m32 \
+            -DCMAKE_C_FLAGS="-m32${EXTRA_C}" \
+            -DCMAKE_CXX_FLAGS="-m32${EXTRA_CXX}" \
+            -DCMAKE_EXE_LINKER_FLAGS="-m32${EXTRA_LD}" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-m32${EXTRA_LD}" \
             -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
             -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
             -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
@@ -65,11 +92,53 @@ jobs:
       - name: Build
         run: |
           set -ex
-          cmake --build _build --parallel "$(nproc)"
+          if [[ "${I686_CI_IEX_ONLY}" == "1" ]]; then
+            cmake --build _build --target IexTest --parallel "$(nproc)"
+          else
+            cmake --build _build --parallel "$(nproc)"
+          fi
         shell: bash
 
       - name: Test
         run: |
           set -ex
-          ctest --test-dir _build --output-on-failure --timeout 7200
+          if [[ "${I686_CI_IEX_ONLY}" == "1" ]]; then
+            ctest --test-dir _build -R '^OpenEXR\.Iex$' --output-on-failure -VV --timeout 600
+          else
+            ctest --test-dir _build --output-on-failure --timeout 7200
+          fi
         shell: bash
+
+      - name: GDB batch backtrace (OpenEXR.Iex only mode)
+        if: failure() && env.I686_CI_IEX_ONLY == '1'
+        run: |
+          set -ex
+          EXE=$(find _build -type f \( -name IexTest -o -name IexTest.exe \) 2>/dev/null | head -1)
+          if [[ -z "${EXE}" ]]; then
+            for p in _build/bin/IexTest _build/IexTest; do
+              if [[ -x "${p}" ]]; then EXE=${p}; break; fi
+            done
+          fi
+          if [[ -n "${EXE}" && -x "${EXE}" ]]; then
+            echo "Running gdb on: ${EXE}"
+            gdb -batch \
+              -ex "set pagination off" \
+              -ex "run" \
+              -ex "thread apply all bt full" \
+              -ex "quit" \
+              --args "${EXE}" || true
+          else
+            echo "Could not find IexTest executable under _build"
+            find _build -name '*Iex*' -type f 2>/dev/null | head -30 || true
+          fi
+        shell: bash
+
+      # CTest writes detailed output under _build/Testing (see Temporary/LastTest.log).
+      - name: Upload CTest logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-i686-ctest-logs
+          path: _build/Testing
+          if-no-files-found: ignore
+          retention-days: 14
