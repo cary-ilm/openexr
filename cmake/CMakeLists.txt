@@ -86,6 +86,11 @@ check_include_files(ucontext.h IEX_HAVE_UCONTEXT_H)
 if(IEX_HAVE_UCONTEXT_H)
   # TODO: remove this once we cleanly have IEX_ prefix on all #defines
   set(HAVE_UCONTEXT_H ON)
+  # Multilib (-m32) builds must run these try-compiles with the same arch
+  # flags as the main target, or feature checks use the wrong ucontext layout.
+  set(_openexr_iex_saved_cmake_required_flags "${CMAKE_REQUIRED_FLAGS}")
+  set(CMAKE_REQUIRED_FLAGS
+      "${CMAKE_REQUIRED_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS}")
   check_struct_has_member("struct _libc_fpstate" mxcsr ucontext.h IEX_HAVE_CONTROL_REGISTER_SUPPORT)
   if(NOT IEX_HAVE_CONTROL_REGISTER_SUPPORT)
     check_include_files(asm/sigcontext.h IEX_HAVE_SIGCONTEXT_H)
@@ -93,6 +98,8 @@ if(IEX_HAVE_UCONTEXT_H)
       check_struct_has_member("struct _fpstate" mxcsr asm/sigcontext.h IEX_HAVE_SIGCONTEXT_CONTROL_REGISTER_SUPPORT)
     endif()
   endif()
+  set(CMAKE_REQUIRED_FLAGS "${_openexr_iex_saved_cmake_required_flags}")
+  unset(_openexr_iex_saved_cmake_required_flags)
 endif()
 
 ###check_include_files(pthread.h ILMTHREAD_HAVE_PTHREAD)
