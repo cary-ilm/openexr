@@ -7,7 +7,7 @@
 #include <mathFuncs.h>
 #include <IexMathFloatExc.h>
 #include <IexMathExc.h>
-#include <iostream>
+#include <cstdio>
 #include <assert.h>
 #include <string.h>
 
@@ -17,7 +17,7 @@ namespace
 void
 print (float f)
 {
-    std::cout << f << std::endl;
+    std::printf ("%g\n", static_cast<double> (f));
 }
 
 void
@@ -29,7 +29,7 @@ test1 ()
     // performed.
     //
 
-    std::cout << "invalid operations / exception handling off" << std::endl;
+    std::puts ("invalid operations / exception handling off");
 
     IEX_INTERNAL_NAMESPACE::mathExcOn (0);
 
@@ -57,7 +57,7 @@ test2a ()
     }
     catch (const IEX_INTERNAL_NAMESPACE::DivzeroExc& e)
     {
-        std::cout << "caught exception: " << e.what () << std::endl;
+        std::printf ("caught exception: %s\n", e.what ());
     }
 }
 
@@ -70,7 +70,7 @@ test2b ()
     }
     catch (const IEX_INTERNAL_NAMESPACE::InvalidFpOpExc& e)
     {
-        std::cout << "caught exception: " << e.what () << std::endl;
+        std::printf ("caught exception: %s\n", e.what ());
     }
 }
 
@@ -83,7 +83,7 @@ test2c ()
     }
     catch (const IEX_INTERNAL_NAMESPACE::OverflowExc& e)
     {
-        std::cout << "caught exception: " << e.what () << std::endl;
+        std::printf ("caught exception: %s\n", e.what ());
     }
 }
 
@@ -96,7 +96,7 @@ test2 ()
     // performed.
     //
 
-    std::cout << "invalid operations / exception handling on" << std::endl;
+    std::puts ("invalid operations / exception handling on");
 
     IEX_INTERNAL_NAMESPACE::mathExcOn (
         IEX_INTERNAL_NAMESPACE::IEEE_OVERFLOW |
@@ -123,7 +123,7 @@ test3 ()
     (defined(IEX_HAVE_SIGCONTEXT_CONTROL_REGISTER_SUPPORT) ||                  \
      defined(IEX_HAVE_CONTROL_REGISTER_SUPPORT))
 
-    std::cout << "getMathExc()" << std::endl;
+    std::puts ("getMathExc()");
 
     int when = 0;
 
@@ -159,11 +159,11 @@ test3 ()
 void
 testMathExc ()
 {
-    std::cout << "See if floating-point exceptions work:" << std::endl;
+    std::puts ("See if floating-point exceptions work:");
 
     test1 ();
     test2 ();
     test3 ();
 
-    std::cout << " ok" << std::endl;
+    std::puts (" ok");
 }

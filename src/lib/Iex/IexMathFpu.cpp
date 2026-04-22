@@ -427,7 +427,9 @@ setFpExceptionHandler (FpExceptionHandler handler)
     {
         struct sigaction action;
         sigemptyset (&action.sa_mask);
-        action.sa_flags     = SA_SIGINFO | SA_NOMASK;
+        // Do not use SA_NODEFER (SA_NOMASK): re-entering this handler on the
+        // same thread while translating SIGFPE to a C++ exception is unsafe.
+        action.sa_flags     = SA_SIGINFO;
         action.sa_sigaction = (void (*) (int, siginfo_t*, void*)) catchSigFpe;
         action.sa_restorer  = 0;
 
