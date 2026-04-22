@@ -48,7 +48,7 @@ jobs:
       # TEMPORARY: set to 0 before merging a green PR — narrows build/test for Iex-only debugging.
       I686_CI_IEX_ONLY: "1"
       # Set to 1 to try AddressSanitizer on the i686 test binary (install step adds common 32-bit asan packages when non-zero).
-      I686_CI_ASAN: "0"
+      I686_CI_ASAN: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
