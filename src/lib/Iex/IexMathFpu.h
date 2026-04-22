@@ -43,6 +43,13 @@ extern "C" typedef void (*FpExceptionHandler) (
 
 void setFpExceptionHandler (FpExceptionHandler handler);
 
+// Restore the process SIGFPE disposition saved when setFpExceptionHandler
+// first installed our handler. Call when disabling FP-to-C++ translation
+// (e.g. mathExcOn(0)) so unrelated SIGFPE during teardown are not delivered
+// to catchSigFpe.
+
+void unsetFpExceptionHandler ();
+
 // -----------------------------------------
 // handleExceptionsSetInRegisters() examines
 // the exception registers and calls the

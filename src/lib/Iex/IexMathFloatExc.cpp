@@ -55,7 +55,10 @@ mathExcOn (int when)
     debug ("mathExcOn (when = 0x" << std::hex << when << ")\n");
 
     setFpExceptions (when);
-    setFpExceptionHandler (fpeHandler);
+    if (when == 0)
+        unsetFpExceptionHandler ();
+    else
+        setFpExceptionHandler (fpeHandler);
 }
 
 int

@@ -276,6 +276,9 @@ namespace
 
 volatile FpExceptionHandler fpeHandler = 0;
 
+static struct sigaction s_prevSigFpe;
+static bool s_sigFpeHooked = false;
+
 extern "C" void
 catchSigFpe (int sig, siginfo_t* info, ucontext_t* ucon)
 {
@@ -327,11 +330,17 @@ catchSigFpe (int sig, siginfo_t* info, ucontext_t* ucon)
                 // be trapped by the operating system:
                 //
 
-            case FPE_INTDIV: fpeHandler (0, "Integer division by zero."); break;
+            case FPE_INTDIV:
+                fpeHandler (0, "Integer division by zero.");
+                return;
 
-            case FPE_INTOVF: fpeHandler (0, "Integer overflow."); break;
+            case FPE_INTOVF:
+                fpeHandler (0, "Integer overflow.");
+                return;
 
-            case FPE_FLTSUB: fpeHandler (0, "Subscript out of range."); break;
+            case FPE_FLTSUB:
+                fpeHandler (0, "Subscript out of range.");
+                return;
         }
     }
 
@@ -423,7 +432,7 @@ handleExceptionsSetInRegisters ()
 void
 setFpExceptionHandler (FpExceptionHandler handler)
 {
-    if (fpeHandler == 0)
+    if (!s_sigFpeHooked)
     {
         struct sigaction action;
         sigemptyset (&action.sa_mask);
@@ -433,10 +442,22 @@ setFpExceptionHandler (FpExceptionHandler handler)
         action.sa_sigaction = (void (*) (int, siginfo_t*, void*)) catchSigFpe;
         action.sa_restorer  = 0;
 
-        sigaction (SIGFPE, &action, 0);
+        sigaction (SIGFPE, &action, &s_prevSigFpe);
+        s_sigFpeHooked = true;
     }
 
     fpeHandler = handler;
+}
+
+void
+unsetFpExceptionHandler ()
+{
+    fpeHandler = 0;
+    if (s_sigFpeHooked)
+    {
+        sigaction (SIGFPE, &s_prevSigFpe, nullptr);
+        s_sigFpeHooked = false;
+    }
 }
 
 IEX_INTERNAL_NAMESPACE_SOURCE_EXIT
@@ -457,6 +478,9 @@ fpExc_ (int x)
     if (fpeHandler != 0) { fpeHandler (x, ""); }
     else { assert (0 != "Floating point exception"); }
 }
+
+static void (*s_prevSigFpeHandler) (int) = SIG_DFL;
+static bool s_sigFpeHooked = false;
 } // namespace
 
 void
@@ -467,8 +491,28 @@ void
 setFpExceptionHandler (FpExceptionHandler handler)
 {
     // improve floating point exception handling nanoscopically above "nothing at all"
+    if (!s_sigFpeHooked)
+    {
+        void (*prev)(int) = signal (SIGFPE, fpExc_);
+        if (prev != SIG_ERR)
+        {
+            s_prevSigFpeHandler = prev;
+            s_sigFpeHooked     = true;
+        }
+    }
     fpeHandler = handler;
-    signal (SIGFPE, fpExc_);
+}
+
+void
+unsetFpExceptionHandler ()
+{
+    fpeHandler = 0;
+    if (s_sigFpeHooked)
+    {
+        if (signal (SIGFPE, s_prevSigFpeHandler) == SIG_ERR)
+            signal (SIGFPE, SIG_DFL);
+        s_sigFpeHooked = false;
+    }
 }
 
 int

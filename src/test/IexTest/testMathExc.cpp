@@ -165,9 +165,9 @@ testMathExc ()
     test2 ();
     test3 ();
 
-    // test2/test3 leave IEEE traps unmasked; restore default masking before
-    // returning so process teardown (e.g. libstdc++ after testBaseExc) does
-    // not raise SIGFPE (CTest reports that as "Exception: Numerical").
+    // test2/test3 enable SIGFPE translation; mathExcOn(0) masks traps and
+    // restores the prior SIGFPE disposition so unrelated FPE during teardown
+    // are not delivered to Iex's handler (CTest: "Exception: Numerical").
     IEX_INTERNAL_NAMESPACE::mathExcOn (0);
 
     std::puts (" ok");
