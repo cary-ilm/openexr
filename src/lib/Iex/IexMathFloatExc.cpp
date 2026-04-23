@@ -16,7 +16,7 @@
 #include "IexMathExc.h"
 #include "IexMathFpu.h"
 
-#if 0
+#if 1
 #    include <iostream>
 #    define debug(x) (std::cout << x << std::flush)
 #else

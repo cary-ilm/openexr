@@ -29,7 +29,7 @@ test1 ()
     // performed.
     //
 
-    std::puts ("invalid operations / exception handling off");
+    std::cout << "invalid operations / exception handling off" << std::endl;
 
     IEX_INTERNAL_NAMESPACE::mathExcOn (0);
 
@@ -159,7 +159,7 @@ test3 ()
 void
 testMathExc ()
 {
-    std::puts ("See if floating-point exceptions work:");
+    std::cout << "See if floating-point exceptions work:" << std::endl;
 
     test1 ();
     test2 ();
