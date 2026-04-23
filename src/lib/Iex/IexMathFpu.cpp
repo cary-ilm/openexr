@@ -27,13 +27,11 @@
     (defined(IEX_HAVE_SIGCONTEXT_CONTROL_REGISTER_SUPPORT) ||                  \
      defined(IEX_HAVE_CONTROL_REGISTER_SUPPORT))
 
+#    include <cstring>
 #    include <iostream>
 #    include <signal.h>
 #    include <stdint.h>
 #    include <ucontext.h>
-#    if defined(__linux__) && defined(__i386__)
-#        include <asm/sigcontext.h> /* struct _fpstate: signal-frame FP layout */
-#    endif
 
 IEX_INTERNAL_NAMESPACE_SOURCE_ENTER
 
@@ -240,8 +238,9 @@ restoreControlRegs (const ucontext_t& ucon, bool clearExceptions)
 // the kernel's version of the ucontext to get it, see
 // <asm/sigcontext.h>
 //
-
-#        include <asm/sigcontext.h>
+// Do not include <asm/sigcontext.h>: with modern glibc, <signal.h> already
+// brings in bits/sigcontext.h, and including asm/sigcontext.h redefines the
+// same structs.
 
 inline void
 restoreControlRegs (const ucontext_t& ucon, bool clearExceptions)
@@ -287,12 +286,24 @@ static int
 fpExcBitsFromUcontext (const ucontext_t* uc)
 {
 #    if defined(__linux__) && defined(__i386__)
+    //
+    // Read sticky bits from the signal frame without including asm/sigcontext.h
+    // (see comment above restoreControlRegs). Layout matches Linux
+    // struct _fpstate_32: sw @4, magic @106, mxcsr @132 when magic==0 (FXSAVE).
+    //
     if (!uc || !uc->uc_mcontext.fpregs) return 0;
-    const struct _fpstate* kp =
-        reinterpret_cast<const struct _fpstate*> (uc->uc_mcontext.fpregs);
-    int exc = (int)(kp->sw & FpuControl::ALL_EXC);
-    if (kp->magic == 0)
-        exc |= (int)(kp->mxcsr & FpuControl::ALL_EXC);
+    const uint8_t* b = reinterpret_cast<const uint8_t*> (uc->uc_mcontext.fpregs);
+    uint32_t swdw = 0;
+    std::memcpy (&swdw, b + 4, sizeof (swdw));
+    int exc = (int)(swdw & FpuControl::ALL_EXC);
+    uint16_t magic = 0;
+    std::memcpy (&magic, b + 106, sizeof (magic));
+    if (magic == 0)
+    {
+        uint32_t mxcsr = 0;
+        std::memcpy (&mxcsr, b + 132, sizeof (mxcsr));
+        exc |= (int)(mxcsr & FpuControl::ALL_EXC);
+    }
     return exc;
 #    elif defined(__x86_64__)
     if (!uc || !uc->uc_mcontext.fpregs) return 0;
