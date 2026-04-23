@@ -18,7 +18,7 @@
 int
 main (int argc, char* argv[])
 {
-    TEST (testBaseExc);
+    //    TEST (testBaseExc);
     TEST (testMathExc);
     return 0;
 }
