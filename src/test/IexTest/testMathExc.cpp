@@ -7,7 +7,7 @@
 #include <mathFuncs.h>
 #include <IexMathFloatExc.h>
 #include <IexMathExc.h>
-#include <cstdio>
+#include <iostream>
 #include <assert.h>
 #include <string.h>
 
@@ -17,7 +17,7 @@ namespace
 void
 print (float f)
 {
-    std::printf ("%g\n", static_cast<double> (f));
+    std::cout << f << std::endl;
 }
 
 void
@@ -57,7 +57,7 @@ test2a ()
     }
     catch (const IEX_INTERNAL_NAMESPACE::DivzeroExc& e)
     {
-        std::printf ("caught exception: %s\n", e.what ());
+        std::cout << "caught exception: " << e.what () << std::endl;
     }
 }
 
@@ -70,7 +70,7 @@ test2b ()
     }
     catch (const IEX_INTERNAL_NAMESPACE::InvalidFpOpExc& e)
     {
-        std::printf ("caught exception: %s\n", e.what ());
+        std::cout << "caught exception: " << e.what () << std::endl;
     }
 }
 
@@ -83,7 +83,7 @@ test2c ()
     }
     catch (const IEX_INTERNAL_NAMESPACE::OverflowExc& e)
     {
-        std::printf ("caught exception: %s\n", e.what ());
+        std::cout << "caught exception: " << e.what () << std::endl;
     }
 }
 
@@ -96,7 +96,7 @@ test2 ()
     // performed.
     //
 
-    std::puts ("invalid operations / exception handling on");
+    std::cout << "invalid operations / exception handling on" << std::endl;
 
     IEX_INTERNAL_NAMESPACE::mathExcOn (
         IEX_INTERNAL_NAMESPACE::IEEE_OVERFLOW |
@@ -123,7 +123,7 @@ test3 ()
     (defined(IEX_HAVE_SIGCONTEXT_CONTROL_REGISTER_SUPPORT) ||                  \
      defined(IEX_HAVE_CONTROL_REGISTER_SUPPORT))
 
-    std::puts ("getMathExc()");
+    std::cout << "getMathExc()" << std::endl;
 
     int when = 0;
 
@@ -165,10 +165,5 @@ testMathExc ()
     test2 ();
     test3 ();
 
-    // test2/test3 enable SIGFPE translation; mathExcOn(0) masks traps and
-    // restores the prior SIGFPE disposition so unrelated FPE during teardown
-    // are not delivered to Iex's handler (CTest: "Exception: Numerical").
-    IEX_INTERNAL_NAMESPACE::mathExcOn (0);
-
-    std::puts (" ok");
+    std::cout << " ok" << std::endl;
 }

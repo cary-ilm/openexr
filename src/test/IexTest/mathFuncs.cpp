@@ -3,29 +3,26 @@
 
 #undef __THROW
 #include <math.h>
-#include <cstdio>
+#include <iostream>
 
 float
 divide (float x, float y)
 {
-    // Use stdio, not iostream, around FP traps: throwing from a SIGFPE
-    // handler is not standard C++, and libstdc++ ostreams can be unsafe
-    // immediately afterward (e.g. i686 + ASan CI).
-    std::printf ("%g / %g\n", static_cast<double> (x), static_cast<double> (y));
+    std::cout << x << " / " << y << std::endl;
     return x / y;
 }
 
 float
 root (float x)
 {
-    std::printf ("sqrt (%g)\n", static_cast<double> (x));
+    std::cout << "sqrt (" << x << ")" << std::endl;
     return sqrt (x);
 }
 
 float
 grow (float x, int y)
 {
-    std::printf ("grow (%g, %d)\n", static_cast<double> (x), y);
+    std::cout << "grow (" << x << ", " << y << ")" << std::endl;
 
     for (int i = 0; i < y; i++)
         x = x * x;
