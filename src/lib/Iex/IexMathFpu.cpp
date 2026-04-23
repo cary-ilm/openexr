@@ -284,6 +284,14 @@ catchSigFpe (int sig, siginfo_t* info, ucontext_t* ucon)
 {
     debug ("catchSigFpe (sig = " << sig << ", ...)\n");
 
+    //
+    // Capture sticky exception bits before restoreControlRegs() clears them.
+    // On Linux i386, siginfo.si_code for some IEEE invalid ops (e.g. sqrt of
+    // a negative) is often not FPE_FLTINV, so the si_code switch alone would
+    // miss and map the fault to MathExc instead of InvalidFpOpExc.
+    //
+    const int excBits = FpuControl::getExceptions ();
+
     FpuControl::restoreControlRegs (*ucon, true);
 
     if (fpeHandler == 0) return;
@@ -341,6 +349,37 @@ catchSigFpe (int sig, siginfo_t* info, ucontext_t* ucon)
             case FPE_FLTSUB:
                 fpeHandler (0, "Subscript out of range.");
                 return;
+        }
+
+        //
+        // Fall back to hardware sticky flags when si_code is missing or
+        // wrong (see excBits comment above). Order matches
+        // handleExceptionsSetInRegisters().
+        //
+        if (excBits & FpuControl::DIVZERO_EXC)
+        {
+            fpeHandler (IEEE_DIVZERO, "Floating-point division by zero.");
+            return;
+        }
+        if (excBits & FpuControl::OVERFLOW_EXC)
+        {
+            fpeHandler (IEEE_OVERFLOW, "Floating-point overflow.");
+            return;
+        }
+        if (excBits & FpuControl::UNDERFLOW_EXC)
+        {
+            fpeHandler (IEEE_UNDERFLOW, "Floating-point underflow.");
+            return;
+        }
+        if (excBits & FpuControl::INEXACT_EXC)
+        {
+            fpeHandler (IEEE_INEXACT, "Inexact floating-point result.");
+            return;
+        }
+        if (excBits & FpuControl::INVALID_EXC)
+        {
+            fpeHandler (IEEE_INVALID, "Invalid floating-point operation.");
+            return;
         }
     }
 
