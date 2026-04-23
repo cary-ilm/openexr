@@ -86,6 +86,7 @@ jobs:
             -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
             -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
             -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+            -DBUILD_SHARED_LIBS=OFF \
             -DBUILD_TESTING=ON
         shell: bash
 
@@ -99,6 +100,12 @@ jobs:
           fi
         shell: bash
 
+      - name: IexTest
+        run: |
+          set -x
+          _build/bin/IexTest
+        shell: bash
+          
       - name: Test
         run: |
           set -ex
