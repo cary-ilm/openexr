@@ -31,6 +31,9 @@
 #    include <signal.h>
 #    include <stdint.h>
 #    include <ucontext.h>
+#    if defined(__linux__) && defined(__i386__)
+#        include <asm/sigcontext.h> /* struct _fpstate: signal-frame FP layout */
+#    endif
 
 IEX_INTERNAL_NAMESPACE_SOURCE_ENTER
 
@@ -274,6 +277,34 @@ restoreControlRegs (const ucontext_t& ucon, bool clearExceptions)
 namespace
 {
 
+//
+// Sticky IEEE flags at SIGFPE delivery: the kernel often saves them in the
+// ucontext frame while the live MXCSR / x87 status visible to stmxcsr/fnstsw
+// in the handler is already cleared. Merge saved-frame bits with a live read
+// so sqrt(-1) (SSE invalid) still classifies on Linux i386.
+//
+static int
+fpExcBitsFromUcontext (const ucontext_t* uc)
+{
+#    if defined(__linux__) && defined(__i386__)
+    if (!uc || !uc->uc_mcontext.fpregs) return 0;
+    const struct _fpstate* kp =
+        reinterpret_cast<const struct _fpstate*> (uc->uc_mcontext.fpregs);
+    int exc = (int)(kp->sw & FpuControl::ALL_EXC);
+    if (kp->magic == 0)
+        exc |= (int)(kp->mxcsr & FpuControl::ALL_EXC);
+    return exc;
+#    elif defined(__x86_64__)
+    if (!uc || !uc->uc_mcontext.fpregs) return 0;
+    const auto* gfp = uc->uc_mcontext.fpregs;
+    return (int)((gfp->swd & FpuControl::ALL_EXC) |
+                 (gfp->mxcsr & FpuControl::ALL_EXC));
+#    else
+    (void) uc;
+    return 0;
+#    endif
+}
+
 volatile FpExceptionHandler fpeHandler = 0;
 
 static struct sigaction s_prevSigFpe;
@@ -290,7 +321,8 @@ catchSigFpe (int sig, siginfo_t* info, ucontext_t* ucon)
     // a negative) is often not FPE_FLTINV, so the si_code switch alone would
     // miss and map the fault to MathExc instead of InvalidFpOpExc.
     //
-    const int excBits = FpuControl::getExceptions ();
+    const int excBits =
+        FpuControl::getExceptions () | fpExcBitsFromUcontext (ucon);
 
     FpuControl::restoreControlRegs (*ucon, true);
 
