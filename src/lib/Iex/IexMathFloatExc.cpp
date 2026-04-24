@@ -16,7 +16,7 @@
 #include "IexMathExc.h"
 #include "IexMathFpu.h"
 
-#if 1
+#if 0
 #    include <iostream>
 #    define debug(x) (std::cout << x << std::flush)
 #else
@@ -31,6 +31,16 @@ namespace
 void
 fpeHandler (int type, const char explanation[])
 {
+    //
+    // Throwing from a SIGFPE handler is not standard C++. Unwind can execute
+    // code paths (libc printf, libstdc++, inlining) that perform FP while traps
+    // are still armed, causing a second SIGFPE and std::terminate. Mask all
+    // traps before throwing so the synchronous catch in user code runs with
+    // traps off; callers should call mathExcOn(when) again if they need traps
+    // re-armed for subsequent operations (see IexTest testMathExc).
+    //
+    maskAllFpTrapsForHandlerUnwind ();
+
     switch (type)
     {
         case IEEE_OVERFLOW: throw OverflowExc (explanation);

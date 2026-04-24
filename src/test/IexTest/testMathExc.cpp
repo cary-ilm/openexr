@@ -15,6 +15,15 @@ namespace
 {
 
 void
+enableTest2FpTraps ()
+{
+    IEX_INTERNAL_NAMESPACE::mathExcOn (
+        IEX_INTERNAL_NAMESPACE::IEEE_OVERFLOW |
+        IEX_INTERNAL_NAMESPACE::IEEE_DIVZERO |
+        IEX_INTERNAL_NAMESPACE::IEEE_INVALID);
+}
+
+void
 print (float f)
 {
     //
@@ -64,6 +73,7 @@ test2a ()
     catch (const IEX_INTERNAL_NAMESPACE::DivzeroExc& e)
     {
         std::printf ("caught exception: %s\n", e.what ());
+        enableTest2FpTraps ();
     }
 }
 
@@ -77,6 +87,7 @@ test2b ()
     catch (const IEX_INTERNAL_NAMESPACE::InvalidFpOpExc& e)
     {
         std::printf ("caught exception: %s\n", e.what ());
+        enableTest2FpTraps ();
     }
 }
 
@@ -90,6 +101,7 @@ test2c ()
     catch (const IEX_INTERNAL_NAMESPACE::OverflowExc& e)
     {
         std::printf ("caught exception: %s\n", e.what ());
+        enableTest2FpTraps ();
     }
 }
 
@@ -104,10 +116,7 @@ test2 ()
 
     std::puts ("invalid operations / exception handling on");
 
-    IEX_INTERNAL_NAMESPACE::mathExcOn (
-        IEX_INTERNAL_NAMESPACE::IEEE_OVERFLOW |
-        IEX_INTERNAL_NAMESPACE::IEEE_DIVZERO |
-        IEX_INTERNAL_NAMESPACE::IEEE_INVALID);
+    enableTest2FpTraps ();
 
     for (int i = 0; i < 3; ++i)
     {

@@ -27,6 +27,16 @@ IEX_INTERNAL_NAMESPACE_HEADER_ENTER
 void setFpExceptions (int when = (IEEE_OVERFLOW | IEEE_DIVZERO | IEEE_INVALID));
 
 //----------------------------------------
+// maskAllFpTrapsForHandlerUnwind() masks all IEEE traps and clears sticky
+// exception bits without changing the library's notion of the last
+// setFpExceptions() "when" value. Call from the FP-to-C++ handler immediately
+// before throwing so unwind (libc, libstdc++, printf %g, etc.) cannot re-enter
+// SIGFPE and cause std::terminate.
+//----------------------------------------
+
+void maskAllFpTrapsForHandlerUnwind ();
+
+//----------------------------------------
 // fpExceptions() tells you which floating
 // point exceptions cause SIGFPE signals.
 //----------------------------------------

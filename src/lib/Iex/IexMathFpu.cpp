@@ -273,6 +273,13 @@ restoreControlRegs (const ucontext_t& ucon, bool clearExceptions)
 
 } // namespace FpuControl
 
+void
+maskAllFpTrapsForHandlerUnwind ()
+{
+    FpuControl::setExceptionMask (FpuControl::ALL_EXC);
+    FpuControl::clearExceptions ();
+}
+
 namespace
 {
 
@@ -641,6 +648,11 @@ void
 handleExceptionsSetInRegisters ()
 {
     // No implementation on this platform
+}
+
+void
+maskAllFpTrapsForHandlerUnwind ()
+{
 }
 
 IEX_INTERNAL_NAMESPACE_SOURCE_EXIT
