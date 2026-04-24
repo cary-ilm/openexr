@@ -276,6 +276,8 @@ restoreControlRegs (const ucontext_t& ucon, bool clearExceptions)
 namespace
 {
 
+extern "C" void catchSigFpe (int sig, siginfo_t* info, ucontext_t* ucon);
+
 //
 // Sticky IEEE flags at SIGFPE delivery: the kernel often saves them in the
 // ucontext frame while the live MXCSR / x87 status visible to stmxcsr/fnstsw
@@ -321,6 +323,36 @@ volatile FpExceptionHandler fpeHandler = 0;
 static struct sigaction s_prevSigFpe;
 static bool s_sigFpeHooked = false;
 
+static void
+installOurSigFpeHandler (bool savePrevious)
+{
+    struct sigaction action;
+    sigemptyset (&action.sa_mask);
+    //
+    // Block common async signals during the handler so sanitizer / profiling
+    // delivery does not race with the non-standard throw-from-SIGFPE path.
+    //
+#    ifdef SIGPROF
+    sigaddset (&action.sa_mask, SIGPROF);
+#    endif
+#    ifdef SIGALRM
+    sigaddset (&action.sa_mask, SIGALRM);
+#    endif
+#    ifdef SIGVTALRM
+    sigaddset (&action.sa_mask, SIGVTALRM);
+#    endif
+    // Do not use SA_NODEFER (SA_NOMASK): re-entering this handler on the
+    // same thread while translating SIGFPE to a C++ exception is unsafe.
+    action.sa_flags     = SA_SIGINFO;
+    action.sa_sigaction = (void (*) (int, siginfo_t*, void*)) catchSigFpe;
+    action.sa_restorer  = 0;
+
+    if (savePrevious)
+        sigaction (SIGFPE, &action, &s_prevSigFpe);
+    else
+        sigaction (SIGFPE, &action, nullptr);
+}
+
 extern "C" void
 catchSigFpe (int sig, siginfo_t* info, ucontext_t* ucon)
 {
@@ -345,6 +377,13 @@ catchSigFpe (int sig, siginfo_t* info, ucontext_t* ucon)
     // sanitizer frame (ASan + repeated test2a).
     //
     FpuControl::clearExceptions ();
+
+    //
+    // AddressSanitizer (and similar runtimes) may replace the SIGFPE handler
+    // after the first C++ unwind out of this handler. Re-install ours before
+    // dispatching so a second trap in the same process still reaches catchSigFpe.
+    //
+    if (s_sigFpeHooked && fpeHandler != 0) installOurSigFpeHandler (false);
 
     if (fpeHandler == 0) return;
 
@@ -523,21 +562,14 @@ handleExceptionsSetInRegisters ()
 void
 setFpExceptionHandler (FpExceptionHandler handler)
 {
-    if (!s_sigFpeHooked)
-    {
-        struct sigaction action;
-        sigemptyset (&action.sa_mask);
-        // Do not use SA_NODEFER (SA_NOMASK): re-entering this handler on the
-        // same thread while translating SIGFPE to a C++ exception is unsafe.
-        action.sa_flags     = SA_SIGINFO;
-        action.sa_sigaction = (void (*) (int, siginfo_t*, void*)) catchSigFpe;
-        action.sa_restorer  = 0;
-
-        sigaction (SIGFPE, &action, &s_prevSigFpe);
-        s_sigFpeHooked = true;
-    }
-
-    fpeHandler = handler;
+    //
+    // Always run sigaction: the first call saves the previous disposition;
+    // later calls re-assert our handler so another library (notably
+    // sanitizer runtimes) cannot permanently take over SIGFPE after one trap.
+    //
+    installOurSigFpeHandler (!s_sigFpeHooked);
+    s_sigFpeHooked = true;
+    fpeHandler     = handler;
 }
 
 void
