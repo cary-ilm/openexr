@@ -175,7 +175,7 @@ testMathExc ()
     std::cout << "See if floating-point exceptions work:" << std::endl;
 
     test2a();
-    test2a();
+    test2b();
 #if XXX
     // test1 ();
     test2 ();
