@@ -94,7 +94,7 @@ jobs:
         run: |
           set -ex
           if [[ "${I686_CI_IEX_ONLY}" == "1" ]]; then
-            cmake --build _build --target IexTest --parallel "$(nproc)"
+            cmake --build _build --target IexTest --parallel "$(nproc)" --config Debug
           else
             cmake --build _build --parallel "$(nproc)" --config Debug
           fi
