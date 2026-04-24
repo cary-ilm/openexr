@@ -115,12 +115,17 @@ test2 ()
 
     std::cout << "mathExcOn...done" << std::endl;
 
+    test2a();
+    test2a();
+
+#if XXX    
     for (int i = 0; i < 1; ++i)
     {
         //test2a ();
         //test2b ();
         test2c ();
     }
+#endif
 }
 
 void
@@ -174,13 +179,9 @@ testMathExc ()
 {
     std::cout << "See if floating-point exceptions work:" << std::endl;
 
-    test2a();
-    test2b();
-#if XXX
     // test1 ();
     test2 ();
     test3 ();
-#endif
     
     std::cout << " ok" << std::endl;
 }
