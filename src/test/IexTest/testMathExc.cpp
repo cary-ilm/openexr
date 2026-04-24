@@ -7,7 +7,7 @@
 #include <mathFuncs.h>
 #include <IexMathFloatExc.h>
 #include <IexMathExc.h>
-#include <iostream>
+#include <cstdio>
 #include <assert.h>
 #include <string.h>
 
@@ -17,7 +17,13 @@ namespace
 void
 print (float f)
 {
-    std::cout << f << std::endl;
+    //
+    // Use stdio only: with mathExcOn(), SIGFPE is translated to C++ exceptions
+    // from a signal handler. libstdc++ iostream can perform FP ops while
+    // traps are armed; a second SIGFPE during unwind from the first MathExc
+    // throws again and std::terminate() (see DivzeroExc during ~ostream).
+    //
+    std::printf ("%g\n", static_cast<double> (f));
 }
 
 void
@@ -29,12 +35,10 @@ test1 ()
     // performed.
     //
 
-    std::cout << "invalid operations / exception handling off" << std::endl;
+    std::puts ("invalid operations / exception handling off");
 
     IEX_INTERNAL_NAMESPACE::mathExcOn (0);
 
-    std::cout << "mathExcOn...done" << std::endl;
-    
     for (int i = 0; i < 3; ++i)
     {
         try
@@ -53,48 +57,40 @@ test1 ()
 void
 test2a ()
 {
-    std::cout << "test2a..." << std::endl;
-    
     try
     {
         print (divide (1, 0)); // division by zero
     }
     catch (const IEX_INTERNAL_NAMESPACE::DivzeroExc& e)
     {
-        std::cout << "caught exception: " << e.what () << std::endl;
+        std::printf ("caught exception: %s\n", e.what ());
     }
-    std::cout << "test2a...done" << std::endl;
 }
 
 void
 test2b ()
 {
-    std::cout << "test2b..." << std::endl;
-
     try
     {
         print (root (-1)); // invalid operation
     }
     catch (const IEX_INTERNAL_NAMESPACE::InvalidFpOpExc& e)
     {
-        std::cout << "caught exception: " << e.what () << std::endl;
+        std::printf ("caught exception: %s\n", e.what ());
     }
-    std::cout << "test2b...done" << std::endl;
 }
 
 void
 test2c ()
 {
-    std::cout << "test2c..." << std::endl;
     try
     {
         print (grow (1000, 100)); // overflow
     }
     catch (const IEX_INTERNAL_NAMESPACE::OverflowExc& e)
     {
-        std::cout << "caught exception: " << e.what () << std::endl;
+        std::printf ("caught exception: %s\n", e.what ());
     }
-    std::cout << "test2c...done" << std::endl;
 }
 
 void
@@ -106,26 +102,19 @@ test2 ()
     // performed.
     //
 
-    std::cout << "invalid operations / exception handling on" << std::endl;
+    std::puts ("invalid operations / exception handling on");
 
     IEX_INTERNAL_NAMESPACE::mathExcOn (
         IEX_INTERNAL_NAMESPACE::IEEE_OVERFLOW |
         IEX_INTERNAL_NAMESPACE::IEEE_DIVZERO |
         IEX_INTERNAL_NAMESPACE::IEEE_INVALID);
 
-    std::cout << "mathExcOn...done" << std::endl;
-
-    test2a();
-    test2a();
-
-#if XXX    
-    for (int i = 0; i < 1; ++i)
+    for (int i = 0; i < 3; ++i)
     {
-        //test2a ();
-        //test2b ();
+        test2a ();
+        test2b ();
         test2c ();
     }
-#endif
 }
 
 void
@@ -136,11 +125,11 @@ test3 ()
     // was most recently set with setMathExcOn().
     //
 
-    std::cout << "test3..." << std::endl;
-
 #if defined(HAVE_UCONTEXT_H) &&                                                \
     (defined(IEX_HAVE_SIGCONTEXT_CONTROL_REGISTER_SUPPORT) ||                  \
      defined(IEX_HAVE_CONTROL_REGISTER_SUPPORT))
+
+    std::puts ("getMathExc()");
 
     int when = 0;
 
@@ -169,7 +158,6 @@ test3 ()
     IEX_INTERNAL_NAMESPACE::mathExcOn (when);
     assert (IEX_INTERNAL_NAMESPACE::getMathExcOn () == when);
 #endif
-    std::cout << "test3...done" << std::endl;
 }
 
 } // namespace
@@ -177,11 +165,16 @@ test3 ()
 void
 testMathExc ()
 {
-    std::cout << "See if floating-point exceptions work:" << std::endl;
+    std::puts ("See if floating-point exceptions work:");
 
-    // test1 ();
+    test1 ();
     test2 ();
     test3 ();
-    
-    std::cout << " ok" << std::endl;
+
+    // test2/test3 enable SIGFPE translation; mathExcOn(0) masks traps and
+    // restores the prior SIGFPE disposition so unrelated FPE during teardown
+    // are not delivered to Iex's handler (CTest: "Exception: Numerical").
+    IEX_INTERNAL_NAMESPACE::mathExcOn (0);
+
+    std::puts (" ok");
 }

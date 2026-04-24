@@ -378,13 +378,6 @@ catchSigFpe (int sig, siginfo_t* info, ucontext_t* ucon)
     //
     FpuControl::clearExceptions ();
 
-    //
-    // AddressSanitizer (and similar runtimes) may replace the SIGFPE handler
-    // after the first C++ unwind out of this handler. Re-install ours before
-    // dispatching so a second trap in the same process still reaches catchSigFpe.
-    //
-    if (s_sigFpeHooked && fpeHandler != 0) installOurSigFpeHandler (false);
-
     if (fpeHandler == 0) return;
 
     if (info->si_code == SI_USER)

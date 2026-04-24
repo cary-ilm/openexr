@@ -16,6 +16,11 @@ IEX_INTERNAL_NAMESPACE_HEADER_ENTER
 //-------------------------------------------------------------
 // Function mathExcOn() defines which floating point exceptions
 // will be trapped and converted to C++ exceptions.
+//
+// While traps are enabled, avoid libstdc++ iostream (and similar) on code
+// paths that can run during unwind from a MathExc: formatting can raise a
+// second SIGFPE and terminate the process. Prefer stdio or run with traps
+// disabled around iostream-heavy regions.
 //-------------------------------------------------------------
 
 IEX_EXPORT
