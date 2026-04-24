@@ -337,6 +337,15 @@ catchSigFpe (int sig, siginfo_t* info, ucontext_t* ucon)
 
     FpuControl::restoreControlRegs (*ucon, true);
 
+    //
+    // restoreControlRegs() clears SSE sticky flags in MXCSR but does not run
+    // fnclex; x87 status-word exception bits can remain set. The next FP
+    // instruction (often in printf/libc before the faulting line) then raises
+    // SIGFPE again, which shows up as a second trap / core dump with no
+    // sanitizer frame (ASan + repeated test2a).
+    //
+    FpuControl::clearExceptions ();
+
     if (fpeHandler == 0) return;
 
     if (info->si_code == SI_USER)
