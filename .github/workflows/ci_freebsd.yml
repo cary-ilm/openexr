@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build and test on FreeBSD
-        uses: vmactions/freebsd-vm@v1.4.5
+        uses: vmactions/freebsd-vm@v1.4.4
 #        uses: vmactions/freebsd-vm@d1e65811565151536c0c894fff74f06351ed26e6  # v1
         with:
           release: '15.0'
