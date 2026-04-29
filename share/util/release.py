@@ -8,6 +8,7 @@
 # `release.py news <tag>` - edit the website/news.rst file to add reference to the tagged release
 # `release.py draft <tag>` - create a draft release on GitHub
 # `release.py candidate <tag>` - format a message about the upcoming release, print to stdout
+# `release.py tag <tag>` - create a signed annotated git tag with the release notes as the tag message
 # `release.py cherry <label>` - list merged PRs with the given label, print cherry-pick lines (oldest merge first)
 # `release.py changes <tag> [pr#> ... ]` - add section to CHANGES.md with given PRs
 # `release.py log` - print a `git log` annotated with the labels from each commit's associated PR, if there is one.
@@ -716,6 +717,56 @@ def cmd_log():
         cves = pr_addressed_cves(pr)
         print(f"{l:7} {line} {cves}")
 
+
+def resolve_effective_git_tag(tag: str) -> str:
+    """
+    Match the existing ``git`` tag naming used elsewhere in this script:
+    prefer *tag* as given, else try *tag* + ``-rc`` if that exists.
+    """
+    result = run(
+        ["git", "tag", "--list", tag],
+        stdout=PIPE,
+        stderr=PIPE,
+        universal_newlines=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr or "git tag --list failed\n")
+        sys.exit(1)
+    if (result.stdout or "").strip():
+        return tag
+
+    alt = tag + "-rc"
+    result = run(
+        ["git", "tag", "--list", alt],
+        stdout=PIPE,
+        stderr=PIPE,
+        universal_newlines=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr or "git tag --list failed\n")
+        sys.exit(1)
+    if (result.stdout or "").strip():
+        print(f"Using {alt} instead...")
+        return alt
+
+    print(f"No such tag: {tag}", file=sys.stderr)
+    sys.exit(1)
+
+
+def cmd_tag(tag, release_date, release_notes) -> None:
+    """
+    Create a signed annotated tag at the current ``HEAD`` using the
+    given release date and notes
+    """
+
+    tag_message = "{tag} - {release_date}\n{release_notes}"
+    
+    cmd = ["git", "tag", "-s", tag, "-F", "-"]
+    run(cmd, input=tag_message, text=True, check=True)
+
+
 def main():
 
     if len(sys.argv) > 1:
@@ -727,8 +778,9 @@ def main():
     if len(sys.argv) < 2:
         print(
             "Usage: python release.py "
-            "<notes|news|draft|candidate|cherry|changes> ...\n"
-            "  release.py changes <tag> <pr-number>   e.g. release.py changes v3.4.7 1234"
+            "<notes|news|draft|candidate|tag|cherry|changes> ...\n"
+            "  release.py changes <tag> <pr-number>   e.g. release.py changes v3.4.7 1234\n"
+            "  release.py tag <tag> [--force]       e.g. release.py tag v3.4.7"
         )
         sys.exit(1)
 
@@ -760,7 +812,7 @@ def main():
     if len(sys.argv) < 3:
         print(
             "Usage: python release.py "
-            "<notes|news|draft|candidate|cherry|changes> <tag-or-label> [date]"
+            "<notes|news|draft|candidate|tag|cherry|changes> <tag-or-label> [date]"
         )
         sys.exit(1)
 
@@ -768,15 +820,7 @@ def main():
 
     # Strip leading 'v' and trailing '-rc<candidate>' if necessary
     base_tag = tag.lstrip('v').split('-rc')[0]
-    result = run(['git', 'tag', '--list', tag], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-    if result.stdout == "":
-        tag += "-rc"
-        result = run(['git', 'tag', '--list', tag], stdout=PIPE, stderr=PIPE, universal_newlines=True)
-        if result.stdout != "":
-            print(f"Using {tag} instead...")
-        else:
-            print(f"No such tag: {tag}")
-            sys.exit(1)
+    tag = resolve_effective_git_tag(tag)
 
     # Get the content of the CHANGES.md at the specified git tag
     try:
@@ -815,5 +859,8 @@ def main():
             project = "OpenEXR"
         print(f"{project} {version} is staged for release at tag <a href={url}/releases/tag/{tag}>{tag}</a> and will be released officially {date_string} barring any issues. <br><br> {html_notes}")
 
+    elif action == "tag":
+        cmd_tag(tag, release_date, release_notes)
+        
 if __name__ == "__main__":
     main()
