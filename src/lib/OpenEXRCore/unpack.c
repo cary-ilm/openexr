@@ -1233,6 +1233,7 @@ static exr_result_t
 generic_unpack (exr_decode_pipeline_t* decode)
 {
     const uint8_t* srcbuffer = decode->unpacked_buffer;
+    const uint8_t* srcend    = srcbuffer + decode->chunk.unpacked_size;
     uint8_t*       cdata;
     int            w, h, bpc, ubpc, uls;
 
@@ -1251,11 +1252,13 @@ generic_unpack (exr_decode_pipeline_t* decode)
         for (int c = 0; c < decode->channel_count; ++c)
         {
             exr_coding_channel_info_t* decc = (decode->channels + c);
+            size_t                     rowbytes;
 
             cdata = decc->decode_to_ptr;
             w     = decc->width;
             bpc   = decc->bytes_per_element;
             ubpc  = decc->user_pixel_stride;
+            rowbytes = ((size_t) w) * ((size_t) bpc);
 
             /* avoid a mod operation if we can */
             if (decc->y_samples > 1)
@@ -1263,6 +1266,8 @@ generic_unpack (exr_decode_pipeline_t* decode)
                 if ((cury % decc->y_samples) != 0) continue;
                 if (y < uls || !cdata)
                 {
+                    if ((size_t) (srcend - srcbuffer) < rowbytes)
+                        return EXR_ERR_CORRUPT_CHUNK;
                     srcbuffer += (int64_t) w * bpc;
                     continue;
                 }
@@ -1275,6 +1280,8 @@ generic_unpack (exr_decode_pipeline_t* decode)
             {
                 if (y < uls || !cdata)
                 {
+                    if ((size_t) (srcend - srcbuffer) < rowbytes)
+                        return EXR_ERR_CORRUPT_CHUNK;
                     srcbuffer += (int64_t) w * bpc;
                     continue;
                 }
@@ -1282,6 +1289,8 @@ generic_unpack (exr_decode_pipeline_t* decode)
                 cdata += ((uint64_t) (y - uls)) * ((uint64_t) decc->user_line_stride);
             }
 
+            if ((size_t) (srcend - srcbuffer) < rowbytes)
+                return EXR_ERR_CORRUPT_CHUNK;
             UNPACK_SAMPLES (w)
             srcbuffer += (int64_t) w * bpc;
         }
