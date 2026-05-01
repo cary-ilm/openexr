@@ -717,6 +717,7 @@ DwaCompressor_uncompress (
     uint64_t       compressedSize;
     const uint8_t* dataPtr;
     uint64_t       dataLeft;
+    uint8_t*       outBufferStart;
     uint8_t*       outBufferEnd;
     uint8_t*       packedAcBufferEnd;
     uint8_t*       packedDcBufferEnd;
@@ -817,8 +818,11 @@ DwaCompressor_uncompress (
 
     // the C++ classes used to have one buffer size for compress / uncompress
     // but here we want to do zero-ish copy...
-    outBufferEnd  = me->_decode->unpacked_buffer;
-    outBufferSize = me->_decode->unpacked_alloc_size;
+    outBufferStart = (uint8_t*) me->_decode->unpacked_buffer;
+    outBufferEnd   = outBufferStart;
+    outBufferSize  = me->_decode->unpacked_alloc_size;
+    if (uncompressed_size < outBufferSize)
+        outBufferSize = (size_t) uncompressed_size;
 
     //
     // Find the start of the RLE packed AC components and
@@ -1042,6 +1046,14 @@ DwaCompressor_uncompress (
             exr_coding_channel_info_t* chan = cd->chan;
 
             if ((y % chan->y_samples) != 0) continue;
+
+            {
+                size_t rowbytes =
+                    (size_t) chan->width * (size_t) chan->bytes_per_element;
+                size_t used = (size_t) (outBufferEnd - outBufferStart);
+                if (rowbytes > outBufferSize || used > outBufferSize - rowbytes)
+                    return EXR_ERR_CORRUPT_CHUNK;
+            }
 
             rv = DctCoderChannelData_push_row (
                 me->alloc_fn, me->free_fn, &(cd->_dctData), outBufferEnd);
