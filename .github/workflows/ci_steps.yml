@@ -65,6 +65,16 @@ on:
         type: string
       configure_install_prefix:
         type: string
+      # Pinned external depenency versions
+      OPENEXR_CI_IMATH_REF:
+        type: string
+        default: v3.2.2
+      OPENEXR_CI_LIBDEFLATE_REF:
+        type: string
+        default: v1.25
+      OPENEXR_CI_OPENJPH_REF:
+        type: string
+        default: 0.27.3
 
 permissions:
   contents: read
@@ -74,7 +84,7 @@ jobs:
     runs-on: ${{ inputs.os }}
 
     permissions:
-      contents: write  # required for actions/upload-artifact
+      contents: read
 
     container:
       image: ${{ inputs.container }}
@@ -84,11 +94,16 @@ jobs:
       CC: ${{ inputs.cc-compiler }}
       ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      OPENEXR_CI_IMATH_REF: ${{ inputs.OPENEXR_CI_IMATH_REF }}
+      OPENEXR_CI_LIBDEFLATE_REF: ${{ inputs.OPENEXR_CI_LIBDEFLATE_REF }}
+      OPENEXR_CI_OPENJPH_REF: ${{ inputs.OPENEXR_CI_OPENJPH_REF }}
 
     steps:
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Set Up Directories & Environment
         run: |
@@ -196,7 +211,7 @@ jobs:
         if: inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'OFF' && inputs.msystem == ''
         run: |
           set -x
-          share/ci/scripts/install_imath.sh main
+          share/ci/scripts/install_imath.sh "${OPENEXR_CI_IMATH_REF}"
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/Imath/bin:$PROGRAM_FILES/Imath/lib" >> $GITHUB_ENV
         shell: bash
 
@@ -205,7 +220,7 @@ jobs:
         if: inputs.OPENEXR_FORCE_INTERNAL_DEFLATE == 'OFF' && inputs.msystem == ''
         run: |
           set -x
-          share/ci/scripts/install_libdeflate.sh master
+          share/ci/scripts/install_libdeflate.sh "${OPENEXR_CI_LIBDEFLATE_REF}"
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/libdeflate/bin:$PROGRAM_FILES/libdeflate/lib" >> $GITHUB_ENV
         shell: bash
 
@@ -214,7 +229,7 @@ jobs:
         if: inputs.OPENEXR_FORCE_INTERNAL_OPENJPH == 'OFF' && inputs.msystem == ''
         run: |
           set -x
-          share/ci/scripts/install_openjph.sh 0.22.0
+          share/ci/scripts/install_openjph.sh "${OPENEXR_CI_OPENJPH_REF}"
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/openjph/bin:$PROGRAM_FILES/openjph/lib" >> $GITHUB_ENV
         shell: bash
 
@@ -244,6 +259,9 @@ jobs:
           cmake_args+=("-DOPENEXR_BUILD_EXAMPLES=${{ inputs.OPENEXR_BUILD_EXAMPLES }}")
           cmake_args+=("-DOPENEXR_BUILD_TOOLS=${{ inputs.OPENEXR_BUILD_TOOLS }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_IMATH=${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}")
+          if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "ON" }} ]; then
+            cmake_args+="-DOPENEXR_IMATH_TAG=${{ inputs.OPENEXR_CI_IMATH_REF }}" 
+          fi
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_OPENJPH=${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}")
           cmake_args+=("-DBUILD_TESTING=${{ inputs.BUILD_TESTING }}")

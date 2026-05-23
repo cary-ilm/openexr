@@ -10,18 +10,21 @@
 
 set -ex
 
-TAG="$1"
+REF="${1:?OpenJPH git ref required}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # The sudo is nececessary since the installation goes to /usr/local.
 SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
 
-git clone https://github.com/aous72/OpenJPH.git
+"${SCRIPT_DIR}/clone_external_repo.sh" \
+    https://github.com/aous72/OpenJPH.git \
+    OpenJPH \
+    "${REF}"
+
 cd OpenJPH
-
-git checkout ${TAG}
-
+mkdir -p build
 cd build
-cmake -DOJPH_ENABLE_TIFF_SUPPORT=OFF -DCMAKE_BUILD_TYPE=Release .. 
+cmake -DOJPH_ENABLE_TIFF_SUPPORT=OFF -DCMAKE_BUILD_TYPE=Release ..
 $SUDO cmake --build . \
       --target install \
       --config Release \

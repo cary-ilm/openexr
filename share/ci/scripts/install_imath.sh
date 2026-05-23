@@ -10,15 +10,18 @@
 
 set -ex
 
-TAG="$1"
+REF="${1:?Imath git ref required}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # The sudo is nececessary since the installation goes to /usr/local.
 SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
 
-git clone https://github.com/AcademySoftwareFoundation/Imath.git
-cd Imath
+"${SCRIPT_DIR}/clone_external_repo.sh" \
+    https://github.com/AcademySoftwareFoundation/Imath.git \
+    Imath \
+    "${REF}"
 
-git checkout ${TAG}
+cd Imath
 
 cmake -S . -B _build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 $SUDO cmake --build _build \
