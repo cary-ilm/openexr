@@ -68,7 +68,7 @@ on:
       # Pinned external depenency versions
       OPENEXR_CI_IMATH_REF:
         type: string
-        default: v3.2.2
+        default: 2c6b657a04510650287a468634821b51ae260bb7 # Bump github/codeql-action from 4.35.2 to 4.35.5 (#568)
       OPENEXR_CI_LIBDEFLATE_REF:
         type: string
         default: v1.25
