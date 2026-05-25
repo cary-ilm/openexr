@@ -71,10 +71,11 @@ on:
         default: 2c6b657a04510650287a468634821b51ae260bb7 # Bump github/codeql-action from 4.35.2 to 4.35.5 (#568)
       OPENEXR_CI_LIBDEFLATE_REF:
         type: string
-        default: v1.25
+        default: b122c8be1d78b19f6d0a6efc5bb79bfcbb30dd51 # lib/arm/cpu_features.c: Use O_CLOEXEC when opening files
       OPENEXR_CI_OPENJPH_REF:
         type: string
-        default: 0.27.3
+        default: 2526a9203d6121ab318f557584fa53f7cd7affb0 # Fixed an issue with how COC is generated.
+
 
 permissions:
   contents: read
