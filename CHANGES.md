@@ -4,9 +4,9 @@
 # OpenEXR Release Notes
 
 * [Version 3.3.11](#version-3311-april-29-2026) April 29, 2026
-* [Version 3.3.10](#version-3310-april-17-2026) April 17, 2026
-* [Version 3.3.9](#version-339-april-3-2026) April 3, 2026
-* [Version 3.3.8](#version-338-february-26-2026) February 26, 2026
+* [Version 3.3.10](#version-339-april-17-2026) April 17, 2026
+* [Version 3.3.9](#version-339-april-4-2026) April 4, 2026
+* [Version 3.3.8](#version-338-march-1-2026) March 1, 2026
 * [Version 3.3.7](#version-337-february-19-2026) February 19, 2026
 * [Version 3.3.6](#version-336-november-4-2025) November 5, 2025
 * [Version 3.3.5](#version-335-july-26-2025) July 26, 2025
@@ -126,7 +126,7 @@ Patch release that addresses the following security vulnerabilities:
 * [2346](https://github.com/AcademySoftwareFoundation/openexr/pull/2346)
 Fix integer overflow in internal_dwa_compressor.h
 
-## Version 3.3.9 (April 3, 2026)
+## Version 3.3.9 (April 4, 2026)
 
 Patch release for v3.3 that addresses the following security vulnerabilities:
 
@@ -5655,7 +5655,7 @@ we're working to restore them.
 
 * Added new function, isImfMagic (). (Florian Kainz)
 	
-## Version 1.0.6:
+## Version 1.0.6
 
 * Added README.win32 to disted files.
 
@@ -5781,7 +5781,7 @@ the source code.
 * OpenEXR is now covered by a modified BSD license.  See LICENSE
 	  for the new terms.
 
-## Version 1.0.3:
+## Version 1.0.3
 
 ### Detailed Changes:
 
