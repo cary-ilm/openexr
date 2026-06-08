@@ -489,20 +489,14 @@ private:
 class IMF_EXPORT_TYPE Header::Iterator
 {
 public:
-    IMF_EXPORT
-    Iterator ();
-    IMF_EXPORT
-    Iterator (const Header::AttributeMap::iterator& i);
+    inline Iterator ();
+    inline Iterator (const Header::AttributeMap::iterator& i);
 
-    IMF_EXPORT
-    Iterator& operator++ ();
-    IMF_EXPORT
-    Iterator operator++ (int);
+    inline Iterator& operator++ ();
+    inline Iterator operator++ (int);
 
-    IMF_EXPORT
-    const char* name () const;
-    IMF_EXPORT
-    Attribute& attribute () const;
+    inline const char* name () const;
+    inline Attribute& attribute () const;
 
 private:
     friend class Header::ConstIterator;
@@ -513,22 +507,15 @@ private:
 class IMF_EXPORT_TYPE Header::ConstIterator
 {
 public:
-    IMF_EXPORT
-    ConstIterator ();
-    IMF_EXPORT
-    ConstIterator (const Header::AttributeMap::const_iterator& i);
-    IMF_EXPORT
-    ConstIterator (const Header::Iterator& other);
+    inline ConstIterator ();
+    inline ConstIterator (const Header::AttributeMap::const_iterator& i);
+    inline ConstIterator (const Header::Iterator& other);
 
-    IMF_EXPORT
-    ConstIterator& operator++ ();
-    IMF_EXPORT
-    ConstIterator operator++ (int);
+    inline ConstIterator& operator++ ();
+    inline ConstIterator operator++ (int);
 
-    IMF_EXPORT
-    const char* name () const;
-    IMF_EXPORT
-    const Attribute& attribute () const;
+    inline const char* name () const;
+    inline const Attribute& attribute () const;
 
 private:
     friend bool operator== (const ConstIterator&, const ConstIterator&);

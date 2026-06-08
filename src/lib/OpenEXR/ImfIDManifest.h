@@ -329,21 +329,16 @@ public:
 class IDManifest::ChannelGroupManifest::Iterator
 {
 public:
-    IMF_EXPORT
-    Iterator ();
+    inline Iterator ();
 
-    IMF_EXPORT
-    explicit Iterator (
+    inline explicit Iterator (
         const IDManifest::ChannelGroupManifest::IDTable::iterator& i);
 
     friend class IDManifest::ChannelGroupManifest::ConstIterator;
-    IMF_EXPORT
-    Iterator& operator++ ();
+    inline Iterator& operator++ ();
 
-    IMF_EXPORT
-    uint64_t id () const;
-    IMF_EXPORT
-    std::vector<std::string>& text ();
+    inline uint64_t id () const;
+    inline std::vector<std::string>& text ();
 
 private:
     std::map<uint64_t, std::vector<std::string>>::iterator _i;
@@ -356,23 +351,17 @@ private:
 class IDManifest::ChannelGroupManifest::ConstIterator
 {
 public:
-    IMF_EXPORT
-    ConstIterator ();
+    inline ConstIterator ();
 
     // explicit cast from internal map operator (for internal use only)
-    IMF_EXPORT
-    explicit ConstIterator (
+    inline explicit ConstIterator (
         const IDManifest::ChannelGroupManifest::IDTable::const_iterator& i);
     // cast from non-const to const iterator
-    IMF_EXPORT
-    ConstIterator (const IDManifest::ChannelGroupManifest::Iterator& other);
-    IMF_EXPORT
-    ConstIterator& operator++ ();
+    inline ConstIterator (const IDManifest::ChannelGroupManifest::Iterator& other);
+    inline ConstIterator& operator++ ();
 
-    IMF_EXPORT
-    uint64_t id () const;
-    IMF_EXPORT
-    const std::vector<std::string>& text () const;
+    inline uint64_t id () const;
+    inline const std::vector<std::string>& text () const;
 
 private:
     std::map<uint64_t, std::vector<std::string>>::const_iterator _i;

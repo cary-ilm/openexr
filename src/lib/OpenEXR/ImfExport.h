@@ -20,8 +20,10 @@
 #    if defined(OPENEXR_EXPORTS)
 #        define IMF_EXPORT __declspec (dllexport)
 
-// mingw needs the export when the extern is defined
-#        if defined(__MINGW32__)
+// mingw (gcc) needs the export on the extern declaration, not the instantiation.
+// clang on Windows (CLANG64/CLANG32 msys2) behaves like MSVC: export goes on
+// the explicit instantiation in the .cpp, not the extern declaration.
+#        if defined(__MINGW32__) && !defined(__clang__)
 #            define IMF_EXPORT_EXTERN_TEMPLATE IMF_EXPORT
 #            define IMF_EXPORT_TEMPLATE_INSTANCE
 // for mingw windows, we need to cause this to export the
@@ -29,7 +31,7 @@
 // complementary import, because might be a local template too!)
 #            define IMF_EXPORT_TEMPLATE_TYPE IMF_EXPORT
 #        else
-// for normal msvc, need to export the actual instantiation in
+// for msvc and clang-on-windows, need to export the actual instantiation in
 // the cpp code, and none of the others
 #            define IMF_EXPORT_EXTERN_TEMPLATE
 #            define IMF_EXPORT_TEMPLATE_INSTANCE IMF_EXPORT
