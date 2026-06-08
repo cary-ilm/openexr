@@ -32,10 +32,10 @@
 // complementary import, because might be a local template too!)
 #            define IMF_EXPORT_TEMPLATE_TYPE IMF_EXPORT
 #        elif defined(__clang__)
-// clang requires dllexport on the class template declaration; the explicit
-// instantiation in the .cpp then inherits the export without needing its own.
+// clang requires dllexport on both the class template declaration and the
+// explicit instantiation definition; without the former the latter is ignored.
 #            define IMF_EXPORT_EXTERN_TEMPLATE
-#            define IMF_EXPORT_TEMPLATE_INSTANCE
+#            define IMF_EXPORT_TEMPLATE_INSTANCE IMF_EXPORT
 #            define IMF_EXPORT_TEMPLATE_TYPE IMF_EXPORT
 #        else
 // for msvc, need to export the actual instantiation in the cpp code only
