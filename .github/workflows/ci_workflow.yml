@@ -295,3 +295,5 @@ jobs:
             label: msys2-clang64
             msystem: CLANG64
             validate_install: 'OFF'
+            RUN_TESTING: OFF
+            OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
