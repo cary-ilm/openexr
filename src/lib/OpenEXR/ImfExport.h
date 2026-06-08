@@ -69,6 +69,19 @@
 
 #endif // OPENEXR_DLL
 
+// Clang on Windows does not export inline =default copy/move constructors via
+// "template class TypedAttribute<T>" alone. Consumers that use extern template
+// (dllimport) need these symbols from the DLL — e.g. std::vector<IntAttribute>.
+#if defined(OPENEXR_DLL) && defined(__clang__) && defined(OPENEXR_EXPORTS)
+#    define IMF_EXPORT_TYPEDATTRIBUTE_COPY_MOVE(T)                            \
+        template IMF_EXPORT TypedAttribute<T>::TypedAttribute (               \
+            const TypedAttribute<T>&) = default;                              \
+        template IMF_EXPORT TypedAttribute<T>::TypedAttribute (               \
+            TypedAttribute<T>&&) = default
+#else
+#    define IMF_EXPORT_TYPEDATTRIBUTE_COPY_MOVE(T)
+#endif
+
 /// @}
 
 #endif // INCLUDED_IMFEXPORT_H

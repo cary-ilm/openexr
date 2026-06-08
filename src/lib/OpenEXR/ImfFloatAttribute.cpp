@@ -30,4 +30,6 @@ FloatAttribute::staticTypeName ()
 
 template class IMF_EXPORT_TEMPLATE_INSTANCE TypedAttribute<float>;
 
+IMF_EXPORT_TYPEDATTRIBUTE_COPY_MOVE (float);
+
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_EXIT
