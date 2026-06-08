@@ -21,8 +21,9 @@
 #        define IMF_EXPORT __declspec (dllexport)
 
 // mingw (gcc) needs the export on the extern declaration, not the instantiation.
-// clang on Windows (CLANG64/CLANG32 msys2) behaves like MSVC: export goes on
-// the explicit instantiation in the .cpp, not the extern declaration.
+// clang on Windows requires dllexport on the class template declaration itself
+// (IMF_EXPORT_TEMPLATE_TYPE), and then the explicit instantiation inherits it.
+// msvc needs the export only on the explicit instantiation in the .cpp.
 #        if defined(__MINGW32__) && !defined(__clang__)
 #            define IMF_EXPORT_EXTERN_TEMPLATE IMF_EXPORT
 #            define IMF_EXPORT_TEMPLATE_INSTANCE
@@ -30,9 +31,14 @@
 // typeinfo tables (but you don't need to have the
 // complementary import, because might be a local template too!)
 #            define IMF_EXPORT_TEMPLATE_TYPE IMF_EXPORT
+#        elif defined(__clang__)
+// clang requires dllexport on the class template declaration; the explicit
+// instantiation in the .cpp then inherits the export without needing its own.
+#            define IMF_EXPORT_EXTERN_TEMPLATE
+#            define IMF_EXPORT_TEMPLATE_INSTANCE
+#            define IMF_EXPORT_TEMPLATE_TYPE IMF_EXPORT
 #        else
-// for msvc and clang-on-windows, need to export the actual instantiation in
-// the cpp code, and none of the others
+// for msvc, need to export the actual instantiation in the cpp code only
 #            define IMF_EXPORT_EXTERN_TEMPLATE
 #            define IMF_EXPORT_TEMPLATE_INSTANCE IMF_EXPORT
 #            define IMF_EXPORT_TEMPLATE_TYPE
