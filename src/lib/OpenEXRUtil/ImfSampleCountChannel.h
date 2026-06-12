@@ -135,6 +135,19 @@ public:
     void clear ();
 
     //
+    // Set the maximum allowed per-pixel sample count for SampleCountChannel
+    // operations (set(), endEdit(), and loading deep images via OpenEXRUtil).
+    // If a pixel's sample count exceeds this limit, an Iex::ArgExc is thrown.
+    // A value of 0 disables the limit.
+    //
+
+    IMFUTIL_EXPORT
+    static void setMaxSampleCount (uint64_t sampleCount);
+
+    IMFUTIL_EXPORT
+    static uint64_t getMaxSampleCount ();
+
+    //
     // OpenEXR file reading support / make sample counts editable:
     //
     //  beginEdit()     frees all memory that has been allocated for samples

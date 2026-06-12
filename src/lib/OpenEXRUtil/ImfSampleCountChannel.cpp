@@ -22,6 +22,24 @@ OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_ENTER
 namespace
 {
 
+uint64_t maximumSampleCountPerPixel = 0;
+
+void
+validateSampleCount (unsigned int n)
+{
+    if (maximumSampleCountPerPixel > 0 &&
+        uint64_t (n) > maximumSampleCountPerPixel)
+    {
+        THROW (
+            ArgExc,
+            "Sample count "
+                << n
+                << " exceeds limit of "
+                << maximumSampleCountPerPixel
+                << " set by SampleCountChannel::setMaxSampleCount()");
+    }
+}
+
 unsigned int
 roundListSizeUp (unsigned int n)
 {
@@ -52,6 +70,18 @@ roundBufferSizeUp (size_t n)
 }
 
 } // namespace
+
+void
+SampleCountChannel::setMaxSampleCount (uint64_t sampleCount)
+{
+    maximumSampleCountPerPixel = sampleCount;
+}
+
+uint64_t
+SampleCountChannel::getMaxSampleCount ()
+{
+    return maximumSampleCountPerPixel;
+}
 
 SampleCountChannel::SampleCountChannel (DeepImageLevel& level)
     : ImageChannel (level, 1, 1, false)
@@ -113,6 +143,8 @@ SampleCountChannel::set (int x, int y, unsigned int newNumSamples)
     //
 
     boundsCheck (x, y);
+
+    validateSampleCount (newNumSamples);
 
     size_t i = (_base + y * pixelsPerRow () + x) - _numSamples;
 
@@ -282,6 +314,7 @@ SampleCountChannel::endEdit ()
 
         for (size_t i = 0; i < numPixels (); ++i)
         {
+            validateSampleCount (_numSamples[i]);
             _sampleListSizes[i]     = roundListSizeUp (_numSamples[i]);
             _sampleListPositions[i] = _totalSamplesOccupied;
             _totalNumSamples += _numSamples[i];

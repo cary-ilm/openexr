@@ -18,6 +18,7 @@
 #include "ImfMultiPartInputFile.h"
 #include "ImfPartType.h"
 #include "ImfRgbaFile.h"
+#include "ImfSampleCountChannel.h"
 #include "ImfStandardAttributes.h"
 #include "ImfStdIO.h"
 #include "ImfTiledInputFile.h"
@@ -1088,6 +1089,8 @@ runChecks (T& source, bool reduceMemory, bool reduceTime)
 
     uint64_t oldMaxSampleCount =
         CompositeDeepScanLine::getMaximumSampleCount ();
+    uint64_t oldMaxSampleCountPerPixel =
+        SampleCountChannel::getMaxSampleCount ();
 
     int maxImageWidth, maxImageHeight;
     Header::getMaxImageSize (maxImageWidth, maxImageHeight);
@@ -1098,6 +1101,7 @@ runChecks (T& source, bool reduceMemory, bool reduceTime)
     if (reduceMemory || reduceTime)
     {
         CompositeDeepScanLine::setMaximumSampleCount (1 << 20);
+        SampleCountChannel::setMaxSampleCount (1 << 20);
         Header::setMaxImageSize (2048, 2048);
         Header::setMaxTileSize (512, 512);
     }
@@ -1258,6 +1262,7 @@ runChecks (T& source, bool reduceMemory, bool reduceTime)
     }
 
     CompositeDeepScanLine::setMaximumSampleCount (oldMaxSampleCount);
+    SampleCountChannel::setMaxSampleCount (oldMaxSampleCountPerPixel);
     Header::setMaxImageSize (maxImageWidth, maxImageHeight);
     Header::setMaxTileSize (maxTileWidth, maxTileHeight);
 
