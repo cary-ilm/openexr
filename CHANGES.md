@@ -3,6 +3,7 @@
 
 # OpenEXR Release Notes
 
+* [Version 3.3.12](#version-3312-june-20-2026) June 20, 2026
 * [Version 3.3.11](#version-3311-april-29-2026) April 29, 2026
 * [Version 3.3.10](#version-339-april-17-2026) April 17, 2026
 * [Version 3.3.9](#version-339-april-4-2026) April 4, 2026
@@ -85,6 +86,55 @@
 * [Version 1.0.2](#version-102)
 * [Version 1.0.1](#version-101)
 * [Version 1.0](#version-10)
+
+## Version 3.3.12 (June 20, 2026)
+
+Patch release for v3.3 that addresses security vulnerabilities and bugs.
+
+### Security
+
+This release addresses the following security vulnerabilities:
+
+* [CVE-2026-55373](https://www.cve.org/CVERecord?id=CVE-2026-55373)
+  OpenEXRUtil SampleCountChannel endEdit() can loop forever on UINT_MAX sample counts
+* [CVE-2026-55059](https://www.cve.org/CVERecord?id=CVE-2026-55059)
+  OpenEXRUtil SampleCountChannel row setter heap out-of-bounds write
+* [CVE-2026-54920](https://www.cve.org/CVERecord?id=CVE-2026-54920)
+  Integer Overflow and Use of Uninitialized Pointer leading to Invalid Delete in OpenEXRUtil Image Resize
+
+### Merged Pull Requests
+
+  * [2476](git@github.com:AcademySoftwareFoundation/openexr/pull/2476)
+Fix the DWAA size checks regression
+  * [2472](git@github.com:AcademySoftwareFoundation/openexr/pull/2472)
+Unlock write context in exr_get_chunk_table_offset() return paths
+  * [2468](git@github.com:AcademySoftwareFoundation/openexr/pull/2468)
+Fix infinite loop in SampleCountChannel roundListSizeUp()
+  * [2464](git@github.com:AcademySoftwareFoundation/openexr/pull/2464)
+Fix heap out-of-bounds write in SampleCountChannel row setter.
+  * [2463](git@github.com:AcademySoftwareFoundation/openexr/pull/2463)
+Fix integer overflow and invalid delete in OpenEXRUtil Image::resize()
+  * [2445](git@github.com:AcademySoftwareFoundation/openexr/pull/2445)
+Fix: Allow NumPy scalar values in Box2i and V2f tuple bindings
+  * [2442](git@github.com:AcademySoftwareFoundation/openexr/pull/2442)
+Bugfix: Fix interger overflows
+  * [2438](git@github.com:AcademySoftwareFoundation/openexr/pull/2438)
+Break release.py into separate small scripts for each step
+  * [2433](git@github.com:AcademySoftwareFoundation/openexr/pull/2433)
+Tighten python publish workflow security/efficiency
+  * [2430](git@github.com:AcademySoftwareFoundation/openexr/pull/2430)
+Pin idna>=3.15 in website/requirements.txt
+
+### Merged Workflow Pull Requests
+
+  * [2467](git@github.com:AcademySoftwareFoundation/openexr/pull/2467)
+Bump sigstore/gh-action-sigstore-python from 3.3.0 to 3.4.0
+  * [2462](git@github.com:AcademySoftwareFoundation/openexr/pull/2462)
+Update idna requirement from >=3.17 to >=3.18 in /website
+  * [2450](git@github.com:AcademySoftwareFoundation/openexr/pull/2450)
+Update idna requirement from >=3.15 to >=3.17 in /website
+  * [2437](git@github.com:AcademySoftwareFoundation/openexr/pull/2437)
+Bump github/codeql-action from 4.35.4 to 4.36.0
 
 ## Version 3.3.11 (April 29, 2026)
 
