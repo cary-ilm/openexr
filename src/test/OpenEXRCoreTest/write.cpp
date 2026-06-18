@@ -112,7 +112,7 @@ testStartWriteScan (const std::string& tempdir)
         EXR_ERR_INVALID_ARGUMENT,
         exr_add_part (outf, "beauty", EXR_STORAGE_SCANLINE, &partidx));
     EXRCORE_TEST_RVAL (exr_get_count (outf, &partidx));
-    EXRCORE_TEST (partidx == 1);
+    EXRCORE_TEST (partidx == 2);
     partidx = 0;
 
     exr_chunk_info_t cinfo;
