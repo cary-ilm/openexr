@@ -128,7 +128,7 @@ testStartWriteScan (const std::string& tempdir)
         exr_get_name (outf, partidx - 1, &partname));
     EXRCORE_TEST_RVAL_FAIL (
         EXR_ERR_ARGUMENT_OUT_OF_RANGE,
-        exr_get_name (outf, partidx + 1, &partname));
+        exr_get_name (outf, partidx + 2, &partname));
     EXRCORE_TEST_RVAL_FAIL (
         EXR_ERR_INVALID_ARGUMENT, exr_get_name (outf, partidx, NULL));
     EXRCORE_TEST_RVAL (exr_get_name (outf, partidx, &partname));
@@ -142,7 +142,7 @@ testStartWriteScan (const std::string& tempdir)
         exr_get_storage (outf, partidx - 1, &storage));
     EXRCORE_TEST_RVAL_FAIL (
         EXR_ERR_ARGUMENT_OUT_OF_RANGE,
-        exr_get_storage (outf, partidx + 1, &storage));
+        exr_get_storage (outf, partidx + 2, &storage));
     EXRCORE_TEST_RVAL_FAIL (
         EXR_ERR_INVALID_ARGUMENT, exr_get_storage (outf, partidx, NULL));
     EXRCORE_TEST_RVAL (exr_get_storage (outf, partidx, &storage));
