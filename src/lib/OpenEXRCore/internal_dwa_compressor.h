@@ -890,6 +890,9 @@ DwaCompressor_uncompress (
         }
     }
 
+    if (unknownUncompressedSize != me->_planarUncBufferSize[UNKNOWN])
+        return EXR_ERR_CORRUPT_CHUNK;
+
     //
     // Uncompress the AC data into _packedAcBuffer
     //
