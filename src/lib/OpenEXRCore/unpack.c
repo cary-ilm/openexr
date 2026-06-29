@@ -1268,7 +1268,7 @@ generic_unpack (exr_decode_pipeline_t* decode)
                 }
 
                 cdata +=
-                    ((uint64_t) ((y - uls) / decc->y_samples) *
+                    ((uint64_t) (cury / decc->y_samples) *
                      (uint64_t) decc->user_line_stride);
             }
             else
