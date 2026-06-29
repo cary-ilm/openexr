@@ -997,7 +997,7 @@ DwaCompressor_uncompress (
         size_t dstLen;
 
         if (rleUncompressedSize > me->_rleBufferSize ||
-            rleRawSize > me->_planarUncBufferSize[RLE])
+            rleRawSize != me->_planarUncBufferSize[RLE])
         {
             return EXR_ERR_CORRUPT_CHUNK;
         }
