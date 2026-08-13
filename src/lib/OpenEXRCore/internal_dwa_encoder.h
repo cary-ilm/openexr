@@ -284,7 +284,7 @@ static inline int countSetBits(uint32_t x)
     y = y & 0x1111111111111111ULL;
     y = y * 0x1111111111111111ULL;
     y = y >> 60;
-    return y;
+    return (int) y;
 }
 #endif
 

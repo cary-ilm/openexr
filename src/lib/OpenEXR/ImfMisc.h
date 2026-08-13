@@ -59,10 +59,25 @@ bytesPerLineTable (const Header& header, std::vector<size_t>& bytesPerLine);
 //
 
 inline int&
+sampleCount (char* base, ptrdiff_t xStride, ptrdiff_t yStride, int x, int y)
+{
+    char* ptr    = base + y * yStride + x * xStride;
+    int*  intPtr = (int*) ptr;
+
+    return *intPtr;
+}
+
+inline int&
 sampleCount (char* base, int xStride, int yStride, int x, int y)
 {
-    char* ptr    = base + y * ptrdiff_t (yStride) + x * ptrdiff_t (xStride);
-    int*  intPtr = (int*) ptr;
+    return sampleCount(base, static_cast<ptrdiff_t>(xStride), static_cast<ptrdiff_t>(xStride), x, y);
+}
+
+inline const int&
+sampleCount (const char* base, ptrdiff_t xStride, ptrdiff_t yStride, int x, int y)
+{
+    const char* ptr = base + y * yStride + x * xStride;
+    int*        intPtr = (int*) ptr;
 
     return *intPtr;
 }
@@ -70,11 +85,9 @@ sampleCount (char* base, int xStride, int yStride, int x, int y)
 inline const int&
 sampleCount (const char* base, int xStride, int yStride, int x, int y)
 {
-    const char* ptr = base + y * ptrdiff_t (yStride) + x * ptrdiff_t (xStride);
-    int*        intPtr = (int*) ptr;
-
-    return *intPtr;
+    return sampleCount(base, static_cast<ptrdiff_t>(xStride), static_cast<ptrdiff_t>(xStride), x, y);
 }
+
 
 //
 // Build a table that lists, for each scanline in a DEEP file's

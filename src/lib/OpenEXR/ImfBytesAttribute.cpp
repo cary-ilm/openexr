@@ -28,7 +28,7 @@ BytesAttribute::BytesAttribute (
     size_t      size,
     const void* data,
     const std::string& typeHint)
-    : typeHint (typeHint), _data (size) 
+    : typeHint (typeHint), _data (static_cast<long>(size)) 
 {
     if (size > 0 && ! data)
     {
@@ -70,7 +70,7 @@ BytesAttribute::operator==(const BytesAttribute& other) const
 void
 BytesAttribute::setData (const unsigned char* data, size_t size)
 {
-    _data.resizeErase(size);
+    _data.resizeErase(static_cast<long>(size));
     if (data)
     {
         memcpy((unsigned char*) _data, data, size);

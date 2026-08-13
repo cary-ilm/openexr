@@ -35,7 +35,7 @@
 //	    struct R
 //	    {
 //	        static void
-//	        writeChars (T &o, const char c[/*n*/], int n)
+//	        writeChars (T &o, const char c[/*n*/], size_t n)
 //	        {
 //	            ... // Write c[0], c[1] ... c[n-1] to output buffer o.
 //	        }
@@ -53,7 +53,7 @@
 //	    struct CharStreamIO
 //	    {
 //	        static void
-//	        writeChars (ostream &os, const char c[], int n)
+//	        writeChars (ostream &os, const char c[], size_t n)
 //	        {
 //	            os.write (c, n);
 //	        }
@@ -115,7 +115,7 @@ template <class S, class T> void write (T& out, double v);
 template <class S, class T> void write (T& out, half v);
 
 template <class S, class T>
-void write (T& out, const char v[/*n*/], int n); // fixed-size char array
+void write (T& out, const char v[/*n*/], size_t n); // fixed-size char array
 
 template <class S, class T>
 void write (T& out, const char v[]); // zero-terminated string
@@ -124,7 +124,7 @@ void write (T& out, const char v[]); // zero-terminated string
 // Append padding bytes to an output stream
 //-----------------------------------------
 
-template <class S, class T> void pad (T& out, int n); // write n padding bytes
+template <class S, class T> void pad (T& out, size_t n); // write n padding bytes
 
 //-------------------------------
 // Read data from an input stream
@@ -157,23 +157,23 @@ template <class S, class T> void read (T& in, double& v);
 template <class S, class T> void read (T& in, half& v);
 
 template <class S, class T>
-void read (T& in, char v[/*n*/], int n); // fixed-size char array
+void read (T& in, char v[/*n*/], size_t n); // fixed-size char array
 
 template <class S, class T>
-void read (T& in, int n, char v[/*n*/]); // zero-terminated string
+void read (T& in, size_t n, char v[/*n*/]); // zero-terminated string
 
 //-------------------------------------------
 // Skip over padding bytes in an input stream
 //-------------------------------------------
 
-template <class S, class T> void skip (T& in, int n); // skip n padding bytes
+template <class S, class T> void skip (T& in, size_t n); // skip n padding bytes
 
 //--------------------------------------
 // Size of the machine-independent
 // representation of an object of type S
 //--------------------------------------
 
-template <class S> int size ();
+template <class S> size_t size ();
 
 //---------------
 // Implementation
@@ -181,28 +181,28 @@ template <class S> int size ();
 
 template <class S, class T>
 inline void
-writeSignedChars (T& out, const signed char c[], int n)
+writeSignedChars (T& out, const signed char c[], size_t n)
 {
     S::writeChars (out, (const char*) c, n);
 }
 
 template <class S, class T>
 inline void
-writeUnsignedChars (T& out, const unsigned char c[], int n)
+writeUnsignedChars (T& out, const unsigned char c[], size_t n)
 {
     S::writeChars (out, (const char*) c, n);
 }
 
 template <class S, class T>
 inline void
-readSignedChars (T& in, signed char c[], int n)
+readSignedChars (T& in, signed char c[], size_t n)
 {
     S::readChars (in, (char*) c, n);
 }
 
 template <class S, class T>
 inline void
-readUnsignedChars (T& in, unsigned char c[], int n)
+readUnsignedChars (T& in, unsigned char c[], size_t n)
 {
     S::readChars (in, (char*) c, n);
 }
@@ -328,19 +328,15 @@ template <class S, class T>
 void
 write (T& out, float v)
 {
-    union
-    {
-        unsigned int i;
-        float        f;
-    } u;
-    u.f = v;
+    uint32_t i;
+    memcpy(&i, &v, sizeof(float));
 
     unsigned char b[4];
 
-    b[0] = (unsigned char) (u.i);
-    b[1] = (unsigned char) (u.i >> 8);
-    b[2] = (unsigned char) (u.i >> 16);
-    b[3] = (unsigned char) (u.i >> 24);
+    b[0] = (unsigned char) (i);
+    b[1] = (unsigned char) (i >> 8);
+    b[2] = (unsigned char) (i >> 16);
+    b[3] = (unsigned char) (i >> 24);
 
     writeUnsignedChars<S> (out, b, 4);
 }
@@ -349,23 +345,19 @@ template <class S, class T>
 void
 write (T& out, double v)
 {
-    union
-    {
-        uint64_t i;
-        double   d;
-    } u;
-    u.d = v;
+    uint64_t i;
+    memcpy(&i, &v, sizeof(double));
 
     unsigned char b[8];
 
-    b[0] = (unsigned char) (u.i);
-    b[1] = (unsigned char) (u.i >> 8);
-    b[2] = (unsigned char) (u.i >> 16);
-    b[3] = (unsigned char) (u.i >> 24);
-    b[4] = (unsigned char) (u.i >> 32);
-    b[5] = (unsigned char) (u.i >> 40);
-    b[6] = (unsigned char) (u.i >> 48);
-    b[7] = (unsigned char) (u.i >> 56);
+    b[0] = (unsigned char) (i);
+    b[1] = (unsigned char) (i >> 8);
+    b[2] = (unsigned char) (i >> 16);
+    b[3] = (unsigned char) (i >> 24);
+    b[4] = (unsigned char) (i >> 32);
+    b[5] = (unsigned char) (i >> 40);
+    b[6] = (unsigned char) (i >> 48);
+    b[7] = (unsigned char) (i >> 56);
 
     writeUnsignedChars<S> (out, b, 8);
 }
@@ -384,7 +376,7 @@ write (T& out, half v)
 
 template <class S, class T>
 inline void
-write (T& out, const char v[], int n) // fixed-size char array
+write (T& out, const char v[], size_t n) // fixed-size char array
 {
     S::writeChars (out, v, n);
 }
@@ -404,9 +396,9 @@ write (T& out, const char v[]) // zero-terminated string
 
 template <class S, class T>
 void
-pad (T& out, int n) // add n padding bytes
+pad (T& out, size_t n) // add n padding bytes
 {
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
     {
         const char c = 0;
         S::writeChars (out, &c, 1);
@@ -537,16 +529,9 @@ read (T& in, float& v)
 
     readUnsignedChars<S> (in, b, 4);
 
-    union
-    {
-        unsigned int i;
-        float        f;
-    } u;
-
-    u.i = (b[0] & 0x000000ff) | ((b[1] << 8) & 0x0000ff00) |
-          ((b[2] << 16) & 0x00ff0000) | (b[3] << 24);
-
-    v = u.f;
+    uint32_t i = (b[0] & 0x000000ff) | ((b[1] << 8) & 0x0000ff00) |
+        ((b[2] << 16) & 0x00ff0000) | (b[3] << 24);
+    memcpy(&v, &i, sizeof(float));
 }
 
 template <class S, class T>
@@ -557,13 +542,7 @@ read (T& in, double& v)
 
     readUnsignedChars<S> (in, b, 8);
 
-    union
-    {
-        uint64_t i;
-        double   d;
-    } u;
-
-    u.i = ((uint64_t) b[0] & 0x00000000000000ffULL) |
+    uint64_t i = ((uint64_t) b[0] & 0x00000000000000ffULL) |
           (((uint64_t) b[1] << 8) & 0x000000000000ff00ULL) |
           (((uint64_t) b[2] << 16) & 0x0000000000ff0000ULL) |
           (((uint64_t) b[3] << 24) & 0x00000000ff000000ULL) |
@@ -571,8 +550,7 @@ read (T& in, double& v)
           (((uint64_t) b[5] << 40) & 0x0000ff0000000000ULL) |
           (((uint64_t) b[6] << 48) & 0x00ff000000000000ULL) |
           ((uint64_t) b[7] << 56);
-
-    v = u.d;
+    memcpy(&v, &i, sizeof(double));
 }
 
 template <class S, class T>
@@ -588,14 +566,14 @@ read (T& in, half& v)
 
 template <class S, class T>
 inline void
-read (T& in, char v[], int n) // fixed-size char array
+read (T& in, char v[], size_t n) // fixed-size char array
 {
     S::readChars (in, v, n);
 }
 
 template <class S, class T>
 void
-read (T& in, int n, char v[]) // zero-terminated string
+read (T& in, size_t n, char v[]) // zero-terminated string
 {
     while (n >= 0)
     {
@@ -610,11 +588,11 @@ read (T& in, int n, char v[]) // zero-terminated string
 
 template <class S, class T>
 void
-skip (T& in, int n) // skip n padding bytes
+skip (T& in, size_t n) // skip n padding bytes
 {
     char c[1024];
 
-    while (n >= (int) sizeof (c))
+    while (n >= sizeof (c))
     {
         if (!S::readChars (in, c, sizeof (c))) return;
 
@@ -625,85 +603,85 @@ skip (T& in, int n) // skip n padding bytes
 }
 
 template <>
-inline int
+inline size_t
 size<bool> ()
 {
     return 1;
 }
 template <>
-inline int
+inline size_t
 size<char> ()
 {
     return 1;
 }
 template <>
-inline int
+inline size_t
 size<signed char> ()
 {
     return 1;
 }
 template <>
-inline int
+inline size_t
 size<unsigned char> ()
 {
     return 1;
 }
 template <>
-inline int
+inline size_t
 size<signed short> ()
 {
     return 2;
 }
 template <>
-inline int
+inline size_t
 size<unsigned short> ()
 {
     return 2;
 }
 template <>
-inline int
+inline size_t
 size<signed int> ()
 {
     return 4;
 }
 template <>
-inline int
+inline size_t
 size<unsigned int> ()
 {
     return 4;
 }
 template <>
-inline int
+inline size_t
 size<signed long> ()
 {
     return 8;
 }
 template <>
-inline int
+inline size_t
 size<unsigned long> ()
 {
     return 8;
 }
 template <>
-inline int
+inline size_t
 size<unsigned long long> ()
 {
     return 8;
 }
 template <>
-inline int
+inline size_t
 size<float> ()
 {
     return 4;
 }
 template <>
-inline int
+inline size_t
 size<double> ()
 {
     return 8;
 }
 template <>
-inline int
+inline size_t
 size<half> ()
 {
     return 2;

@@ -230,7 +230,7 @@ offsetInLineBufferTable (
     offsetInLineBufferTable (
         bytesPerLine,
         0,
-        bytesPerLine.size () - 1,
+        static_cast<int>(bytesPerLine.size ()) - 1,
         linesInLineBuffer,
         offsetInLineBuffer);
 }
@@ -302,7 +302,7 @@ copyIntoFrameBuffer (
             case OPENEXR_IMF_INTERNAL_NAMESPACE::HALF:
 
             {
-                half fillVal = half (fillValue);
+                half fillVal = half (static_cast<float>(fillValue));
 
                 while (writePtr <= endPtr)
                 {
@@ -549,7 +549,7 @@ copyIntoFrameBuffer (
                         // If we're tightly packed, just memcpy
                         if (xStride == sizeof (half))
                         {
-                            int numBytes = endPtr - writePtr + sizeof (half);
+                            size_t numBytes = endPtr - writePtr + sizeof (half);
                             memcpy (writePtr, readPtr, numBytes);
                             readPtr += numBytes;
                             writePtr += numBytes;

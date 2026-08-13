@@ -200,13 +200,13 @@ ht_undo_impl (
         if (file_i >= decode->channel_count)
             return EXR_ERR_CORRUPT_CHUNK;
 
-        int64_t computedoffset = 0;
+        uint64_t computedoffset = 0;
         for (int i = 0; i < file_i; ++i)
-            computedoffset += (int64_t) decode->channels[i].width *
-                              (int64_t) decode->channels[i].bytes_per_element;
+            computedoffset += (uint64_t) decode->channels[i].width *
+                              (uint64_t) decode->channels[i].bytes_per_element;
         if (computedoffset > std::numeric_limits<std::size_t>::max())
             return EXR_ERR_CORRUPT_CHUNK;
-        cs_to_file_ch[cs_i].raster_line_offset = computedoffset;
+        cs_to_file_ch[cs_i].raster_line_offset = static_cast<size_t>(computedoffset);
     }
 
     ojph::mem_infile infile;
@@ -558,7 +558,7 @@ ht_apply_impl (exr_encode_pipeline_t* encode)
 
         assert (output.get_size () >= 0);
         encode->compressed_bytes = output.get_size () + header_sz;
-    } catch (const std::range_error& e) {
+    } catch (const std::range_error&) {
         encode->compressed_bytes = encode->packed_bytes;
     }
 

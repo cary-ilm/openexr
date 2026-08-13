@@ -166,7 +166,7 @@ make_channel_map (
         int offset = 0;
         for (size_t file_i = 0; file_i < static_cast<size_t>(channel_count); file_i++)
         {
-            cs_to_file_ch[file_i].file_index = file_i;
+            cs_to_file_ch[file_i].file_index = static_cast<int>(file_i);
             cs_to_file_ch[file_i].raster_line_offset = offset;
             offset += channels[file_i].width * channels[file_i].bytes_per_element;
         }
@@ -274,7 +274,7 @@ write_header (
     const std::vector<CodestreamChannelInfo>& map)
 {
     MemoryWriter       payload (buffer + HEADER_SZ, max_sz - HEADER_SZ);
-    payload.push_uint16 (map.size ());
+    payload.push_uint16 (static_cast<uint16_t>(map.size ()));
     for (size_t i = 0; i < map.size (); i++)
     {
         payload.push_uint16 (map.at (i).file_index);
@@ -282,7 +282,7 @@ write_header (
 
     MemoryWriter header (buffer, max_sz);
     header.push_uint16 (HEADER_MARKER);
-    header.push_uint32 (payload.get_size ());
+    header.push_uint32 (static_cast<uint32_t>(payload.get_size ()));
 
     return header.get_size () + payload.get_size ();
 }
