@@ -271,7 +271,7 @@ jobs:
           cmake_args+=("-DOPENEXR_BUILD_EXAMPLES=${{ inputs.OPENEXR_BUILD_EXAMPLES }}")
           cmake_args+=("-DOPENEXR_BUILD_TOOLS=${{ inputs.OPENEXR_BUILD_TOOLS }}")
           cmake_args+=("-DOPENEXR_IMATH_REPO=https://github.com/cary-ilm/Imath")
-          cmake_args+=("-DOPENEXR_IMATH_TAG=main")
+          cmake_args+=("-DOPENEXR_IMATH_TAG=sfinae-vec-integer-methods")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_IMATH=${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_OPENJPH=${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}")
