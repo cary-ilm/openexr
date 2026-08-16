@@ -186,18 +186,14 @@ private:
 class IMFUTIL_EXPORT_TYPE DeepImageLevel::Iterator
 {
 public:
-    IMFUTIL_EXPORT
     Iterator ();
-    IMFUTIL_EXPORT
     Iterator (const DeepImageLevel::ChannelMap::iterator& i);
 
     //
     // Advance the iterator
     //
 
-    IMFUTIL_EXPORT
     Iterator& operator++ ();
-    IMFUTIL_EXPORT
     Iterator operator++ (int);
 
     //
@@ -205,9 +201,7 @@ public:
     // and to the name of that channel.
     //
 
-    IMFUTIL_EXPORT
     const std::string& name () const;
-    IMFUTIL_EXPORT
     DeepImageChannel& channel () const;
 
 private:
@@ -219,20 +213,15 @@ private:
 class IMFUTIL_EXPORT_TYPE DeepImageLevel::ConstIterator
 {
 public:
-    IMFUTIL_EXPORT
     ConstIterator ();
-    IMFUTIL_EXPORT
     ConstIterator (const DeepImageLevel::ChannelMap::const_iterator& i);
-    IMFUTIL_EXPORT
     ConstIterator (const DeepImageLevel::Iterator& other);
 
     //
     // Advance the iterator
     //
 
-    IMFUTIL_EXPORT
     ConstIterator& operator++ ();
-    IMFUTIL_EXPORT
     ConstIterator operator++ (int);
 
     //
@@ -240,9 +229,7 @@ public:
     // and to the name of that channel.
     //
 
-    IMFUTIL_EXPORT
     const std::string& name () const;
-    IMFUTIL_EXPORT
     const DeepImageChannel& channel () const;
 
 private:

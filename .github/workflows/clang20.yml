@@ -82,6 +82,7 @@ jobs:
       RUN_TESTING: ${{ matrix.RUN_TESTING || 'ON' }}
       validate_install: ${{ matrix.validate_install || 'ON' }}
       configure_install_prefix: ${{ matrix.configure_install_prefix }}
+      imath_tag: ${{ matrix.imath_tag }}
 
     strategy:
       fail-fast: false
@@ -90,3 +91,10 @@ jobs:
           - build: 1
             label: Release
             msystem: CLANG64
+            validate_install: 'OFF'
+            # Pin to Imath 3.2.1, built from source, to reproduce
+            # https://github.com/AcademySoftwareFoundation/openexr/issues/2101
+            # (fixed in Imath by https://github.com/AcademySoftwareFoundation/Imath/pull/575,
+            # not yet merged). Newer Imath pacman packages already
+            # include the fix, which would otherwise mask the bug.
+            imath_tag: v3.2.1

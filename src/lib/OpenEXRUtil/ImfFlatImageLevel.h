@@ -152,18 +152,14 @@ private:
 class IMFUTIL_EXPORT_TYPE FlatImageLevel::Iterator
 {
 public:
-    IMFUTIL_EXPORT
     Iterator ();
-    IMFUTIL_EXPORT
     Iterator (const FlatImageLevel::ChannelMap::iterator& i);
 
     //
     // Advance the iterator
     //
 
-    IMFUTIL_EXPORT
     Iterator& operator++ ();
-    IMFUTIL_EXPORT
     Iterator operator++ (int);
 
     //
@@ -171,9 +167,7 @@ public:
     // and to the name of that channel.
     //
 
-    IMFUTIL_EXPORT
     const std::string& name () const;
-    IMFUTIL_EXPORT
     FlatImageChannel& channel () const;
 
 private:
@@ -185,20 +179,15 @@ private:
 class IMFUTIL_EXPORT_TYPE FlatImageLevel::ConstIterator
 {
 public:
-    IMFUTIL_EXPORT
     ConstIterator ();
-    IMFUTIL_EXPORT
     ConstIterator (const FlatImageLevel::ChannelMap::const_iterator& i);
-    IMFUTIL_EXPORT
     ConstIterator (const FlatImageLevel::Iterator& other);
 
     //
     // Advance the iterator
     //
 
-    IMFUTIL_EXPORT
     ConstIterator& operator++ ();
-    IMFUTIL_EXPORT
     ConstIterator operator++ (int);
 
     //
@@ -206,9 +195,7 @@ public:
     // and to the name of that channel.
     //
 
-    IMFUTIL_EXPORT
     const std::string& name () const;
-    IMFUTIL_EXPORT
     const FlatImageChannel& channel () const;
 
 private:

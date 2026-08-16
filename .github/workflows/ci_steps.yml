@@ -65,6 +65,12 @@ on:
         type: string
       configure_install_prefix:
         type: string
+      imath_tag:
+        # Git tag/branch of Imath to build from source in the MSYS2
+        # builds, instead of installing the pacman package. Leave
+        # empty to use the pacman package (or the MINGW32 "main"
+        # source build, which has no pacman package).
+        type: string
 
 permissions:
   contents: read
@@ -147,8 +153,11 @@ jobs:
         if: inputs.msystem != ''
         run: |
           PACKAGES="cc:p cmake:p"
-          # mingw32 has no package for imath and openjph
-          if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "OFF" && "${{ inputs.msystem }}" != "MINGW32" ]]; then
+          # mingw32 has no package for imath and openjph. Also skip the
+          # pacman package when imath_tag is set, since that means a
+          # specific Imath version is being built from source instead
+          # (e.g. to reproduce/validate a fix for a specific version).
+          if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "OFF" && "${{ inputs.msystem }}" != "MINGW32" && "${{ inputs.imath_tag }}" == "" ]]; then
             PACKAGES="$PACKAGES imath:p"
           fi
           if [ "${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}" == "OFF" ]; then
@@ -202,11 +211,14 @@ jobs:
         shell: bash
 
       - name: Install Imath (msys2)
-        # mingw32 has no package for imath, so install manually
-        if: inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'OFF' && inputs.msystem == 'MINGW32'
+        # mingw32 has no package for imath, so install manually. Also
+        # install manually whenever imath_tag is set, to build a
+        # specific Imath version from source instead of using the
+        # pacman package.
+        if: inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'OFF' && (inputs.msystem == 'MINGW32' || inputs.imath_tag != '')
         run: |
           set -x
-          share/ci/scripts/install_imath.sh main
+          share/ci/scripts/install_imath.sh ${{ inputs.imath_tag || 'main' }}
         shell: msys2 {0}
 
       - name: Install libdeflate
