@@ -65,11 +65,9 @@ on:
         type: string
       configure_install_prefix:
         type: string
+      imath_repo:
+        type: string
       imath_tag:
-        # Git tag/branch of Imath to build from source in the MSYS2
-        # builds, instead of installing the pacman package. Leave
-        # empty to use the pacman package (or the MINGW32 "main"
-        # source build, which has no pacman package).
         type: string
 
 permissions:

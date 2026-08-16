@@ -6,7 +6,7 @@
 # directive. Linux, macOS, and Windows all share a common set of
 # configure/build/validate steps.
 
-name: CI-clang20
+name: clang20
 
 # Run on all changes except:
 # - markdown/doc changes
@@ -83,6 +83,7 @@ jobs:
       validate_install: ${{ matrix.validate_install || 'ON' }}
       configure_install_prefix: ${{ matrix.configure_install_prefix }}
       imath_tag: ${{ matrix.imath_tag }}
+      imath_repo: ${{ matrix.imath_repo }}
 
     strategy:
       fail-fast: false
@@ -97,4 +98,6 @@ jobs:
             # (fixed in Imath by https://github.com/AcademySoftwareFoundation/Imath/pull/575,
             # not yet merged). Newer Imath pacman packages already
             # include the fix, which would otherwise mask the bug.
-            imath_tag: v3.2.1
+            OPENEXR_FORCE_INTERNAL_IMATH: ON
+            imath_tag: main
+            imath_repo: https://github.com/cary-ilm/Imath
