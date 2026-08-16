@@ -158,19 +158,13 @@ private:
 class IMF_EXPORT_TYPE DeepFrameBuffer::Iterator
 {
 public:
-    IMF_EXPORT
     Iterator ();
-    IMF_EXPORT
     Iterator (const DeepFrameBuffer::SliceMap::iterator& i);
 
-    IMF_EXPORT
     Iterator& operator++ ();
-    IMF_EXPORT
     Iterator operator++ (int);
 
-    IMF_EXPORT
     const char* name () const;
-    IMF_EXPORT
     DeepSlice& slice () const;
 
 private:
@@ -182,21 +176,14 @@ private:
 class IMF_EXPORT_TYPE DeepFrameBuffer::ConstIterator
 {
 public:
-    IMF_EXPORT
     ConstIterator ();
-    IMF_EXPORT
     ConstIterator (const DeepFrameBuffer::SliceMap::const_iterator& i);
-    IMF_EXPORT
     ConstIterator (const DeepFrameBuffer::Iterator& other);
 
-    IMF_EXPORT
     ConstIterator& operator++ ();
-    IMF_EXPORT
     ConstIterator operator++ (int);
 
-    IMF_EXPORT
     const char* name () const;
-    IMF_EXPORT
     const DeepSlice& slice () const;
 
 private:

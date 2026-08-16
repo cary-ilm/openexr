@@ -329,20 +329,15 @@ public:
 class IDManifest::ChannelGroupManifest::Iterator
 {
 public:
-    IMF_EXPORT
     Iterator ();
 
-    IMF_EXPORT
     explicit Iterator (
         const IDManifest::ChannelGroupManifest::IDTable::iterator& i);
 
     friend class IDManifest::ChannelGroupManifest::ConstIterator;
-    IMF_EXPORT
     Iterator& operator++ ();
 
-    IMF_EXPORT
     uint64_t id () const;
-    IMF_EXPORT
     std::vector<std::string>& text ();
 
 private:
@@ -356,22 +351,16 @@ private:
 class IDManifest::ChannelGroupManifest::ConstIterator
 {
 public:
-    IMF_EXPORT
     ConstIterator ();
 
     // explicit cast from internal map operator (for internal use only)
-    IMF_EXPORT
     explicit ConstIterator (
         const IDManifest::ChannelGroupManifest::IDTable::const_iterator& i);
     // cast from non-const to const iterator
-    IMF_EXPORT
     ConstIterator (const IDManifest::ChannelGroupManifest::Iterator& other);
-    IMF_EXPORT
     ConstIterator& operator++ ();
 
-    IMF_EXPORT
     uint64_t id () const;
-    IMF_EXPORT
     const std::vector<std::string>& text () const;
 
 private:

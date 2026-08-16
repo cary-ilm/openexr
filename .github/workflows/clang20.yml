@@ -6,7 +6,7 @@
 # directive. Linux, macOS, and Windows all share a common set of
 # configure/build/validate steps.
 
-name: CI
+name: CI-clang20
 
 # Run on all changes except:
 # - markdown/doc changes

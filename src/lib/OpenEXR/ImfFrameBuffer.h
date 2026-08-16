@@ -235,19 +235,13 @@ private:
 class IMF_EXPORT_TYPE FrameBuffer::Iterator
 {
 public:
-    IMF_EXPORT
     Iterator ();
-    IMF_EXPORT
     Iterator (const FrameBuffer::SliceMap::iterator& i);
 
-    IMF_EXPORT
     Iterator& operator++ ();
-    IMF_EXPORT
     Iterator operator++ (int);
 
-    IMF_EXPORT
     const char* name () const;
-    IMF_EXPORT
     Slice& slice () const;
 
 private:
@@ -259,21 +253,14 @@ private:
 class IMF_EXPORT_TYPE FrameBuffer::ConstIterator
 {
 public:
-    IMF_EXPORT
     ConstIterator ();
-    IMF_EXPORT
     ConstIterator (const FrameBuffer::SliceMap::const_iterator& i);
-    IMF_EXPORT
     ConstIterator (const FrameBuffer::Iterator& other);
 
-    IMF_EXPORT
     ConstIterator& operator++ ();
-    IMF_EXPORT
     ConstIterator operator++ (int);
 
-    IMF_EXPORT
     const char* name () const;
-    IMF_EXPORT
     const Slice& slice () const;
 
 private:

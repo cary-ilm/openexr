@@ -260,30 +260,20 @@ public:
     using pointer             = Channel*;
     using reference           = Channel&;
 
-    IMF_EXPORT
     Iterator ();
-    IMF_EXPORT
     Iterator (const ChannelList::ChannelMap::iterator& i);
 
-    IMF_EXPORT
     Iterator& operator++ ();
-    IMF_EXPORT
     Iterator operator++ (int);
 
-    IMF_EXPORT
     Iterator& operator-- ();
-    IMF_EXPORT
     Iterator operator-- (int);
 
-    IMF_EXPORT
     reference operator* () const;
 
-    IMF_EXPORT
     pointer operator-> () const;
 
-    IMF_EXPORT
     const char* name () const;
-    IMF_EXPORT
     reference channel () const;
 
 private:
@@ -309,32 +299,21 @@ public:
     using pointer             = const Channel*;
     using reference           = const Channel&;
 
-    IMF_EXPORT
     ConstIterator ();
-    IMF_EXPORT
     ConstIterator (const ChannelList::ChannelMap::const_iterator& i);
-    IMF_EXPORT
     ConstIterator (const ChannelList::Iterator& other);
 
-    IMF_EXPORT
     ConstIterator& operator++ ();
-    IMF_EXPORT
     ConstIterator operator++ (int);
 
-    IMF_EXPORT
     ConstIterator& operator-- ();
-    IMF_EXPORT
     ConstIterator operator-- (int);
 
-    IMF_EXPORT
     reference operator* () const;
 
-    IMF_EXPORT
     pointer operator-> () const;
 
-    IMF_EXPORT
     const char* name () const;
-    IMF_EXPORT
     reference channel () const;
 
 private:

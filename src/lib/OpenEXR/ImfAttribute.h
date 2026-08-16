@@ -20,7 +20,9 @@
 #include "IexBaseExc.h"
 
 #include <cstring>
+#include <type_traits>
 #include <typeinfo>
+#include <utility>
 
 #if defined(_MSC_VER)
 // suppress warning about non-exported base classes
@@ -110,15 +112,25 @@ public:
 
     TypedAttribute () = default;
     TypedAttribute (const T& value);
-    TypedAttribute (const TypedAttribute<T>& other) = default;
-    TypedAttribute (TypedAttribute<T>&& other)      = default;
+    // NB: these special member functions are *not* defaulted: with an
+    // extern template declaration and an explicit instantiation
+    // elsewhere (see below), some compilers (e.g. clang when targeting
+    // mingw/clang-cl) fail to export/import defaulted special member
+    // functions of a class template, which leads to unresolved external
+    // symbols at link time. Providing out-of-line definitions (below)
+    // makes these ordinary template member functions, which are
+    // exported/imported like any other member of the class template.
+    TypedAttribute (const TypedAttribute<T>& other);
+    TypedAttribute (TypedAttribute<T>&& other) noexcept (
+        std::is_nothrow_move_constructible<T>::value);
     //NB: if we use a default destructor, it wreaks havoc with where the vtable and such end up
     //at least under mingw+windows, and since we are providing extern template instantiations
     //this will be pretty trim and should reduce code bloat
     virtual ~TypedAttribute ();
 
-    TypedAttribute& operator= (const TypedAttribute<T>& other) = default;
-    TypedAttribute& operator= (TypedAttribute<T>&& other)      = default;
+    TypedAttribute& operator= (const TypedAttribute<T>& other);
+    TypedAttribute& operator= (TypedAttribute<T>&& other) noexcept (
+        std::is_nothrow_move_assignable<T>::value);
 
     //--------------------------------
     // Access to the attribute's value
@@ -209,9 +221,41 @@ TypedAttribute<T>::TypedAttribute (const T& value)
     // empty
 }
 
+template <class T>
+TypedAttribute<T>::TypedAttribute (const TypedAttribute<T>& other)
+    : Attribute (), _value (other._value)
+{
+    // empty
+}
+
+template <class T>
+TypedAttribute<T>::TypedAttribute (TypedAttribute<T>&& other) noexcept (
+    std::is_nothrow_move_constructible<T>::value)
+    : Attribute (), _value (std::move (other._value))
+{
+    // empty
+}
+
 template <class T> TypedAttribute<T>::~TypedAttribute ()
 {
     // empty
+}
+
+template <class T>
+TypedAttribute<T>&
+TypedAttribute<T>::operator= (const TypedAttribute<T>& other)
+{
+    _value = other._value;
+    return *this;
+}
+
+template <class T>
+TypedAttribute<T>&
+TypedAttribute<T>::operator= (TypedAttribute<T>&& other) noexcept (
+    std::is_nothrow_move_assignable<T>::value)
+{
+    _value = std::move (other._value);
+    return *this;
 }
 
 template <class T>
