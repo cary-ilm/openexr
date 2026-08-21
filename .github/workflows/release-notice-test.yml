@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) Contributors to the OpenEXR Project.
+#
+# Manual test workflow for release-notice with markdown-to-mrkdwn conversion.
+# Fetches an existing release and posts to #openexr-tsc-private without publishing a new release.
+#
+# Usage: Actions → Release Notice Test → Run workflow
+# Ensure the ASWF Slack app (SLACK_BOT_TOKEN) is in #openexr-tsc-private.
+
+name: Release Notice Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: 'Repo to fetch release from (for testing from forks)'
+        required: false
+        default: 'AcademySoftwareFoundation/openexr'
+      release_tag:
+        description: 'Release tag to test (e.g. v3.4.7)'
+        required: true
+        default: 'v3.4.7'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Fetch release data
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view ${{ github.event.inputs.release_tag }} \
+            --repo ${{ github.event.inputs.repository }} \
+            --json body,name --jq '{
+              body: .body,
+              name: .name
+            }' > release.json
+          echo "name=$(jq -r '.name' release.json)" >> $GITHUB_OUTPUT
+          # Use heredoc for multiline body; delimiter chosen to avoid collision with release text
+          echo "body<<__RELEASE_NOTES_EOF__" >> $GITHUB_OUTPUT
+          jq -r '.body // ""' release.json >> $GITHUB_OUTPUT
+          echo "__RELEASE_NOTES_EOF__" >> $GITHUB_OUTPUT
+
+      - name: 'Test post to Slack'
+        uses: cary-ilm/slack-release-notifier@markdown_to_mrkdwn
+        with:
+          project_name: "OpenEXR (test)"
+          slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack_channel: "#openexr-tsc-private"
+          project_logo: "https://artwork.aswf.io/projects/openexr/icon/color/openexr-icon-color.png"
+          release_version: ${{ steps.release.outputs.name }}
+          release_url: "https://github.com/${{ github.event.inputs.repository }}/releases/tag/${{ github.event.inputs.release_tag }}"
+          release_notes: ${{ steps.release.outputs.body }}
