@@ -70,8 +70,8 @@ jobs:
       container: ${{ matrix.container || format('aswf/ci-openexr:{0}', matrix.vfx-cy || '2024') }}
       cmake: ${{ matrix.cmake || '3.14.7' }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
-      cxx-compiler: ${{ matrix.cxx-compiler || 'g++-14' }}
-      cc-compiler: ${{ matrix.cc-compiler || 'gcc-14' }}
+      cxx-compiler: ${{ matrix.cxx-compiler || 'g++' }}
+      cc-compiler: ${{ matrix.cc-compiler || 'gcc' }}
       build-type: ${{ matrix.build-type || 'Release' }}
       BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS || 'ON' }}
       OPENEXR_ENABLE_THREADING: ${{ matrix.OPENEXR_ENABLE_THREADING || 'ON' }}
@@ -170,6 +170,11 @@ jobs:
             label: STATIC w/vendored OpenJPH
             OPENEXR_FORCE_INTERNAL_OPENJPH: 'ON'
             BUILD_SHARED_LIBS: 'OFF'
+            RUN_TESTING: OFF
+
+          - build: 14
+            label: gcc 14
+            container: aswf/ci-openexr:2026
             RUN_TESTING: OFF
 
   macOS:
