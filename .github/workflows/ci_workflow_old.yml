@@ -74,9 +74,6 @@ jobs:
           - build: 2022
             vfx-cy: 2022
 
-          - build: 2021
-            vfx-cy: 2021
-
     steps:
       - name: install nodejs20glibc2.17
         run: |
