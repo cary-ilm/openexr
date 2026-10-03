@@ -30,6 +30,14 @@ MERGED_PR_HEADING_RE = re.compile(
 MERGED_WORKFLOW_HEADING_RE = re.compile(
     r"^###\s+Merged Workflow Pull Requests\s*:?\s*$", re.IGNORECASE
 )
+# Recognize both the canonical "Merged Documentation Pull Requests" heading
+# and the legacy "Documentation Pull Requests" heading (used in some
+# existing CHANGES.md sections before this heading was standardized), so
+# pre-existing sections are folded into the canonical one rather than
+# preserved as an unrecognized raw subsection.
+MERGED_DOCUMENTATION_HEADING_RE = re.compile(
+    r"^###\s+(?:Merged\s+)?Documentation Pull Requests\s*:?\s*$", re.IGNORECASE
+)
 SECURITY_HEADING_RE = re.compile(r"^###\s+Security\s*:?\s*$", re.IGNORECASE)
 SUBSECTION_HEADING_RE = re.compile(r"^###\s+")
 NEXT_VERSION_HEADING_RE = re.compile(r"^##\s+Version\s", re.IGNORECASE)
@@ -140,9 +148,19 @@ def parse_section(lines):
         i += 1
         merged_prs, i = parse_pr_blocks_dict(lines, i)
 
-    # Any subsections between "Merged Pull Requests" and "Merged Workflow
-    # Pull Requests" (e.g. "Documentation Pull Requests") are preserved
-    # verbatim rather than parsed, so they aren't lost or merged in.
+    # A "Merged Documentation Pull Requests" subsection (or the legacy
+    # "Documentation Pull Requests" heading) is recognized and parsed like
+    # "Merged Pull Requests"/"Merged Workflow Pull Requests", rather than
+    # preserved as an opaque raw block, so new documentation-only PRs can be
+    # merged into it going forward.
+    merged_documentation_prs = {}
+    if i < n and MERGED_DOCUMENTATION_HEADING_RE.match(lines[i].strip()):
+        i += 1
+        merged_documentation_prs, i = parse_pr_blocks_dict(lines, i)
+
+    # Any other subsections between "Merged Pull Requests" and "Merged
+    # Workflow Pull Requests" are preserved verbatim rather than parsed, so
+    # they aren't lost or merged in.
     extra_before_workflow = []
     while (
         i < n
@@ -167,13 +185,14 @@ def parse_section(lines):
     return (
         heading,
         merged_prs,
+        merged_documentation_prs,
         merged_workflow_prs,
         extra_before_workflow,
         extra_after_workflow,
     )
 
 
-def pr_is_workflow_only(pr_number: str) -> bool:
+def pr_file_paths(pr_number: str) -> list[str]:
     result = run(
         ["gh", "pr", "view", pr_number, "--json", "files", "--jq", "[.files[].path]"],
         stdout=PIPE,
@@ -184,8 +203,20 @@ def pr_is_workflow_only(pr_number: str) -> bool:
     if result.returncode != 0:
         sys.stderr.write(result.stderr or "gh pr view failed\n")
         sys.exit(1)
-    paths = json.loads(result.stdout or "[]")
+    return json.loads(result.stdout or "[]")
+
+
+def pr_is_workflow_only(paths: list[str]) -> bool:
     return bool(paths) and all(p.startswith(".github/workflows/") for p in paths)
+
+
+def pr_is_documentation_only(paths: list[str]) -> bool:
+    """True if every changed file is a Markdown file (any directory) or
+    lives under the website/ directory, i.e. the PR only touches
+    documentation, not code."""
+    return bool(paths) and all(
+        p.lower().endswith(".md") or p.startswith("website/") for p in paths
+    )
 
 
 def main() -> None:
@@ -254,6 +285,7 @@ def main() -> None:
         (
             section_heading,
             merged_prs,
+            merged_documentation_prs,
             merged_workflow_prs,
             extra_before_workflow,
             extra_after_workflow,
@@ -262,6 +294,7 @@ def main() -> None:
     else:
         section_heading = [f"## Version {base_tag} ({date_str})\n"]
         merged_prs = {}
+        merged_documentation_prs = {}
         merged_workflow_prs = {}
         extra_before_workflow = []
         extra_after_workflow = []
@@ -280,17 +313,15 @@ def main() -> None:
             prev_toc = i
             break
 
-    print(f"initial merged_prs: {merged_prs.keys()}")
-    print(f"initial merged_workflow_prs: {merged_workflow_prs.keys()}")
-
-
     url = require_repo_url()
     for pr_number in prs:
         info = gh_pr_view(pr_number)
         title = info.get("title") or ""
         author_info = info.get("author") or {}
         author_login = author_info.get("login") or ""
-        is_workflow = "dependabot" in author_login or pr_is_workflow_only(pr_number)
+        paths = pr_file_paths(pr_number)
+        is_workflow = "dependabot" in author_login or pr_is_workflow_only(paths)
+        is_documentation = not is_workflow and pr_is_documentation_only(paths)
         title_one_line = " ".join(title.split())
         author_name = author_info.get("name") or ""
         if author_login and author_name:
@@ -301,18 +332,18 @@ def main() -> None:
         if is_workflow:
             merged_workflow_prs[pr_number] = pr_block
             print(f"workflow PR: {pr_number} {title_one_line}")
+        elif is_documentation:
+            merged_documentation_prs[pr_number] = pr_block
+            print(f"documentation PR: {pr_number} {title_one_line}")
         else:
             merged_prs[pr_number] = pr_block
             print(f"PR: {pr_number} {title_one_line}")
 
     all_prs_for_security = sorted(
-        set(merged_prs) | set(merged_workflow_prs),
+        set(merged_prs) | set(merged_documentation_prs) | set(merged_workflow_prs),
         key=int,
         reverse=True,
     )
-    print(f"merged_prs: {merged_prs.keys()}")
-    print(f"merged_workflow_prs: {merged_workflow_prs.keys()}")
-    print(f"all_prs_for_security: {all_prs_for_security}")
     cves, oss_fuzz_issues = collect_security_refs_for_prs(all_prs_for_security)
 
     advisory_titles = gh_security_advisories_cve_titles()
@@ -350,6 +381,12 @@ def main() -> None:
         f.write("\n### Merged Pull Requests\n\n")
         for pr, value in sorted(merged_prs.items(), key=lambda kv: int(kv[0]), reverse=True):
             f.write(value + "\n")
+        if merged_documentation_prs:
+            f.write("\n### Merged Documentation Pull Requests\n\n")
+            for pr, value in sorted(
+                merged_documentation_prs.items(), key=lambda kv: int(kv[0]), reverse=True
+            ):
+                f.write(value + "\n")
         for block in extra_before_workflow:
             f.write("\n" + "\n".join(block) + "\n")
         f.write("\n### Merged Workflow Pull Requests\n\n")
