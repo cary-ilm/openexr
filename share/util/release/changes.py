@@ -31,6 +31,8 @@ MERGED_WORKFLOW_HEADING_RE = re.compile(
     r"^###\s+Merged Workflow Pull Requests\s*:?\s*$", re.IGNORECASE
 )
 SECURITY_HEADING_RE = re.compile(r"^###\s+Security\s*:?\s*$", re.IGNORECASE)
+SUBSECTION_HEADING_RE = re.compile(r"^###\s+")
+NEXT_VERSION_HEADING_RE = re.compile(r"^##\s+Version\s", re.IGNORECASE)
 PR_BULLET_RE = re.compile(r"^\*\s*\[(\d+)\]\(")
 
 
@@ -72,14 +74,16 @@ def strip_security_from_heading(heading_lines: list[str]) -> list[str]:
     return out
 
 
-def parse_pr_blocks_dict(lines, i, stop_at_workflow_heading):
+def parse_pr_blocks_dict(lines, i):
+    """Parse '* [1234](...)' bullet entries starting at lines[i], stopping at
+    the end of the list or at the next '### ' subsection heading (whichever
+    comes first), so that unrelated subsections (e.g. "Documentation Pull
+    Requests") are never swept into the result."""
     out = {}
     n = len(lines)
     while i < n:
         line = lines[i]
-        if stop_at_workflow_heading and MERGED_WORKFLOW_HEADING_RE.match(
-            line.strip()
-        ):
+        if SUBSECTION_HEADING_RE.match(line.strip()):
             break
         mo = PR_BULLET_RE.match(line.strip())
         if mo:
@@ -87,13 +91,9 @@ def parse_pr_blocks_dict(lines, i, stop_at_workflow_heading):
             bullet = line.strip()
             if i + 1 < n:
                 nxt = lines[i + 1]
-                if stop_at_workflow_heading and MERGED_WORKFLOW_HEADING_RE.match(
+                if SUBSECTION_HEADING_RE.match(nxt.strip()) or PR_BULLET_RE.match(
                     nxt.strip()
                 ):
-                    out[pr] = bullet
-                    i += 1
-                    continue
-                if PR_BULLET_RE.match(nxt.strip()):
                     out[pr] = bullet
                     i += 1
                     continue
@@ -105,6 +105,22 @@ def parse_pr_blocks_dict(lines, i, stop_at_workflow_heading):
             continue
         i += 1
     return out, i
+
+
+def capture_raw_subsection(lines, i):
+    """Capture a '### ...' heading and its body verbatim, stopping at the
+    next '### ' heading or the end of the list. Used to preserve subsections
+    this script doesn't otherwise understand (e.g. "Documentation Pull
+    Requests") unchanged, in their original position."""
+    n = len(lines)
+    start = i
+    i += 1
+    while i < n and not SUBSECTION_HEADING_RE.match(lines[i].strip()):
+        i += 1
+    block = lines[start:i]
+    while block and not block[-1].strip():
+        block.pop()
+    return block, i
 
 
 def parse_section(lines):
@@ -122,16 +138,39 @@ def parse_section(lines):
     merged_prs = {}
     if i < n and MERGED_PR_HEADING_RE.match(lines[i].strip()):
         i += 1
-        merged_prs, i = parse_pr_blocks_dict(lines, i, stop_at_workflow_heading=True)
+        merged_prs, i = parse_pr_blocks_dict(lines, i)
+
+    # Any subsections between "Merged Pull Requests" and "Merged Workflow
+    # Pull Requests" (e.g. "Documentation Pull Requests") are preserved
+    # verbatim rather than parsed, so they aren't lost or merged in.
+    extra_before_workflow = []
+    while (
+        i < n
+        and SUBSECTION_HEADING_RE.match(lines[i].strip())
+        and not MERGED_WORKFLOW_HEADING_RE.match(lines[i].strip())
+    ):
+        block, i = capture_raw_subsection(lines, i)
+        extra_before_workflow.append(block)
 
     merged_workflow_prs = {}
     if i < n and MERGED_WORKFLOW_HEADING_RE.match(lines[i].strip()):
         i += 1
-        merged_workflow_prs, i = parse_pr_blocks_dict(
-            lines, i, stop_at_workflow_heading=False
-        )
+        merged_workflow_prs, i = parse_pr_blocks_dict(lines, i)
 
-    return heading, merged_prs, merged_workflow_prs
+    # Likewise, preserve any subsections that follow "Merged Workflow Pull
+    # Requests".
+    extra_after_workflow = []
+    while i < n and SUBSECTION_HEADING_RE.match(lines[i].strip()):
+        block, i = capture_raw_subsection(lines, i)
+        extra_after_workflow.append(block)
+
+    return (
+        heading,
+        merged_prs,
+        merged_workflow_prs,
+        extra_before_workflow,
+        extra_after_workflow,
+    )
 
 
 def pr_is_workflow_only(pr_number: str) -> bool:
@@ -178,11 +217,26 @@ def main() -> None:
 
     section_index = None
     footer_index = None
+    next_version_index = None
     for i, line in enumerate(lines):
         if section_index is None and section_re.match(line):
             section_index = i
         if prev_re is not None and footer_index is None and prev_re.match(line):
             footer_index = i
+        if (
+            section_index is not None
+            and next_version_index is None
+            and i > section_index
+            and NEXT_VERSION_HEADING_RE.match(line)
+        ):
+            next_version_index = i
+
+    # If there's no heading for the specific previous patch release (e.g.
+    # this is an X.Y.0 release with no X.Y.-1), fall back to the next
+    # "## Version" heading of any kind, so the section is bounded instead
+    # of running to the end of the file.
+    if section_index is not None and footer_index is None:
+        footer_index = next_version_index if next_version_index is not None else len(lines)
 
     header_index = section_index if section_index is not None else footer_index
     if header_index is None:
@@ -197,14 +251,20 @@ def main() -> None:
     date_str = format_month_day_year(release_date)
 
     if section_index is not None:
-        section_heading, merged_prs, merged_workflow_prs = parse_section(
-            lines[section_index:footer_index]
-        )
+        (
+            section_heading,
+            merged_prs,
+            merged_workflow_prs,
+            extra_before_workflow,
+            extra_after_workflow,
+        ) = parse_section(lines[section_index:footer_index])
         section_heading = strip_security_from_heading(section_heading)
     else:
         section_heading = [f"## Version {base_tag} ({date_str})\n"]
         merged_prs = {}
         merged_workflow_prs = {}
+        extra_before_workflow = []
+        extra_after_workflow = []
 
     toc, prev_toc = None, None
     toc_re = re.compile(rf"^\*\s+\[Version\s+{re.escape(base_tag)}\]", re.IGNORECASE)
@@ -219,6 +279,10 @@ def main() -> None:
         elif prev_toc is None and prev_toc_re and prev_toc_re.match(line):
             prev_toc = i
             break
+
+    print(f"initial merged_prs: {merged_prs.keys()}")
+    print(f"initial merged_workflow_prs: {merged_workflow_prs.keys()}")
+
 
     url = require_repo_url()
     for pr_number in prs:
@@ -236,14 +300,19 @@ def main() -> None:
         pr_block = f"* [{pr_number}]({url}/pull/{pr_number})\n  {title_one_line}"
         if is_workflow:
             merged_workflow_prs[pr_number] = pr_block
+            print(f"workflow PR: {pr_number} {title_one_line}")
         else:
             merged_prs[pr_number] = pr_block
+            print(f"PR: {pr_number} {title_one_line}")
 
     all_prs_for_security = sorted(
         set(merged_prs) | set(merged_workflow_prs),
         key=int,
         reverse=True,
     )
+    print(f"merged_prs: {merged_prs.keys()}")
+    print(f"merged_workflow_prs: {merged_workflow_prs.keys()}")
+    print(f"all_prs_for_security: {all_prs_for_security}")
     cves, oss_fuzz_issues = collect_security_refs_for_prs(all_prs_for_security)
 
     advisory_titles = gh_security_advisories_cve_titles()
@@ -281,9 +350,13 @@ def main() -> None:
         f.write("\n### Merged Pull Requests\n\n")
         for pr, value in sorted(merged_prs.items(), key=lambda kv: int(kv[0]), reverse=True):
             f.write(value + "\n")
+        for block in extra_before_workflow:
+            f.write("\n" + "\n".join(block) + "\n")
         f.write("\n### Merged Workflow Pull Requests\n\n")
         for pr, value in sorted(merged_workflow_prs.items(), key=lambda kv: int(kv[0]), reverse=True):
             f.write(value + "\n")
+        for block in extra_after_workflow:
+            f.write("\n" + "\n".join(block) + "\n")
         f.write("\n" + "\n".join(lines[footer_index:]))
 
 
