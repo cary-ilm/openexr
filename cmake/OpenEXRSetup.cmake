@@ -485,28 +485,61 @@ endif()
 # ImathConfig.h header into it, and also provide Imath's "src/"
 # directory as a build interface include dir (because "Imath/" lives
 # underneath it).
+#
+# The actual source/binary directories are derived from the targets'
+# own INTERFACE_INCLUDE_DIRECTORIES rather than from the
+# Imath_SOURCE_DIR/Imath_BINARY_DIR variables: those variables are
+# only populated when *this* project fetched Imath itself via
+# FetchContent above. When Imath is instead brought into the build by
+# an enclosing project (its own FetchContent_Declare()/
+# add_subdirectory() call for Imath, made before this one runs),
+# Imath_SOURCE_DIR/Imath_BINARY_DIR are never set here, and the
+# compat header would silently fail to be generated.
 
 if(TARGET Imath AND TARGET ImathConfig)
   get_target_property(_openexr_imath_imported Imath IMPORTED)
   get_target_property(_openexr_imathcfg_imported ImathConfig IMPORTED)
-  if(NOT _openexr_imath_imported
-     AND NOT _openexr_imathcfg_imported
-     AND EXISTS "${Imath_SOURCE_DIR}/src/Imath/ImathVec.h")
-    set(_openexr_imath_gen_cfg "${Imath_BINARY_DIR}/config/ImathConfig.h")
-    set(_openexr_imath_cfg_compat "${PROJECT_BINARY_DIR}/OpenEXR_ImathIncludeCompat")
-    if(EXISTS "${_openexr_imath_gen_cfg}")
+  if(NOT _openexr_imath_imported AND NOT _openexr_imathcfg_imported)
+    set(_openexr_imath_srcdir)
+    get_target_property(_openexr_imath_inc Imath INTERFACE_INCLUDE_DIRECTORIES)
+    foreach(_openexr_inc ${_openexr_imath_inc})
+      string(REGEX REPLACE "^\\$<BUILD_INTERFACE:(.*)>$" "\\1" _openexr_inc_dir "${_openexr_inc}")
+      if(NOT _openexr_inc_dir STREQUAL _openexr_inc AND EXISTS "${_openexr_inc_dir}/ImathVec.h")
+        get_filename_component(_openexr_imath_srcdir "${_openexr_inc_dir}" DIRECTORY)
+        break()
+      endif()
+    endforeach()
+
+    set(_openexr_imath_gen_cfg)
+    get_target_property(_openexr_imathcfg_inc ImathConfig INTERFACE_INCLUDE_DIRECTORIES)
+    foreach(_openexr_inc ${_openexr_imathcfg_inc})
+      string(REGEX REPLACE "^\\$<BUILD_INTERFACE:(.*)>$" "\\1" _openexr_inc_dir "${_openexr_inc}")
+      if(NOT _openexr_inc_dir STREQUAL _openexr_inc AND EXISTS "${_openexr_inc_dir}/ImathConfig.h")
+        set(_openexr_imath_gen_cfg "${_openexr_inc_dir}/ImathConfig.h")
+        break()
+      endif()
+    endforeach()
+
+    if(_openexr_imath_srcdir AND _openexr_imath_gen_cfg)
+      set(_openexr_imath_cfg_compat "${PROJECT_BINARY_DIR}/OpenEXR_ImathIncludeCompat")
       file(MAKE_DIRECTORY "${_openexr_imath_cfg_compat}/Imath")
       configure_file("${_openexr_imath_gen_cfg}"
                      "${_openexr_imath_cfg_compat}/Imath/ImathConfig.h" COPYONLY)
-    endif()
 
-    target_include_directories(Imath INTERFACE
-      "$<BUILD_INTERFACE:${Imath_SOURCE_DIR}/src>")
-    if(EXISTS "${_openexr_imath_gen_cfg}")
+      target_include_directories(Imath INTERFACE
+        "$<BUILD_INTERFACE:${_openexr_imath_srcdir}>")
       target_include_directories(ImathConfig INTERFACE
         "$<BUILD_INTERFACE:${_openexr_imath_cfg_compat}>")
     endif()
+
+    unset(_openexr_imath_srcdir)
+    unset(_openexr_imath_inc)
+    unset(_openexr_imathcfg_inc)
+    unset(_openexr_imath_gen_cfg)
+    unset(_openexr_inc_dir)
   endif()
+  unset(_openexr_imath_imported)
+  unset(_openexr_imathcfg_imported)
 endif()
 
 ###########################################
