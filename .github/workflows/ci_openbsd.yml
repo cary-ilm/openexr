@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) Contributors to the OpenEXR Project.
 #
-# Build and test on NetBSD using a community VM action.  GitHub does
-# not provide native NetBSD runners; this uses vmactions/netbsd-vm.
+# Build and test on OpenBSD using a community VM action. GitHub does
+# not provide native OpenBSD runners; this uses vmactions/netbsd-vm.
 # Note that this runs the OS in a VM and executes the "run" script via
 # SSH, so the usual actions/checkout doesn't work.
 
-name: CI (NetBSD)
+name: CI (OpenBSD)
 
 on:
   push:
@@ -17,7 +17,7 @@ on:
       - '!bazel/**'
       - '!src/wrappers/**'
       - '!.github/workflows/**'
-      - '.github/workflows/ci_netbsd.yml'
+      - '.github/workflows/ci_openbsd.yml'
   pull_request:
     paths:
       - '**'
@@ -26,7 +26,7 @@ on:
       - '!bazel/**'
       - '!src/wrappers/**'
       - '!.github/workflows/**'
-      - '.github/workflows/ci_netbsd.yml'
+      - '.github/workflows/ci_openbsd.yml'
 
 permissions:
   contents: read
@@ -36,21 +36,18 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  netbsd:
-    name: NetBSD
+  openbsd:
+    name: OpenBSD
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - name: Build and test on NetBSD
-        uses: vmactions/netbsd-vm@c8a0d7ddb84619a7a8cc4e652efa7950b3fd9f92 # v1.5.2
+      - name: Build and test on OpenBSD
+        uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945  # v1.4.8
         with:
-          release: '10.2'
+          release: '7.9'
           envs: GITHUB_REPOSITORY GITHUB_REF GITHUB_SHA
-          usesh: true
           prepare: |
-            /usr/sbin/pkg_add pkgin
-            pkgin -y update
-            pkgin -y install cmake ninja-build git
+            pkg_add cmake ninja git
           run: |
             set -e
             git clone --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" src
@@ -62,22 +59,15 @@ jobs:
             cmake -B _build -S . -G Ninja \
               -DCMAKE_BUILD_TYPE=Release \
               -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
-              -DOPENEXR_IMATH_TAG='5f27ba266d3ea1565e912570c30b5eafc89959f1' \
               -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
               -DOPENEXR_FORCE_INTERNAL_ZSTD=ON \
               -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
               -DBUILD_TESTING=ON
             cmake --build _build
 
-            # NetBSD's sem_init() consumes a file descriptor per semaphore,
-            # and some tests (e.g. testMultiPartThreading) create many
-            # semaphores concurrently, exceeding the VM's default per-process
-            # open-file limit. Raise it before running the test suite.
-            ulimit -n 4096
-
-            # Run "portability" tests only: they test likelihood of
-            # OS/toolchain/libc-dependent behavior -- e.g.  threading,
-            # CPU dispatch, byte order, UTF-8 paths, built-tool
-            # validation) to keep this VM job fast; full coverage runs
-            # on the primary Linux/macOS/Windows CI jobs.
+            # Portability test: run only the tests labeled "portability" (audited for
+            # likelihood of OS/toolchain/libc-dependent behavior -- e.g.
+            # threading, CPU dispatch, byte order, UTF-8 paths, built-tool
+            # validation) to keep this VM job fast; full coverage runs on
+            # the primary Linux/macOS/Windows CI jobs.
             ctest --test-dir _build --output-on-failure -L portability

@@ -33,9 +33,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   build_and_test_ubuntu:
     name: Linux Ubuntu 26.04 Bazel build <GCC 15>
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-26.04
     
     steps:
@@ -54,6 +59,7 @@ jobs:
 
   build_and_test_windows:
     name: Windows Server 2025 build <Visual Studio 2022>
+    if: github.event.pull_request.draft != true
     runs-on: windows-2025
 
     steps:
@@ -72,6 +78,7 @@ jobs:
 
   build_and_test_macos:
     name: macOS 26 Bazel build <Apple Clang15>
+    if: github.event.pull_request.draft != true
     runs-on: macos-26
 
     steps:

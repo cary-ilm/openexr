@@ -43,19 +43,27 @@ on:
 permissions:
   contents: read
 
-# NOTE: All jobs have a "build" number that appears in the "jobs"
-# listing on the GitHub actions page. This build number also
-# identifies the reference install manifest in
-# share/ci/install_manifest. The validate_install.py script compares
-# the job's generated install_manifest.txt to the reference file to
-# validate that the proper files have been installed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# NOTE: Each job has a "name" describing the specific build variant,
+# which appears in the "jobs" listing on the GitHub actions page. The
+# (sanitized) name identifies the reference install manifest in
+# share/ci/install_manifest, e.g. a name of "clang c++20"
+# corresponds to install_manifest.<os>.clang-c-20.txt. The
+# validate_install.py script compares the job's generated
+# install_manifest.txt to the reference file to validate that the
+# proper files have been installed.
 #
 # If you add jobs, you must add a corresponding
-# share/ci/install_manifest file.
+# share/ci/install_manifest file, named after the job's (sanitized)
+# name.
 
 jobs:
   linux:
-    name: 'Linux.${{ matrix.build}}: ${{ matrix.label }}'
+    name: 'Linux: ${{ matrix.name }}'
+    if: github.event.pull_request.draft != true
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
     uses: ./.github/workflows/ci_steps.yml
@@ -64,10 +72,10 @@ jobs:
       # Note the defaults provided here for the builds that don't specify
       # values.
       os: ubuntu-latest
-      build: ${{ matrix.build }}
+      name: ${{ matrix.name }}
       # DockerHub: https://hub.docker.com/u/aswf
       # Source: https://github.com/AcademySoftwareFoundation/aswf-docker
-      container: ${{ matrix.container || format('aswf/ci-openexr:{0}', matrix.vfx-cy || '2024') }}
+      container: ${{ matrix.container || format('aswf/ci-openexr:{0}', matrix.vfx-cy || '2027') }}
       cmake: ${{ matrix.cmake || '3.14.7' }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
       cxx-compiler: ${{ matrix.cxx-compiler || 'g++' }}
@@ -87,6 +95,10 @@ jobs:
       openjph_version:  ${{ matrix.openjph_version || '0.32.0' }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
       RUN_TESTING: ${{ matrix.RUN_TESTING || 'ON' }}
+      # On a tag push (release or release-candidate), run the
+      # full test suite everywhere, overriding any per-job
+      # test_category restriction (e.g. 'portability').
+      test_category: ${{ startsWith(github.ref, 'refs/tags/') && '' || matrix.test_category }}
       namespace: ${{ matrix.namespace }}
       validate_install: ${{ matrix.validate_install || 'ON' }}
       configure_install_prefix: ${{ matrix.configure_install_prefix }}
@@ -96,23 +108,21 @@ jobs:
       matrix:
         include:
 
-          - build: 1
-            label: Release
+          - name: Release
 
-          - build: 2
-            label: Debug
+          - name: Debug
             build-type: Debug
+            test_category: 'portability'
 
-          - build: 3
-            label: static
+          - name: static
             BUILD_SHARED_LIBS: 'OFF'
+            test_category: 'portability'
 
-          - build: 4
-            label: threads=OFF
+          - name: threads=OFF
             OPENEXR_ENABLE_THREADING: 'OFF'
+            test_category: 'threading'
 
-          - build: 5
-            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal deflate
+          - name: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal deflate
             OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
             OPENEXR_INSTALL_DOCS: 'OFF'
             OPENEXR_BUILD_EXAMPLES: 'OFF'
@@ -125,39 +135,58 @@ jobs:
             configure_install_prefix: '.tmp'
             cmake: 3.15.7
 
-          - build: 6
-            label: custom namespace
+          - name: custom namespace
             namespace: 'TEST_NAMESPACE'
+            # The namespace is purely a compile-time symbol-naming concern;
+            # skip the tests entirely
+            RUN_TESTING: 'OFF'
 
-          - build: 7
-            label: clang
+          - name: clang
             cxx-compiler: clang++
             cc-compiler: clang
 
-          - build: 8
-            label: vfx2023
-            vfx-cy: 2023
-
-          - build: 9
-            label: cmake 4
+          - name: cmake 4
             cmake: 4.0.3
 
-          - build: 10
-            label: clang c++20
+          - name: clang c++20
             cxx-compiler: clang++
             cc-compiler: clang
             cxx-standard: 20
-            RUN_TESTING: OFF
             validate_install: OFF
+            test_category: 'portability'
 
-          - build: 11
-            label: gcc c++20
+          - name: gcc c++20
             cxx-standard: 20
-            RUN_TESTING: OFF
             validate_install: OFF
+            test_category: 'portability'
 
-          - build: 12
-            label: Fedora Rawhide
+          - name: STATIC w/vendored OpenJPH
+            OPENEXR_FORCE_INTERNAL_OPENJPH: 'ON'
+            BUILD_SHARED_LIBS: 'OFF'
+            RUN_TESTING: 'OFF'
+
+          - name: outdated OpenJPH
+            openjph_version: '0.31.0'
+            validate_install: 'OFF'
+            BUILD_TESTING: 'OFF'
+
+          - name: vfx2026
+            vfx-cy: 2026
+            test_category: 'portability'
+
+          - name: vfx2025
+            vfx-cy: 2025
+            test_category: 'portability'
+
+          - name: vfx2024
+            vfx-cy: 2024
+            test_category: 'portability'
+
+          - name: vfx2023
+            vfx-cy: 2023
+            test_category: 'portability'
+
+          - name: Fedora Rawhide
             container: fedora:rawhide
             cmake: '3.31.6'
             OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
@@ -166,21 +195,22 @@ jobs:
             OPENEXR_FORCE_INTERNAL_OPENJPH: 'ON'
             OPENEXR_INSTALL_DOCS: 'OFF'
             validate_install: 'OFF'
+            test_category: 'portability'
 
-          - build: 13
-            label: STATIC w/vendored OpenJPH
+          - name: Alpine
+            container: alpine:3.21
+            cmake: '3.31.1'
+            OPENEXR_FORCE_INTERNAL_IMATH: 'ON'
+            OPENEXR_FORCE_INTERNAL_DEFLATE: 'ON'
+            OPENEXR_FORCE_INTERNAL_ZSTD: 'ON'
             OPENEXR_FORCE_INTERNAL_OPENJPH: 'ON'
-            BUILD_SHARED_LIBS: 'OFF'
-            RUN_TESTING: 'OFF'
-
-          - build: 14
-            label: outdated OpenJPH
-            openjph_version: '0.31.0'
+            OPENEXR_INSTALL_DOCS: 'OFF'
             validate_install: 'OFF'
-            BUILD_TESTING: 'OFF'
+            test_category: 'portability'
 
   macOS:
-    name: 'macOS.${{ matrix.build}}: ${{ matrix.label }}'
+    name: 'macOS: ${{ matrix.name }}'
+    if: github.event.pull_request.draft != true
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
     uses: ./.github/workflows/ci_steps.yml
@@ -189,7 +219,7 @@ jobs:
       # Note the defaults provided here for the builds that don't specify
       # values.
       os: ${{ matrix.os || 'macos-15' }}
-      build: ${{ matrix.build }}
+      name: ${{ matrix.name }}
       cc-compiler: ${{ matrix.cc-compiler || 'clang' }}
       cxx-compiler: ${{ matrix.cxx-compiler || 'clang++' }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
@@ -209,6 +239,10 @@ jobs:
       CMAKE_OSX_ARCHITECTURES: ${{ matrix.CMAKE_OSX_ARCHITECTURES }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
       RUN_TESTING: ${{ matrix.RUN_TESTING || 'ON' }}
+      # On a tag push (release or release-candidate), run the
+      # full test suite everywhere, overriding any per-job
+      # test_category restriction (e.g. 'portability').
+      test_category: ${{ startsWith(github.ref, 'refs/tags/') && '' || matrix.test_category }}
       validate_install: ${{ matrix.validate_install || 'ON' }}
       configure_install_prefix: ${{ matrix.configure_install_prefix }}
 
@@ -217,23 +251,21 @@ jobs:
       matrix:
         include:
 
-          - build: 1
-            label: Release
+          - name: Release
 
-          - build: 2
-            label: Debug
+          - name: Debug
             build-type: Debug
+            test_category: 'portability'
 
-          - build: 3
-            label: static
+          - name: static
             BUILD_SHARED_LIBS: 'OFF'
+            test_category: 'portability'
 
-          - build: 4
-            label: threads=OFF
+          - name: threads=OFF
             OPENEXR_ENABLE_THREADING: 'OFF'
+            test_category: 'threading'
 
-          - build: 5
-            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
+          - name: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
             OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
             OPENEXR_INSTALL_DOCS: 'OFF'
             OPENEXR_BUILD_EXAMPLES: 'OFF'
@@ -246,34 +278,32 @@ jobs:
             configure_install_prefix: '.tmp'
             cmake: 3.15.7
 
-          - build: 6
-            label: macos-15-intel
+          - name: macos-15-intel
             os: macos-15-intel
+            test_category: 'portability'
 
-          - build: 7
-            label: macos-14
+          - name: macos-14
             os: macos-14
+            test_category: 'portability'
 
-          - build: 8
-            label: universal2
+          - name: universal2
             CMAKE_OSX_ARCHITECTURES: "x86_64;arm64"
+            test_category: 'portability'
 
-          - build: 9
-            label: clang c++20
+          - name: clang c++20
             cxx-standard: 20
-            RUN_TESTING: OFF
             validate_install: OFF
+            test_category: 'portability'
 
-          - build: 10
-            label: gcc c++20
+          - name: gcc c++20
             cc-compiler: gcc
             cxx-compiler: g++
             cxx-standard: 20
-            RUN_TESTING: OFF
             validate_install: OFF
 
   windows:
-    name: 'Windows.${{ matrix.build}}: ${{ matrix.label }}'
+    name: 'Windows: ${{ matrix.name }}'
+    if: github.event.pull_request.draft != true
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
     uses: ./.github/workflows/ci_steps.yml
@@ -282,7 +312,7 @@ jobs:
       # Note the defaults provided here for the builds that don't specify
       # values.
       os: ${{ matrix.os || 'windows-2022' }}
-      build: ${{ matrix.build }}
+      name: ${{ matrix.name }}
       cxx-standard: ${{ matrix.cxx-standard || '17' }}
       build-type: ${{ matrix.build-type || 'Release' }}
       BUILD_SHARED_LIBS: ${{ matrix.BUILD_SHARED_LIBS || 'ON' }}
@@ -300,31 +330,34 @@ jobs:
       msystem: ${{ matrix.msystem }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
       RUN_TESTING: ${{ matrix.RUN_TESTING || 'ON' }}
+      # On a tag push (release or release-candidate), run the
+      # full test suite everywhere, overriding any per-job
+      # test_category restriction (e.g. 'portability').
+      test_category: ${{ startsWith(github.ref, 'refs/tags/') && '' || matrix.test_category }}
       validate_install: ${{ matrix.validate_install || 'ON' }}
       configure_install_prefix: ${{ matrix.configure_install_prefix }}
+      CMAKE_GENERATOR_PLATFORM: ${{ matrix.CMAKE_GENERATOR_PLATFORM }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - build: 1
-            label: Release
+          - name: Release
 
-          - build: 2
-            label: Debug
+          - name: Debug
             build-type: Debug
+            test_category: 'portability'
 
-          - build: 3
-            label: static
+          - name: static
             BUILD_SHARED_LIBS: 'OFF'
+            test_category: 'portability'
 
-          - build: 4
-            label: threads=OFF
+          - name: threads=OFF
             # TODO: this currently fails to compile; switch to OFF once the fix is in.
             OPENEXR_ENABLE_THREADING: 'ON'
+            test_category: 'threading'
 
-          - build: 5
-            label: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
+          - name: pkgconfig=OFF, examples=OFF, tools=OFF, docs=OFF, internal imath+deflate
             OPENEXR_INSTALL_PKG_CONFIG: 'OFF'
             OPENEXR_INSTALL_DOCS: 'OFF'
             OPENEXR_BUILD_EXAMPLES: 'OFF'
@@ -337,46 +370,45 @@ jobs:
             configure_install_prefix: '.tmp'
             cmake: 3.15.7
 
-          - build: 6
-            label: vfx2023
+          - name: win32-MSVC-x86
+            # Validates the 32-bit Windows build using the native MSVC x86
+            # toolset (cmake -A Win32), since MSYS2's MINGW32 environment
+            # (below) is deprecated with no replacement.
+            CMAKE_GENERATOR_PLATFORM: Win32
+            test_category: 'portability'
+
+          - name: vfx2023
             os: windows-2022
 
             # Build w/msys2, mingw32 and ucrt64, shared and static.
 
-          - build: 7
-            label: msys2-mingw32
+          - name: msys2-mingw32
             msystem: MINGW32
 
-          - build: 8
-            label: msys2-mingw32, static
+          - name: msys2-mingw32, static
             msystem: MINGW32
             BUILD_SHARED_LIBS: 'OFF'
+            test_category: 'portability'
 
-          - build: 9
-            label: msys2-ucrt64
+          - name: msys2-ucrt64
             msystem: UCRT64
 
-          - build: 10
-            label: msys2-ucrt64, static
+          - name: msys2-ucrt64, static
             msystem: UCRT64
             BUILD_SHARED_LIBS: 'OFF'
+            test_category: 'portability'
 
-          - build: 11
-            label: c++20
+          - name: c++20
             cxx-standard: 20
-            RUN_TESTING: OFF
             validate_install: OFF
+            test_category: 'portability'
 
-          - build: 12
-            label: msys2-clang64
+          - name: msys2-clang64
             msystem: CLANG64
-            RUN_TESTING: OFF
             validate_install: OFF
 
-          - build: 13
-            label: clang
+          - name: clang
             cxx-compiler: clang++
             cc-compiler: clang
-            RUN_TESTING: OFF
             validate_install: OFF
 

@@ -214,3 +214,37 @@ define_openexr_tests(
  testYca
  testIDManifest
 )
+
+# "portability" tests: an abbreviated subset of the test suite run by
+# specialty CI jobs (alternate OS/build-variant jobs) to test the
+# behaviors most likely to differ across OS/toolchain/libc.
+# Primary Linux/macOS/Windows jobs run the complete test suite.
+set_tests_properties(
+  OpenEXR.testCpuId
+  OpenEXR.testNativeFormat
+  OpenEXR.testExistingStreams
+  OpenEXR.testExistingStreamsUTF8
+  OpenEXR.testMagic
+  OpenEXR.testBackwardCompatibility
+  OpenEXR.testPreviewImage
+  OpenEXR.testIsComplete
+  OpenEXR.testRgba
+  PROPERTIES LABELS portability
+)
+
+# "threading" tests: tests that directly exercise the thread pool API
+# (setGlobalThreadCount/ThreadPool) and multithreaded read/write paths.
+# Used by the "threads=OFF" build-variant job to validate that these code
+# paths still behave correctly when threading is compiled out. 
+set_tests_properties(
+  OpenEXR.testMultiTiledPartThreading
+  PROPERTIES LABELS threading
+)
+
+set_tests_properties(
+  OpenEXR.testMultiPartThreading
+  OpenEXR.testMultiScanlinePartThreading
+  OpenEXR.testRgbaThreading
+  OpenEXR.testSharedFrameBuffer
+  PROPERTIES LABELS "portability;threading"
+)
