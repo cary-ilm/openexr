@@ -32,8 +32,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # cary: key on the source branch name (head_ref for pull_request events,
+  # ref_name for push/tag events) rather than github.ref, so a push-triggered
+  # run and the pull_request-triggered run for the same branch share one
+  # concurrency group. Without this, pushing to a branch with an open PR
+  # fires both a push run (github.ref = refs/heads/<branch>) and a
+  # pull_request run (github.ref = refs/pull/<n>/merge) in *different*
+  # groups, so neither cancels the other and both run to completion as
+  # uncancelled duplicates.
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ (github.head_ref || github.ref_name) != 'main' }}
 
 jobs:
   openbsd:
