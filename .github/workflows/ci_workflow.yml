@@ -15,8 +15,25 @@ name: CI
 # - changes to the bazel config (it has its own workflow
 # - changes to the python bindings (they have their own workflow)
 # - changes to workflows other than this one
+#
+# Also run nightly (but only if something has changed since the last
+# such run -- see the "check-trunk-changed" job below), and on any tag
+# push (release or release-candidate). See the "category:" comment
+# below.
 
 on:
+  schedule:
+    # Nightly "trunk health" run: catches regressions in the matrix
+    # entries that are skipped on ordinary push/PR (see "category:"
+    # below), and in this workflow's own pre-merge jobs, in case of
+    # drift from external dependencies/containers/runner images --
+    # independent of whether a release is imminent, so problems
+    # surface close to the commit that caused them rather than at
+    # release-candidate time. Development activity is bursty (stretches
+    # of inactivity followed by several merges at once), so this fires
+    # every night but the check-trunk-changed job below skips the rest
+    # of the run on nights where nothing merged since the last run.
+    - cron: '15 6 * * *'  # 06:15 UTC, nightly
   push:
     paths:
       - '**'
@@ -87,9 +104,50 @@ concurrency:
 # name.
 
 jobs:
+  check-trunk-changed:
+    # Gates the nightly schedule run: if nothing has merged since the
+    # last successful nightly run, there's nothing new to validate, so
+    # skip the (expensive) build matrix entirely. Always runs (and
+    # always reports "changed=true") for push/pull_request/tag events,
+    # which are driven by an actual code change already.
+    name: Check for trunk changes since last nightly run
+    # The nightly schedule fires independently on every fork that has
+    # this workflow on its default branch; restrict it to the upstream
+    # repo so forks don't burn their own Actions minutes on it.
+    if: >-
+      github.event.pull_request.draft != true &&
+      (github.event_name != 'schedule' || github.repository == 'AcademySoftwareFoundation/openexr')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - name: Compare HEAD to the last successful nightly run
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          last_sha=$(gh run list --repo "${{ github.repository }}" \
+            --workflow "${{ github.workflow }}" --event schedule --status success \
+            --json headSha --jq '.[0].headSha // empty' --limit 1)
+          if [ -z "$last_sha" ] || [ "$last_sha" != "${{ github.sha }}" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No commits since the last successful nightly run ($last_sha); skipping."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   linux:
     name: 'Linux: ${{ matrix.name }}'
-    if: github.event.pull_request.draft != true
+    needs: check-trunk-changed
+    if: needs.check-trunk-changed.outputs.changed == 'true'
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
     uses: ./.github/workflows/ci_steps.yml
@@ -121,13 +179,23 @@ jobs:
       openjph_version:  ${{ matrix.openjph_version || '0.32.0' }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
       RUN_TESTING: ${{ matrix.RUN_TESTING || 'ON' }}
-      # On a tag push (release or release-candidate), run the
-      # full test suite everywhere, overriding any per-job
-      # test_category restriction (e.g. 'portability').
-      test_category: ${{ startsWith(github.ref, 'refs/tags/') && '' || matrix.test_category }}
+      # On a tag push (release/release-candidate) or a nightly
+      # schedule run, run the full test suite everywhere, overriding
+      # any per-job test_category restriction (e.g. 'portability').
+      test_category: ${{ !(startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule') && matrix.test_category || '' }}
       namespace: ${{ matrix.namespace }}
       validate_install: ${{ matrix.validate_install || 'ON' }}
       configure_install_prefix: ${{ matrix.configure_install_prefix }}
+      # "category:" determines *when* a matrix entry runs (enforced in
+      # ci_steps.yml): left unset (the common case), it runs on push,
+      # pull_request, nightly, and tag. Set to 'trunk-health', it's
+      # skipped on push/PR and only runs on the nightly schedule and
+      # tag -- for matrix entries whose coverage is redundant with
+      # another entry's on every push/PR (e.g. older vfx-platform
+      # years, older macOS versions, deprecated mingw32), so they
+      # still get regular (nightly) and release-time validation
+      # without slowing down every push/PR.
+      category: ${{ matrix.category }}
 
     strategy:
       fail-fast: false
@@ -199,18 +267,22 @@ jobs:
           - name: vfx2026
             vfx-cy: 2026
             test_category: 'portability'
+            category: trunk-health
 
           - name: vfx2025
             vfx-cy: 2025
             test_category: 'portability'
+            category: trunk-health
 
           - name: vfx2024
             vfx-cy: 2024
             test_category: 'portability'
+            category: trunk-health
 
           - name: vfx2023
             vfx-cy: 2023
             test_category: 'portability'
+            category: trunk-health
 
           - name: Fedora Rawhide
             container: fedora:rawhide
@@ -236,7 +308,8 @@ jobs:
 
   macOS:
     name: 'macOS: ${{ matrix.name }}'
-    if: github.event.pull_request.draft != true
+    needs: check-trunk-changed
+    if: needs.check-trunk-changed.outputs.changed == 'true'
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
     uses: ./.github/workflows/ci_steps.yml
@@ -265,12 +338,13 @@ jobs:
       CMAKE_OSX_ARCHITECTURES: ${{ matrix.CMAKE_OSX_ARCHITECTURES }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
       RUN_TESTING: ${{ matrix.RUN_TESTING || 'ON' }}
-      # On a tag push (release or release-candidate), run the
-      # full test suite everywhere, overriding any per-job
-      # test_category restriction (e.g. 'portability').
-      test_category: ${{ startsWith(github.ref, 'refs/tags/') && '' || matrix.test_category }}
+      # On a tag push or a nightly schedule run, run the full test
+      # suite everywhere, overriding any per-job test_category
+      # restriction (e.g. 'portability').
+      test_category: ${{ !(startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule') && matrix.test_category || '' }}
       validate_install: ${{ matrix.validate_install || 'ON' }}
       configure_install_prefix: ${{ matrix.configure_install_prefix }}
+      category: ${{ matrix.category }}
 
     strategy:
       fail-fast: false
@@ -307,10 +381,12 @@ jobs:
           - name: macos-15-intel
             os: macos-15-intel
             test_category: 'portability'
+            category: trunk-health
 
           - name: macos-14
             os: macos-14
             test_category: 'portability'
+            category: trunk-health
 
           - name: universal2
             CMAKE_OSX_ARCHITECTURES: "x86_64;arm64"
@@ -329,7 +405,8 @@ jobs:
 
   windows:
     name: 'Windows: ${{ matrix.name }}'
-    if: github.event.pull_request.draft != true
+    needs: check-trunk-changed
+    if: needs.check-trunk-changed.outputs.changed == 'true'
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
     uses: ./.github/workflows/ci_steps.yml
@@ -356,12 +433,13 @@ jobs:
       msystem: ${{ matrix.msystem }}
       BUILD_TESTING: ${{ matrix.BUILD_TESTING || 'ON' }}
       RUN_TESTING: ${{ matrix.RUN_TESTING || 'ON' }}
-      # On a tag push (release or release-candidate), run the
-      # full test suite everywhere, overriding any per-job
-      # test_category restriction (e.g. 'portability').
-      test_category: ${{ startsWith(github.ref, 'refs/tags/') && '' || matrix.test_category }}
+      # On a tag push or a nightly schedule run, run the full test
+      # suite everywhere, overriding any per-job test_category
+      # restriction (e.g. 'portability').
+      test_category: ${{ !(startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule') && matrix.test_category || '' }}
       validate_install: ${{ matrix.validate_install || 'ON' }}
       configure_install_prefix: ${{ matrix.configure_install_prefix }}
+      category: ${{ matrix.category }}
       CMAKE_GENERATOR_PLATFORM: ${{ matrix.CMAKE_GENERATOR_PLATFORM }}
 
     strategy:
@@ -405,16 +483,19 @@ jobs:
 
           - name: vfx2023
             os: windows-2022
+            category: trunk-health
 
             # Build w/msys2, mingw32 and ucrt64, shared and static.
 
           - name: msys2-mingw32
             msystem: MINGW32
+            category: trunk-health
 
           - name: msys2-mingw32, static
             msystem: MINGW32
             BUILD_SHARED_LIBS: 'OFF'
             test_category: 'portability'
+            category: trunk-health
 
           - name: msys2-ucrt64
             msystem: UCRT64

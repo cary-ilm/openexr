@@ -12,7 +12,20 @@ on:
   # trigger building the wheels. However, the main ci workflow does
   # build and test the bindings (for a single python version on a
   # single arch)
+  #
+  # On push/PR, build only a single representative python version on
+  # a representative architecture per OS, to keep this fast. The full
+  # version x architecture matrix runs nightly instead (trunk-health),
+  # so gaps in push/PR coverage are still caught regularly rather than
+  # only at release time; the publish and publish-test workflows
+  # (triggered by a release/release-candidate) always build the full
+  # matrix.
 
+  schedule:
+    # Nightly, but skipped (see check-trunk-changed below) if nothing
+    # has merged since the last successful nightly run -- development
+    # activity here is bursty.
+    - cron: '30 6 * * *'  # 06:30 UTC, nightly
   push:
     paths:
       - 'cmake/**'
@@ -35,29 +48,99 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  # cary: key on the source branch name (head_ref for pull_request events,
+  # ref_name for push/schedule events) rather than github.ref, so a
+  # push-triggered run and the pull_request-triggered run for the same
+  # branch share one concurrency group. See ci_workflow.yml for the
+  # full rationale.
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ (github.head_ref || github.ref_name) != 'main' }}
+
 jobs:
+  check-trunk-changed:
+    # See ci_workflow.yml for the rationale: skip the nightly (full
+    # matrix) run if nothing has merged since the last successful
+    # nightly run. Always runs (and reports "changed=true") for
+    # push/pull_request, which are driven by an actual code change
+    # already.
+    name: Check for trunk changes since last nightly run
+    # The nightly schedule fires independently on every fork that has
+    # this workflow on its default branch; restrict it to the upstream
+    # repo so forks don't burn their own Actions minutes on it.
+    if: >-
+      github.event_name != 'schedule' || github.repository == 'AcademySoftwareFoundation/openexr'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - name: Compare HEAD to the last successful nightly run
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          last_sha=$(gh run list --repo "${{ github.repository }}" \
+            --workflow "${{ github.workflow }}" --event schedule --status success \
+            --json headSha --jq '.[0].headSha // empty' --limit 1)
+          if [ -z "$last_sha" ] || [ "$last_sha" != "${{ github.sha }}" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No commits since the last successful nightly run ($last_sha); skipping."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  setup:
+    name: Determine wheel build matrix
+    needs: check-trunk-changed
+    if: needs.check-trunk-changed.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      archs: ${{ steps.matrix.outputs.archs }}
+      python_build: ${{ steps.matrix.outputs.python_build }}
+    steps:
+      - name: Determine matrix
+        id: matrix
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
+            # pre-merge: a single python version, one representative
+            # architecture per OS.
+            archs='[
+              {"os":"ubuntu-latest","arch":"x64"},
+              {"os":"macos-latest","arch":"arm64","cibw_archs_macos":"arm64"},
+              {"os":"windows-latest","arch":"x64","cibw_archs_windows":"AMD64"}
+            ]'
+            python_build="cp313-*"
+          else
+            # trunk-health (nightly): full version x architecture matrix.
+            archs='[
+              {"os":"ubuntu-latest","arch":"x64"},
+              {"os":"ubuntu-24.04-arm","arch":"arm64"},
+              {"os":"macos-15-intel","arch":"x64","cibw_archs_macos":"x86_64 universal2"},
+              {"os":"macos-latest","arch":"arm64","cibw_archs_macos":"arm64"},
+              {"os":"windows-latest","arch":"x64","cibw_archs_windows":"AMD64"},
+              {"os":"windows-11-arm","arch":"arm64","cibw_archs_windows":"ARM64"}
+            ]'
+            python_build="cp39-* cp310-* cp311-* cp312-* cp313-* cp314-* cp315-*"
+          fi
+          echo "archs=$(echo "$archs" | jq -c .)" >> "$GITHUB_OUTPUT"
+          echo "python_build=$python_build" >> "$GITHUB_OUTPUT"
+
   build_wheels:
     name: Python Wheels - ${{ matrix.os }}-${{ matrix.arch }}
+    needs: setup
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            arch: x64
-          - os: ubuntu-24.04-arm
-            arch: arm64
-          - os: macos-15-intel
-            arch: x64
-            cibw_archs_macos: x86_64 universal2
-          - os: macos-latest
-            arch: arm64
-            cibw_archs_macos: arm64
-          - os: windows-latest
-            arch: x64
-            cibw_archs_windows: AMD64
-          - os: windows-11-arm
-            arch: arm64
-            cibw_archs_windows: ARM64
+        include: ${{ fromJson(needs.setup.outputs.archs) }}
 
     permissions:
       contents: read
@@ -86,10 +169,11 @@ jobs:
           # Split macOS arches across runners so artifact merge does not collide on filenames.
           CIBW_ARCHS_MACOS: ${{ matrix.cibw_archs_macos }}
           CIBW_ARCHS_WINDOWS: ${{ matrix.cibw_archs_windows }}
-          # Build Python 3.9 through 3.15
+          # Single version on push/PR, cp39 through cp315 on the nightly
+          # trunk-health run (see the "setup" job above).
+          CIBW_BUILD: ${{ needs.setup.outputs.python_build }}
           # Skip 32-bit wheels builds on Windows
           # Also skip the PyPy builds, since they fail the unit tests
-          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-* cp315-*"
           # NumPy's Windows ARM64 wheels require Python 3.11 or newer.
           CIBW_SKIP: "*-win32 *_i686 cp39-win_arm64 cp310-win_arm64"
 

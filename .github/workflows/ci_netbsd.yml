@@ -8,43 +8,22 @@
 
 name: CI (NetBSD)
 
+# NetBSD coverage is redundant with FreeBSD's "portability" smoke test
+# (same ctest label, same purpose: catch OS/libc-dependent issues) and
+# the two rarely diverge in outcome, so this is a "trunk-health" job:
+# it runs nightly and on tag pushes (releases/release-candidates),
+# rather than on every push/PR, to save compute, while still getting
+# regular and release-time validation. FreeBSD remains on push/PR for
+# fast feedback.
 on:
+  schedule:
+    # Nightly, but skipped (see check-trunk-changed below) if nothing
+    # has merged since the last successful nightly run -- development
+    # activity here is bursty.
+    - cron: '20 6 * * *'  # 06:20 UTC, nightly
   push:
-    paths:
+    tags:
       - '**'
-      - '!ASWF/**'
-      - '!Contrib/**'
-      - '!CODEOWNERS'
-      - '!.mailmap'
-      - '!.git-blame-ignore-revs'
-      - '!.gitignore'
-      - '!sonar-project.properties'
-      - '!pyproject.toml'
-      - '!share/util/**'
-      - '!**/*bazel*'
-      - '!**.md'
-      - '!website/**'
-      - '!src/wrappers/**'
-      - '!.github/workflows/**'
-      - '.github/workflows/ci_netbsd.yml'
-  pull_request:
-    paths:
-      - '**'
-      - '!ASWF/**'
-      - '!Contrib/**'
-      - '!CODEOWNERS'
-      - '!.mailmap'
-      - '!.git-blame-ignore-revs'
-      - '!.gitignore'
-      - '!sonar-project.properties'
-      - '!pyproject.toml'
-      - '!share/util/**'
-      - '!**/*bazel*'
-      - '!**.md'
-      - '!website/**'
-      - '!src/wrappers/**'
-      - '!.github/workflows/**'
-      - '.github/workflows/ci_netbsd.yml'
 
 permissions:
   contents: read
@@ -62,9 +41,50 @@ concurrency:
   cancel-in-progress: ${{ (github.head_ref || github.ref_name) != 'main' }}
 
 jobs:
+  check-trunk-changed:
+    # See ci_workflow.yml for the rationale: skip the nightly run if
+    # nothing has merged since the last successful nightly run. Always
+    # runs (and reports "changed=true") for the tag-push trigger,
+    # which is driven by an actual code change already.
+    name: Check for trunk changes since last nightly run
+    # The nightly schedule fires independently on every fork that has
+    # this workflow on its default branch; restrict it to the upstream
+    # repo so forks don't burn their own Actions minutes on it.
+    if: >-
+      github.event_name != 'schedule' || github.repository == 'AcademySoftwareFoundation/openexr'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - name: Compare HEAD to the last successful nightly run
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          last_sha=$(gh run list --repo "${{ github.repository }}" \
+            --workflow "${{ github.workflow }}" --event schedule --status success \
+            --json headSha --jq '.[0].headSha // empty' --limit 1)
+          if [ -z "$last_sha" ] || [ "$last_sha" != "${{ github.sha }}" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No commits since the last successful nightly run ($last_sha); skipping."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   netbsd:
     name: NetBSD
-    if: github.event.pull_request.draft != true
+    needs: check-trunk-changed
+    if: >-
+      needs.check-trunk-changed.outputs.changed == 'true' &&
+      github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - name: Build and test on NetBSD

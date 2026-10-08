@@ -75,12 +75,30 @@ on:
         type: string
       configure_install_prefix:
         type: string
+      category:
+        description: >-
+          Determines when this job runs. Left empty/unset (the
+          default), it runs on every trigger: push, pull_request,
+          nightly schedule, and tag. Set to 'trunk-health', it's
+          skipped on push/PR and only runs on the nightly schedule and
+          tag -- for matrix entries whose coverage is redundant with
+          another entry's on every push/PR.
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   steps:
+    # jobs.<job_id>.if only has access to the "inputs" context (not
+    # "matrix"), so the category restriction is expressed here via an
+    # input passed down from the caller's matrix, rather than directly
+    # on the caller job. An unset "category" always runs; "trunk-health"
+    # only runs on a tag push or the nightly schedule, not on push/PR.
+    if: >-
+      inputs.category != 'trunk-health' ||
+      startsWith(github.ref, 'refs/tags/') ||
+      github.event_name == 'schedule'
     runs-on: ${{ inputs.os }}
 
     permissions:
