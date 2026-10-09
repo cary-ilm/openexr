@@ -1,0 +1,258 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) Contributors to the OpenEXR Project.
+#
+# Build and test on FreeBSD, NetBSD, and OpenBSD using community VM
+# actions. GitHub does not provide native runners for these OSes; this
+# uses the vmactions/*-vm actions, which run the OS in a VM and
+# execute the "run" script via SSH, so the usual actions/checkout
+# doesn't work.
+#
+# All three jobs are fundamentally the same smoke test (build + run
+# the "portability" ctest label, which covers behavior likely to be
+# OS/toolchain/libc-dependent: threading, CPU dispatch, byte order,
+# UTF-8 paths, built-tool validation). NetBSD and OpenBSD coverage is
+# redundant with FreeBSD's in practice (same label, same purpose, and
+# the three rarely diverge in outcome), so only FreeBSD runs on every
+# push/PR for fast feedback; NetBSD and OpenBSD are "trunk-health"
+# jobs that run nightly and on tag pushes (releases/release-
+# candidates) instead, to save compute while still getting regular and
+# release-time validation.
+
+name: CI (BSD)
+
+on:
+  push:
+    paths:
+      - '**'
+      - '!ASWF/**'
+      - '!Contrib/**'
+      - '!CODEOWNERS'
+      - '!.mailmap'
+      - '!.git-blame-ignore-revs'
+      - '!.gitignore'
+      - '!sonar-project.properties'
+      - '!pyproject.toml'
+      - '!share/util/**'
+      - '!**/*bazel*'
+      - '!**.md'
+      - '!website/**'
+      - '!src/wrappers/**'
+      - '!.github/workflows/**'
+      - '.github/workflows/ci_bsd.yml'
+    tags:
+      - '**'
+  pull_request:
+    paths:
+      - '**'
+      - '!ASWF/**'
+      - '!Contrib/**'
+      - '!CODEOWNERS'
+      - '!.mailmap'
+      - '!.git-blame-ignore-revs'
+      - '!.gitignore'
+      - '!sonar-project.properties'
+      - '!pyproject.toml'
+      - '!share/util/**'
+      - '!**/*bazel*'
+      - '!**.md'
+      - '!website/**'
+      - '!src/wrappers/**'
+      - '!.github/workflows/**'
+      - '.github/workflows/ci_bsd.yml'
+  schedule:
+    # Nightly, but skipped (see check-trunk-changed below) if nothing
+    # has merged since the last successful nightly run -- development
+    # activity here is bursty.
+    - cron: '20 6 * * *'  # 06:20 UTC, nightly
+
+permissions:
+  contents: read
+
+concurrency:
+  # cary: key on the source branch name (head_ref for pull_request events,
+  # ref_name for push/tag events) rather than github.ref, so a push-triggered
+  # run and the pull_request-triggered run for the same branch share one
+  # concurrency group. Without this, pushing to a branch with an open PR
+  # fires both a push run (github.ref = refs/heads/<branch>) and a
+  # pull_request run (github.ref = refs/pull/<n>/merge) in *different*
+  # groups, so neither cancels the other and both run to completion as
+  # uncancelled duplicates.
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ (github.head_ref || github.ref_name) != 'main' }}
+
+jobs:
+  freebsd:
+    name: FreeBSD
+    # Runs on every push/PR (not on tag or schedule -- those are
+    # handled by the netbsd/openbsd jobs below, which cover the same
+    # ground at that cadence).
+    if: >-
+      github.event_name != 'schedule' &&
+      !startsWith(github.ref, 'refs/tags/') &&
+      github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and test on FreeBSD
+        uses: vmactions/freebsd-vm@c46abacb49f09938ca4e1702d15d836285d694cc  # v1.5.9
+        with:
+          release: '15.0'
+          envs: GITHUB_REPOSITORY GITHUB_REF GITHUB_SHA
+          usesh: true
+          prepare: |
+            pkg install -y cmake ninja git
+          run: |
+            set -e
+            git clone --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" src
+            cd src
+            # shallow clone, only the commit that triggered the run, i.e. GITHUB_SHA
+            git fetch --depth 1 origin "${GITHUB_SHA}"
+            git checkout "${GITHUB_SHA}"
+
+            cmake -B _build -S . -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
+              -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
+              -DOPENEXR_FORCE_INTERNAL_ZSTD=ON \
+              -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+              -DBUILD_TESTING=ON
+            cmake --build _build
+
+            # Run "portability" tests only: they test likelihood of
+            # OS/toolchain/libc-dependent behavior -- e.g.  threading,
+            # CPU dispatch, byte order, UTF-8 paths, built-tool
+            # validation) to keep this VM job fast; full coverage runs
+            # on the primary Linux/macOS/Windows CI jobs.
+            ctest --test-dir _build --output-on-failure -L portability
+
+  check-trunk-changed:
+    # Only relevant to the nightly schedule run (shared by the netbsd
+    # and openbsd jobs below): if nothing has merged since the last
+    # successful nightly run, there's nothing new to validate, so skip
+    # the rest of the run. This job only runs for the schedule event
+    # (and only in the upstream repo, since the nightly schedule
+    # otherwise fires independently -- and bills separately -- on
+    # every fork that has this workflow on its default branch); it's
+    # skipped outright for push/pull_request/tag, which don't need
+    # this check.
+    name: Check for trunk changes since last nightly run
+    if: >-
+      github.event_name == 'schedule' &&
+      github.repository == 'AcademySoftwareFoundation/openexr'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - name: Compare HEAD to the last successful nightly run
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          last_sha=$(gh run list --repo "${{ github.repository }}" \
+            --workflow "${{ github.workflow }}" --event schedule --status success \
+            --json headSha --jq '.[0].headSha // empty' --limit 1)
+          if [ -z "$last_sha" ] || [ "$last_sha" != "${{ github.sha }}" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No commits since the last successful nightly run ($last_sha); skipping."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  netbsd:
+    name: NetBSD
+    needs: check-trunk-changed
+    # Runs on tag push (always) or the nightly schedule (only if
+    # trunk changed since the last successful run); never on ordinary
+    # push/PR -- see the file-level comment above.
+    if: >-
+      (startsWith(github.ref, 'refs/tags/') ||
+       needs.check-trunk-changed.outputs.changed == 'true') &&
+      github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and test on NetBSD
+        uses: vmactions/netbsd-vm@c8a0d7ddb84619a7a8cc4e652efa7950b3fd9f92 # v1.5.2
+        with:
+          release: '10.2'
+          envs: GITHUB_REPOSITORY GITHUB_REF GITHUB_SHA
+          usesh: true
+          prepare: |
+            /usr/sbin/pkg_add pkgin
+            pkgin -y update
+            pkgin -y install cmake ninja-build git
+          run: |
+            set -e
+            git clone --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" src
+            cd src
+            # shallow clone, only the commit that triggered the run, i.e. GITHUB_SHA
+            git fetch --depth 1 origin "${GITHUB_SHA}"
+            git checkout "${GITHUB_SHA}"
+
+            cmake -B _build -S . -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
+              -DOPENEXR_IMATH_TAG='5f27ba266d3ea1565e912570c30b5eafc89959f1' \
+              -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
+              -DOPENEXR_FORCE_INTERNAL_ZSTD=ON \
+              -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+              -DBUILD_TESTING=ON
+            cmake --build _build
+
+            # NetBSD's sem_init() consumes a file descriptor per semaphore,
+            # and some tests (e.g. testMultiPartThreading) create many
+            # semaphores concurrently, exceeding the VM's default per-process
+            # open-file limit. Raise it before running the test suite.
+            ulimit -n 4096
+
+            # Run "portability" tests only: they test likelihood of
+            # OS/toolchain/libc-dependent behavior -- e.g.  threading,
+            # CPU dispatch, byte order, UTF-8 paths, built-tool
+            # validation) to keep this VM job fast; full coverage runs
+            # on the primary Linux/macOS/Windows CI jobs.
+            ctest --test-dir _build --output-on-failure -L portability
+
+  openbsd:
+    name: OpenBSD
+    needs: check-trunk-changed
+    # Runs on tag push (always) or the nightly schedule (only if
+    # trunk changed since the last successful run); never on ordinary
+    # push/PR -- see the file-level comment above.
+    if: >-
+      (startsWith(github.ref, 'refs/tags/') ||
+       needs.check-trunk-changed.outputs.changed == 'true') &&
+      github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and test on OpenBSD
+        uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945  # v1.4.8
+        with:
+          release: '7.9'
+          envs: GITHUB_REPOSITORY GITHUB_REF GITHUB_SHA
+          prepare: |
+            pkg_add cmake ninja git
+          run: |
+            set -e
+            git clone --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" src
+            cd src
+            # shallow clone, only the commit that triggered the run, i.e. GITHUB_SHA
+            git fetch --depth 1 origin "${GITHUB_SHA}"
+            git checkout "${GITHUB_SHA}"
+
+            cmake -B _build -S . -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
+              -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
+              -DOPENEXR_FORCE_INTERNAL_ZSTD=ON \
+              -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+              -DBUILD_TESTING=ON
+            cmake --build _build
+
+            # Portability test: run only the tests labeled "portability" (audited for
+            # likelihood of OS/toolchain/libc-dependent behavior -- e.g.
+            # threading, CPU dispatch, byte order, UTF-8 paths, built-tool
+            # validation) to keep this VM job fast; full coverage runs on
+            # the primary Linux/macOS/Windows CI jobs.
+            ctest --test-dir _build --output-on-failure -L portability

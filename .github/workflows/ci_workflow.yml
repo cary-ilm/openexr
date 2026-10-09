@@ -105,18 +105,19 @@ concurrency:
 
 jobs:
   check-trunk-changed:
-    # Gates the nightly schedule run: if nothing has merged since the
-    # last successful nightly run, there's nothing new to validate, so
-    # skip the (expensive) build matrix entirely. Always runs (and
-    # always reports "changed=true") for push/pull_request/tag events,
-    # which are driven by an actual code change already.
+    # Only relevant to the nightly schedule run: if nothing has merged
+    # since the last successful nightly run, there's nothing new to
+    # validate, so skip the (expensive) build matrix entirely. This
+    # job itself only runs for the schedule event (and only in the
+    # upstream repo, since the nightly schedule otherwise fires
+    # independently -- and bills separately -- on every fork that has
+    # this workflow on its default branch); it's skipped outright
+    # (not run) for push/pull_request/tag, which are driven by an
+    # actual code change already and don't need this check.
     name: Check for trunk changes since last nightly run
-    # The nightly schedule fires independently on every fork that has
-    # this workflow on its default branch; restrict it to the upstream
-    # repo so forks don't burn their own Actions minutes on it.
     if: >-
-      github.event.pull_request.draft != true &&
-      (github.event_name != 'schedule' || github.repository == 'AcademySoftwareFoundation/openexr')
+      github.event_name == 'schedule' &&
+      github.repository == 'AcademySoftwareFoundation/openexr'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -130,10 +131,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          if [ "${{ github.event_name }}" != "schedule" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           last_sha=$(gh run list --repo "${{ github.repository }}" \
             --workflow "${{ github.workflow }}" --event schedule --status success \
             --json headSha --jq '.[0].headSha // empty' --limit 1)
@@ -147,7 +144,12 @@ jobs:
   linux:
     name: 'Linux: ${{ matrix.name }}'
     needs: check-trunk-changed
-    if: needs.check-trunk-changed.outputs.changed == 'true'
+    # check-trunk-changed only runs (and reports "changed") for the
+    # schedule event; it's skipped for push/pull_request/tag, so don't
+    # gate on its output except when it actually ran.
+    if: >-
+      github.event.pull_request.draft != true &&
+      (github.event_name != 'schedule' || needs.check-trunk-changed.outputs.changed == 'true')
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
     uses: ./.github/workflows/ci_steps.yml
@@ -309,7 +311,11 @@ jobs:
   macOS:
     name: 'macOS: ${{ matrix.name }}'
     needs: check-trunk-changed
-    if: needs.check-trunk-changed.outputs.changed == 'true'
+    # See the "linux" job above for why this isn't a plain
+    # needs.check-trunk-changed.outputs.changed check.
+    if: >-
+      github.event.pull_request.draft != true &&
+      (github.event_name != 'schedule' || needs.check-trunk-changed.outputs.changed == 'true')
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
     uses: ./.github/workflows/ci_steps.yml
@@ -406,7 +412,11 @@ jobs:
   windows:
     name: 'Windows: ${{ matrix.name }}'
     needs: check-trunk-changed
-    if: needs.check-trunk-changed.outputs.changed == 'true'
+    # See the "linux" job above for why this isn't a plain
+    # needs.check-trunk-changed.outputs.changed check.
+    if: >-
+      github.event.pull_request.draft != true &&
+      (github.event_name != 'schedule' || needs.check-trunk-changed.outputs.changed == 'true')
     permissions:
       contents: write  # required by ci_steps (upload-artifact)
     uses: ./.github/workflows/ci_steps.yml
