@@ -81,6 +81,7 @@ jobs:
       namespace: ${{ matrix.namespace }}
       validate_install: ${{ matrix.validate_install || 'ON' }}
       configure_install_prefix: ${{ matrix.configure_install_prefix }}
+      test_embedded_core: ${{ matrix.test_embedded_core }}
 
     strategy:
       fail-fast: false
@@ -88,6 +89,9 @@ jobs:
         include:
 
           - name: Release
+            # Also validate OPENEXR_FORCE_EMBEDDED_CORE, reusing this
+            # job's installation as the "standard" OpenEXR.
+            test_embedded_core: 'ON'
 
           - name: Debug
             build-type: Debug

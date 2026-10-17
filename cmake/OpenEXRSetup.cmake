@@ -57,6 +57,14 @@ option(OPENEXR_USE_DEFAULT_VISIBILITY "Makes the compile use default visibility 
 # object (if you enable this) that contains member to avoid double allocations
 option(OPENEXR_ENABLE_LARGE_STACK "Enables code to take advantage of large stack support"     OFF)
 
+# Build OpenEXRCore as a static library with hidden symbols, linked
+# into the OpenEXR library, rather than as a separate library. Used in
+# combination with custom namespaces (and a custom library suffix) to
+# link a second version of OpenEXR into an executable that already
+# links OpenEXR. See "Linking Multiple OpenEXR Versions in the
+# Executable" in website/install.rst.
+option(OPENEXR_FORCE_EMBEDDED_CORE "Build OpenEXRCore as a hidden static library embedded in the OpenEXR library" OFF)
+
 ########################
 ## Build related options
 

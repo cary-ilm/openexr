@@ -240,6 +240,27 @@ plugin require direct access to the C API from ``OpenEXRCore``, this
 solution does not work, and you'll have resort to other symbol-hidding
 mechanisms.
 
+Note that the custom build must also differ from the other version in
+the *internal* namespaces, i.e. the ones that end up in the compiled
+symbols, and in the library names. If the two libraries have the same
+name, the dynamic loader considers the plugin's library already loaded
+and resolves it to the application's. For example:
+
+.. code-block::
+
+    % cmake -DOPENEXR_FORCE_EMBEDDED_CORE=ON \
+            -DOPENEXR_INTERNAL_IMF_NAMESPACE=Imf_myplugin \
+            -DIEX_INTERNAL_NAMESPACE=Iex_myplugin \
+            -DILMTHREAD_INTERNAL_NAMESPACE=IlmThread_myplugin \
+            -DOPENEXR_NAMESPACE_CUSTOM=1 \
+            -DIEX_NAMESPACE_CUSTOM=1 \
+            -DILMTHREAD_NAMESPACE_CUSTOM=1 \
+            -DOPENEXR_LIB_SUFFIX=_myplugin \
+            ...
+
+The CI validates this configuration via
+``share/ci/scripts/test_embedded_core.sh``.
+
 Linux/macOS
 -----------
 
@@ -689,7 +710,8 @@ Component Options
   Option to build the ``OpenEXR`` library against a staticly-built
   ``OpenEXRCore`` library with symbols hidden. This allows the ``OpenEXR``
   library to be linked into an executable that already links against
-  another version of OpenEXR.  See :ref:`embedded-core-label` for more details.
+  another version of OpenEXR. Default is ``OFF``. See
+  :ref:`embedded-core-label` for more details.
   
 * ``BUILD_TESTING``
 

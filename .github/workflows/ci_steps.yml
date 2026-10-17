@@ -74,6 +74,8 @@ on:
         type: string
       validate_install:
         type: string
+      test_embedded_core:
+        type: string
       configure_install_prefix:
         type: string
 
@@ -601,6 +603,22 @@ jobs:
           else
             echo "skipping exrinfo, no tool found."
           fi
+        shell: bash
+
+      - name: Test embedded core
+        # Validate OPENEXR_FORCE_EMBEDDED_CORE: build a second, custom
+        # OpenEXR (embedded core, custom namespaces and library
+        # suffix), then run an application linked against the
+        # just-installed OpenEXR that loads a plugin linked against
+        # the custom one. Linux-only, and requires a shared-library
+        # build. See share/ci/scripts/test_embedded_core.sh.
+        if: inputs.test_embedded_core == 'ON' && runner.os == 'Linux'
+        env:
+          BUILD_TYPE: ${{ inputs.build-type }}
+        run: |
+          share/ci/scripts/test_embedded_core.sh "$WORKSPACE" "$INSTALL_DIR" "$WORKSPACE/_build.embedded_core" \
+              -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
         shell: bash
 
       - name: Test add_subdirectory
