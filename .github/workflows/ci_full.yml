@@ -514,6 +514,108 @@ jobs:
 
             ctest --test-dir _build --output-on-failure
 
+  linux_s390x:
+    name: 'Linux: s390x big-endian (QEMU)'
+    # Cross-compiles for s390x and runs the test suite under QEMU
+    # user-mode emulation, to exercise the big-endian code paths
+    # (EXR_HOST_IS_NOT_LITTLE_ENDIAN) that no other job covers. The
+    # test CMakeLists already prefix each test with
+    # CMAKE_CROSSCOMPILING_EMULATOR, so ctest runs every test binary
+    # through qemu-s390x. Note that s390x tolerates unaligned access,
+    # so this checks byte order, not alignment.
+    if: >-
+      github.event_name != 'schedule' ||
+      github.repository == 'AcademySoftwareFoundation/openexr'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install s390x cross toolchain and QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            g++-s390x-linux-gnu qemu-user ninja-build
+
+      - name: Configure
+        run: |
+          cmake -B _build -S . -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=Linux \
+            -DCMAKE_SYSTEM_PROCESSOR=s390x \
+            -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc \
+            -DCMAKE_CXX_COMPILER=s390x-linux-gnu-g++ \
+            -DCMAKE_FIND_ROOT_PATH=/usr/s390x-linux-gnu \
+            -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+            -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+            -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
+            -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
+            "-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu" \
+            -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
+            -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
+            -DOPENEXR_FORCE_INTERNAL_ZSTD=ON \
+            -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+            -DOPENEXR_BUILD_PYTHON=OFF \
+            -DOPENEXR_BUILD_EXAMPLES=OFF \
+            -DOPENEXR_INSTALL_DOCS=OFF \
+            -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build _build
+
+      - name: Test
+        run: ctest --test-dir _build --output-on-failure -j "$(nproc)"
+
+  linux_ubsan:
+    name: 'Linux: UBSan'
+    # Builds with the Undefined Behavior Sanitizer and runs the test
+    # suite, failing on the first report. This catches misaligned
+    # loads and stores (which x86-64, ARM64 and s390x all tolerate in
+    # hardware, so no other job detects them), as well as signed
+    # overflow, invalid shifts, out-of-range conversions and other
+    # undefined behavior. Dependencies are built internally so they
+    # are instrumented too.
+    if: >-
+      github.event_name != 'schedule' ||
+      github.repository == 'AcademySoftwareFoundation/openexr'
+    runs-on: ubuntu-24.04
+    env:
+      UBSAN_OPTIONS: print_stacktrace=1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build
+
+      - name: Configure
+        run: |
+          SAN="-fsanitize=undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer"
+          cmake -B _build -S . -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER=gcc \
+            -DCMAKE_CXX_COMPILER=g++ \
+            "-DCMAKE_C_FLAGS=${SAN}" \
+            "-DCMAKE_CXX_FLAGS=${SAN}" \
+            -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=undefined \
+            -DCMAKE_SHARED_LINKER_FLAGS=-fsanitize=undefined \
+            -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
+            -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
+            -DOPENEXR_FORCE_INTERNAL_ZSTD=ON \
+            -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+            -DOPENEXR_BUILD_PYTHON=OFF \
+            -DOPENEXR_BUILD_EXAMPLES=OFF \
+            -DOPENEXR_INSTALL_DOCS=OFF \
+            -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build _build
+
+      - name: Test
+        run: ctest --test-dir _build --output-on-failure -j "$(nproc)"
+
   wheels_build:
     name: 'Python Wheels: ${{ matrix.os }}-${{ matrix.arch }}'
     if: >-
