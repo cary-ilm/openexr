@@ -536,8 +536,12 @@ jobs:
     # (EXR_HOST_IS_NOT_LITTLE_ENDIAN) that no other job covers. The
     # test CMakeLists already prefix each test with
     # CMAKE_CROSSCOMPILING_EMULATOR, so ctest runs every test binary
-    # through qemu-s390x. Note that s390x tolerates unaligned access,
-    # so this checks byte order, not alignment.
+    # through qemu-s390x. The python-driven bin tests launch the
+    # binaries themselves, so qemu-user-binfmt registers QEMU with the
+    # kernel to run s390x executables transparently, with
+    # QEMU_LD_PREFIX locating the s390x dynamic loader and libraries.
+    # Note that s390x tolerates unaligned access, so this checks byte
+    # order, not alignment.
     if: >-
       github.event_name != 'schedule' ||
       github.repository == 'AcademySoftwareFoundation/openexr'
@@ -550,7 +554,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            g++-s390x-linux-gnu qemu-user ninja-build
+            g++-s390x-linux-gnu qemu-user qemu-user-binfmt ninja-build
 
       - name: Configure
         run: |
@@ -579,6 +583,8 @@ jobs:
         run: cmake --build _build
 
       - name: Test
+        env:
+          QEMU_LD_PREFIX: /usr/s390x-linux-gnu
         run: ctest --test-dir _build --output-on-failure -j "$(nproc)"
 
   linux_ubsan:
