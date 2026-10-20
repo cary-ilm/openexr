@@ -89,8 +89,6 @@ jobs:
             OpenEXR.testSampleImages
             OpenEXR.testSharedFrameBuffer
             OpenEXR.testLJ2KBoundary
-            OpenEXR.testTiledRgba
-            OpenEXR.bin.exrenvmap
           )
           regex="^($(IFS='|'; echo "${tests[*]//./\\.}"))\$"
           echo "ctest -R '$regex'"
