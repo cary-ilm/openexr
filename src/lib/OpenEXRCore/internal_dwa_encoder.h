@@ -1153,6 +1153,9 @@ LossyDctEncoder_execute (
 // given by the low byte. For example, 0xff03 would be a run
 // of 3 0's, starting at the current location.
 //
+// The AC values, run symbols included, are stored as XDR (little-endian)
+// 16-bit words, like the zigzagged coefficients in block.
+//
 // block is our block of 64 coefficients
 // acPtr a pointer to back the RLE'd values into.
 //
@@ -1219,7 +1222,7 @@ LossyDctEncoder_rleAc (LossyDctEncoder* e, uint16_t* block, uint16_t** acPtr)
             // Signal EOB
             //
 
-            *curAC++ = 0xff00;
+            *curAC++ = one_from_native16 (0xff00);
             e->_numAcComp++;
         }
         else
@@ -1228,7 +1231,7 @@ LossyDctEncoder_rleAc (LossyDctEncoder* e, uint16_t* block, uint16_t** acPtr)
             // Signal normal run
             //
 
-            *curAC++ = (uint16_t) 0xff00 | runLen;
+            *curAC++ = one_from_native16 ((uint16_t) (0xff00 | runLen));
             e->_numAcComp++;
         }
 

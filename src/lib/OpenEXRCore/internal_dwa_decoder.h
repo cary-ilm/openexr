@@ -136,7 +136,9 @@ LossyDctDecoder_unRleAc (
     while (dctComp < 64)
     {
         if (acComp >= packedAcEnd) { return EXR_ERR_CORRUPT_CHUNK; }
-        val = *acComp;
+        /* the AC stream is XDR; test for run symbols on the native value
+         * and copy coefficients through unchanged (still XDR) */
+        val = one_to_native16 (*acComp);
         if ((val & 0xff00) == 0xff00)
         {
             uint8_t count = val & 0xff;
@@ -151,7 +153,7 @@ LossyDctDecoder_unRleAc (
             // Not a run, just copy over the value
             //
             lnz                   = dctComp;
-            halfZigBlock[dctComp] = val;
+            halfZigBlock[dctComp] = *acComp;
 
             ++dctComp;
         }
