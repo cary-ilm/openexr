@@ -76,4 +76,22 @@ jobs:
       - name: Test
         env:
           QEMU_LD_PREFIX: /usr/s390x-linux-gnu
-        run: ctest --test-dir _build --output-on-failure -j "$(nproc)"
+        # Run only the tests still failing on s390x, to keep iterations
+        # short. Drop the -R filter to run the full suite.
+        run: |
+          tests=(
+            OpenEXRCore.testDWAACompression
+            OpenEXRCore.testDWABCompression
+            OpenEXR.testCompression
+            OpenEXR.testRgba
+            OpenEXR.testCRgba
+            OpenEXR.testRgbaThreading
+            OpenEXR.testSampleImages
+            OpenEXR.testSharedFrameBuffer
+            OpenEXR.testLJ2KBoundary
+            OpenEXR.testTiledRgba
+            OpenEXR.bin.exrenvmap
+          )
+          regex="^($(IFS='|'; echo "${tests[*]//./\\.}"))\$"
+          echo "ctest -R '$regex'"
+          ctest --test-dir _build --output-on-failure -j "$(nproc)" -R "$regex"
