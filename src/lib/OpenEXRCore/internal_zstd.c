@@ -785,10 +785,14 @@ get_row_sample_count_decode (
 {
     if (decode->sample_count_valid == 1 && decode->chunk.width > 0)
     {
+        /* While decompressing, the sample count table is still in file
+         * order (little-endian): decompress_data sets sample_count_valid
+         * once the table is decompressed, and unpack_sample_table only
+         * converts it to native order after pixel decompression. */
         for (int h = 0; h < decode->chunk.height; ++h)
-            row_sample_counts[h] =
-                (uint64_t) decode
-                    ->sample_count_table[(h + 1) * decode->chunk.width - 1];
+            row_sample_counts[h] = (uint64_t) read_u32_le (
+                (const uint8_t*) &decode->sample_count_table
+                    [(h + 1) * decode->chunk.width - 1]);
         return true;
     }
     return false;
