@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) Contributors to the OpenEXR Project.
+
+# TEMPORARY: big-endian (s390x) validation.
+#
+# This runs only the s390x emulation job, on its own, while the
+# big-endian test failures it exposes are being fixed. It is kept out of
+# ci_full.yml so that iterating on it does not trigger the Full Build.
+# Once the job passes, move it into ci_full.yml and delete this file.
+
+name: s390x (temporary)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  linux_s390x:
+    name: 'Linux: s390x big-endian (QEMU)'
+    # Cross-compiles for s390x and runs the test suite under QEMU
+    # user-mode emulation, to exercise the big-endian code paths
+    # (EXR_HOST_IS_NOT_LITTLE_ENDIAN) that no other job covers. The
+    # test CMakeLists already prefix each test with
+    # CMAKE_CROSSCOMPILING_EMULATOR, so ctest runs every test binary
+    # through qemu-s390x. The python-driven bin tests launch the
+    # binaries themselves, so qemu-user-binfmt registers QEMU with the
+    # kernel to run s390x executables transparently, with
+    # QEMU_LD_PREFIX locating the s390x dynamic loader and libraries.
+    # Note that s390x tolerates unaligned access, so this checks byte
+    # order, not alignment.
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install s390x cross toolchain and QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            g++-s390x-linux-gnu qemu-user qemu-user-binfmt ninja-build
+
+      - name: Configure
+        run: |
+          cmake -B _build -S . -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=Linux \
+            -DCMAKE_SYSTEM_PROCESSOR=s390x \
+            -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc \
+            -DCMAKE_CXX_COMPILER=s390x-linux-gnu-g++ \
+            -DCMAKE_FIND_ROOT_PATH=/usr/s390x-linux-gnu \
+            -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+            -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+            -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
+            -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
+            "-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu" \
+            -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
+            -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
+            -DOPENEXR_FORCE_INTERNAL_ZSTD=ON \
+            -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+            -DOPENEXR_BUILD_PYTHON=OFF \
+            -DOPENEXR_BUILD_EXAMPLES=OFF \
+            -DOPENEXR_INSTALL_DOCS=OFF \
+            -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build _build
+
+      - name: Test
+        env:
+          QEMU_LD_PREFIX: /usr/s390x-linux-gnu
+        run: ctest --test-dir _build --output-on-failure -j "$(nproc)"
