@@ -13,7 +13,14 @@ set -ex
 TAG="$1"
 
 # The sudo is nececessary since the installation goes to /usr/local.
-SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
+# Skip sudo on Windows (Git Bash/MSYS), which doesn't need it: some
+# runner images (e.g. windows-11-arm) have Windows' own sudo, but
+# disabled, so finding it doesn't mean it works.
+if [ "${OS:-}" = "Windows_NT" ]; then
+  SUDO=""
+else
+  SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
+fi
 
 # Resolve cmake's absolute path up front: sudo's secure_path can
 # differ from the invoking user's PATH.

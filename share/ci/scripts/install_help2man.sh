@@ -8,7 +8,14 @@ HELP2MAN_VERSION="1.49.3"
 HELP2MAN_URL="https://mirror.cs.odu.edu/gnu/help2man/help2man-$HELP2MAN_VERSION.tar.xz"
 HELP2MAN_DIR="help2man-$HELP2MAN_VERSION"
 
-SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
+# Skip sudo on Windows (Git Bash/MSYS), which doesn't need it: some
+# runner images (e.g. windows-11-arm) have Windows' own sudo, but
+# disabled, so finding it doesn't mean it works.
+if [ "${OS:-}" = "Windows_NT" ]; then
+  SUDO=""
+else
+  SUDO=$(command -v sudo >/dev/null 2>&1 && echo sudo || echo "")
+fi
 
 # Download help2man source code
 echo "Downloading help2man version $HELP2MAN_VERSION..."
