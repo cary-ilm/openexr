@@ -65,10 +65,17 @@ jobs:
           # excluded by a CMAKE_SIZEOF_VOID_P check in
           # src/lib/OpenEXRCore/CMakeLists.txt (CMAKE_SYSTEM_PROCESSOR alone
           # still reports the host's x86_64 processor under -m32).
+          #
+          # -msse2 -mfpmath=sse: cmake/OpenEXRSetup.cmake normally adds
+          # these automatically for 32-bit x86 (needed so compiled code
+          # generation matches runtime CPU-capability detection, see #2271),
+          # but only when CMAKE_SYSTEM_PROCESSOR reports i686/x86, which it
+          # does not under -m32 on an x86_64 host. Pass them explicitly here,
+          # matching what msys2-mingw32 CI already does.
           cmake -B _build -S . -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_FLAGS=-m32 \
-            -DCMAKE_CXX_FLAGS=-m32 \
+            -DCMAKE_C_FLAGS="-m32 -msse2 -mfpmath=sse" \
+            -DCMAKE_CXX_FLAGS="-m32 -msse2 -mfpmath=sse" \
             -DCMAKE_EXE_LINKER_FLAGS=-m32 \
             -DCMAKE_SHARED_LINKER_FLAGS=-m32 \
             -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
