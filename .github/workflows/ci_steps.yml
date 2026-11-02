@@ -52,6 +52,12 @@ on:
         type: string
       OPENEXR_IMATH_TAG:
         type: string
+      imath_version:
+        # The release version that OPENEXR_IMATH_TAG's SHA is expected
+        # to correspond to; used only to validate that cmake actually
+        # found that version (see the "Validate dependencies" step),
+        # not to control what's fetched/built.
+        type: string
       OPENEXR_FORCE_INTERNAL_DEFLATE:
         type: string
       OPENEXR_FORCE_INTERNAL_ZSTD:
@@ -95,6 +101,13 @@ jobs:
       CC: ${{ inputs.cc-compiler }}
       ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      # The release versions corresponding to the libdeflate/zstd SHAs
+      # pinned below ("Install libdeflate"/"Install zstd"), kept here
+      # so the "Validate dependencies" step can confirm cmake actually
+      # found that version, without duplicating the version as a
+      # separate literal.
+      DEFLATE_VERSION: "1.26"
+      ZSTD_VERSION: "1.5.7"
 
     steps:
 
@@ -333,7 +346,9 @@ jobs:
         shell: msys2 {0}
 
       - name: Install libdeflate
-        # Pre-install libdeflate so the builds validate that find_package sees the external installation
+        # Pre-install libdeflate so the builds validate that find_package sees the external installation.
+        # This SHA is expected to correspond to $DEFLATE_VERSION (see the "env:" block above),
+        # which "Validate dependencies" below uses to confirm cmake actually found it.
         if: inputs.OPENEXR_FORCE_INTERNAL_DEFLATE == 'OFF' && inputs.msystem == ''
         run: |
           set -x
@@ -342,7 +357,9 @@ jobs:
         shell: bash
 
       - name: Install zstd
-        # Pre-install zstd so the builds validate that find_package sees the external installation
+        # Pre-install zstd so the builds validate that find_package sees the external installation.
+        # This SHA is expected to correspond to $ZSTD_VERSION (see the "env:" block above),
+        # which "Validate dependencies" below uses to confirm cmake actually found it.
         if: inputs.OPENEXR_FORCE_INTERNAL_ZSTD == 'OFF' && inputs.msystem == ''
         run: |
           set -x
@@ -397,6 +414,12 @@ jobs:
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_ZSTD=${{ inputs.OPENEXR_FORCE_INTERNAL_ZSTD }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_OPENJPH=${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}")
+          # Whichever dependencies above aren't forced internal were
+          # explicitly pre-installed for this job (see the "Install ..."
+          # steps); make it a hard configure-time error, rather than a
+          # silent fallback to the vendored/fetched copy, if cmake
+          # doesn't actually find/accept one of them.
+          cmake_args+=("-DOPENEXR_DISABLE_VENDORED_FALLBACK=ON")
           cmake_args+=("-DBUILD_TESTING=${{ inputs.BUILD_TESTING }}")
           cmake_args+=("-DOPENEXR_RUN_FUZZ_TESTS=OFF")
           cmake_args+=("-DCMAKE_VERBOSE_MAKEFILE=ON")
@@ -477,6 +500,56 @@ jobs:
             "$CMAKE" --build "$BUILD_DIR" --target install --config ${{ inputs.build-type }} --parallel
           fi
         shell: msys2 {0}
+
+      - name: Validate dependencies
+        # Confirm that the build actually used the dependencies (Imath,
+        # libdeflate, zstd, OpenJPH) this job requested, instead of
+        # silently falling back to a vendored copy or picking up an
+        # unexpected version of an external one (see #2806). This
+        # reads the facts back out of the generated/installed config
+        # headers, rather than relying on cmake's configure-time log
+        # messages, since the OPENEXR_DISABLE_VENDORED_FALLBACK cmake
+        # logic that decides this is easy to break accidentally.
+        run: |
+          set -x
+          IMATH_VERSION_ARG=()
+          OPENJPH_VERSION_ARG=()
+          # MSYS2 ucrt64/clang64 jobs install Imath and OpenJPH via
+          # pacman packages (see "Determine MSYS2 Packages" above),
+          # which don't respect imath_version/openjph_version: it's
+          # whatever version MSYS2 currently packages. MINGW32 has no
+          # package for either, so it installs both from source via
+          # the scripts, same as non-MSYS2 jobs. So only check the
+          # exact version where CI actually controls it.
+          if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "OFF" && \
+                ( "${{ inputs.msystem }}" == "" || "${{ inputs.msystem }}" == "MINGW32" ) ]]; then
+            IMATH_VERSION_ARG=(--imath-version "${{ inputs.imath_version }}")
+          fi
+          if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}" == "OFF" && \
+                ( "${{ inputs.msystem }}" == "" || "${{ inputs.msystem }}" == "MINGW32" ) ]]; then
+            OPENJPH_VERSION_ARG=(--openjph-version "${{ inputs.openjph_version }}")
+          fi
+          DEFLATE_VERSION_ARG=()
+          ZSTD_VERSION_ARG=()
+          # All MSYS2 shells, including MINGW32, install libdeflate
+          # and zstd via pacman packages, so CI never controls their
+          # exact version there either.
+          if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}" == "OFF" && "${{ inputs.msystem }}" == "" ]]; then
+            DEFLATE_VERSION_ARG=(--deflate-version "$DEFLATE_VERSION")
+          fi
+          if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_ZSTD }}" == "OFF" && "${{ inputs.msystem }}" == "" ]]; then
+            ZSTD_VERSION_ARG=(--zstd-version "$ZSTD_VERSION")
+          fi
+          share/ci/scripts/validate_dependencies.py "$BUILD_DIR" "$INSTALL_DIR" \
+            --force-internal-imath "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" \
+            --force-internal-deflate "${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}" \
+            --force-internal-zstd "${{ inputs.OPENEXR_FORCE_INTERNAL_ZSTD }}" \
+            --force-internal-openjph "${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}" \
+            "${IMATH_VERSION_ARG[@]}" \
+            "${DEFLATE_VERSION_ARG[@]}" \
+            "${ZSTD_VERSION_ARG[@]}" \
+            "${OPENJPH_VERSION_ARG[@]}"
+        shell: bash
 
       - name: Test OpenEXR.pc
         # Validate that OpenEXR.pc works by compiling/linking the test program
@@ -662,6 +735,9 @@ jobs:
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_DEFLATE=${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_ZSTD=${{ inputs.OPENEXR_FORCE_INTERNAL_ZSTD }}")
           cmake_args+=("-DOPENEXR_FORCE_INTERNAL_OPENJPH=${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}")
+          # Same rationale as the main configure step above: fail hard
+          # at configure time instead of silently falling back.
+          cmake_args+=("-DOPENEXR_DISABLE_VENDORED_FALLBACK=ON")
           cmake_args+=("-DOPENEXR_BUILD_EXAMPLES=OFF")
           cmake_args+=("-DOPENEXR_BUILD_TOOLS=OFF")
           if [ -n "${{ inputs.CMAKE_OSX_ARCHITECTURES }}" ]; then

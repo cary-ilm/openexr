@@ -193,15 +193,21 @@ endif()
 ###############################
 # Dependent libraries
 
-# so we know how to add the thread stuff to the pkg-config package
-# which is the only (but good) reason.
+# Find Threads unconditionally (not just when OPENEXR_ENABLE_THREADING
+# is set), since it's needed for two reasons: to add the thread stuff
+# to the pkg-config package when threading is enabled, and because
+# OpenJPH's own exported CMake targets unconditionally reference
+# Threads::Threads in their link interface, regardless of whether
+# OpenEXR itself uses threading. Without this, find_package(openjph)
+# below fails at CMake generate time with "the target was not found"
+# when OPENEXR_ENABLE_THREADING is OFF and an external OpenJPH is used.
+if(NOT TARGET Threads::Threads)
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
+  find_package(Threads)
+endif()
 if(OPENEXR_ENABLE_THREADING)
-  if(NOT TARGET Threads::Threads)
-    set(THREADS_PREFER_PTHREAD_FLAG ON)
-    find_package(Threads)
-    if(NOT Threads_FOUND)
-      message(FATAL_ERROR "Unable to find a threading library, disable with OPENEXR_ENABLE_THREADING=OFF")
-    endif()
+  if(NOT Threads_FOUND)
+    message(FATAL_ERROR "Unable to find a threading library, disable with OPENEXR_ENABLE_THREADING=OFF")
   endif()
   if(OPENEXR_USE_TBB)
     find_package(TBB)
@@ -211,6 +217,12 @@ if(OPENEXR_ENABLE_THREADING)
   endif()
 endif()
 set (ILMTHREAD_USE_TBB ${OPENEXR_USE_TBB})
+
+# Applies to Imath, libdeflate, zstd, and OpenJPH, below: when a
+# dependency isn't forced internal (OPENEXR_FORCE_INTERNAL_<dep>) but no
+# compatible external copy is found, error out at configure time instead
+# of silently falling back to the vendored/fetched copy.
+option(OPENEXR_DISABLE_VENDORED_FALLBACK "Error out if a compatible external copy of a dependency isn't found, instead of silently falling back to the vendored/fetched copy" OFF)
 
 option(OPENEXR_FORCE_INTERNAL_DEFLATE "Force using an internal libdeflate" OFF)
 set (OPENEXR_USE_INTERNAL_DEFLATE OFF)
@@ -242,6 +254,12 @@ if(NOT OPENEXR_FORCE_INTERNAL_DEFLATE)
     endif()
   endif()
   set(CMAKE_IGNORE_PATH)
+
+  if(NOT EXR_DEFLATE_LIB AND OPENEXR_DISABLE_VENDORED_FALLBACK)
+    message(FATAL_ERROR
+      "OPENEXR_DISABLE_VENDORED_FALLBACK is set, but no external libdeflate "
+      "was found via find_package() or pkg-config.")
+  endif()
 endif()
 
 if(EXR_DEFLATE_LIB)
@@ -249,12 +267,26 @@ if(EXR_DEFLATE_LIB)
   message(STATUS "Using externally provided libdeflate: ${EXR_DEFLATE_VERSION}")
   # For OpenEXR.pc.in for static build
   set(EXR_DEFLATE_PKGCONFIG_REQUIRES "libdeflate >= ${EXR_DEFLATE_VERSION}")
+  string(REGEX MATCH "^([0-9]+)\\.([0-9]+)" _deflate_version_match "${EXR_DEFLATE_VERSION}")
+  set(deflate_VERSION_MAJOR "${CMAKE_MATCH_1}")
+  set(deflate_VERSION_MINOR "${CMAKE_MATCH_2}")
 else()
   # Using internal deflate
   if(OPENEXR_FORCE_INTERNAL_DEFLATE)
     message(STATUS "libdeflate forced internal, using vendored code")
   else()
     message(STATUS "libdeflate was not found, using vendored code")
+  endif()
+
+  # extract the libdeflate version variables from libdeflate.h
+  set(deflate_version "${CMAKE_CURRENT_SOURCE_DIR}/external/deflate/libdeflate.h")
+  if(EXISTS "${deflate_version}")
+    file(STRINGS "${deflate_version}" _deflate_major REGEX "#define LIBDEFLATE_VERSION_MAJOR")
+    file(STRINGS "${deflate_version}" _deflate_minor REGEX "#define LIBDEFLATE_VERSION_MINOR")
+    string(REGEX REPLACE ".*LIBDEFLATE_VERSION_MAJOR[ \t]+([0-9]+).*" "\\1" deflate_VERSION_MAJOR "${_deflate_major}")
+    string(REGEX REPLACE ".*LIBDEFLATE_VERSION_MINOR[ \t]+([0-9]+).*" "\\1" deflate_VERSION_MINOR "${_deflate_minor}")
+  else()
+    message(STATUS "can't find libdeflate.h: ${deflate_version}")
   endif()
 
   set (OPENEXR_USE_INTERNAL_DEFLATE ON)
@@ -267,25 +299,65 @@ endif()
 #######################################
 
 option(OPENEXR_FORCE_INTERNAL_OPENJPH "Force downloading OpenJPH from a git repo" OFF)
+set(OPENEXR_MINIMUM_OPENJPH_VERSION 0.32.0)
 
 set(OPENEXR_USE_INTERNAL_OPENJPH 0 CACHE INTERNAL
     "Whether OpenEXR bundles vendored OpenJPH into OpenEXRCore (0 or 1)")
 
 if (NOT OPENEXR_FORCE_INTERNAL_OPENJPH)
-  find_package(openjph 0.32.0 CONFIG QUIET)
-  if(openjph_FOUND)
+  # OpenJPH's generated config-version file uses COMPATIBILITY
+  # SameMinorVersion, so passing ${OPENEXR_MINIMUM_OPENJPH_VERSION} to
+  # find_package() wouldn't behave as a minimum: it would only match
+  # an install with that *exact* major.minor, silently rejecting a
+  # newer, compatible install (e.g. 0.33.0 when 0.32.0 is requested).
+  # So look up whatever is installed, unconstrained, and check the
+  # version ourselves so any version >= OPENEXR_MINIMUM_OPENJPH_VERSION
+  # is accepted.
+  find_package(openjph CONFIG QUIET)
+  if(openjph_FOUND AND openjph_VERSION VERSION_GREATER_EQUAL OPENEXR_MINIMUM_OPENJPH_VERSION)
     message(STATUS "Using OpenJPH ${openjph_VERSION} from ${openjph_DIR}")
     set(EXR_OPENJPH_LIB openjph)
   else()
+    if(openjph_FOUND)
+      message(WARNING
+        "Found OpenJPH ${openjph_VERSION} at ${openjph_DIR}, but it is not "
+        "compatible with the required version "
+        "(${OPENEXR_MINIMUM_OPENJPH_VERSION}). Falling back to the "
+        "vendored copy. Set -DOPENEXR_DISABLE_VENDORED_FALLBACK=ON to turn "
+        "this into a configure-time error instead.")
+      unset(openjph_FOUND)
+      unset(openjph_VERSION)
+      unset(openjph_DIR)
+    endif()
+
     # If not found, try pkgconfig
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)
       include(FindPkgConfig)
-      pkg_check_modules(openjph IMPORTED_TARGET GLOBAL QUIET openjph=0.32.0)
+      pkg_check_modules(openjph IMPORTED_TARGET GLOBAL QUIET "openjph>=${OPENEXR_MINIMUM_OPENJPH_VERSION}")
       if(openjph_FOUND)
         set(EXR_OPENJPH_LIB PkgConfig::openjph)
         message(STATUS "Using OpenJPH ${openjph_VERSION} from ${openjph_LINK_LIBRARIES}")
+      else()
+        # Same idea as above: check, without a version constraint, whether
+        # pkg-config knows about an incompatible openjph so we can report it.
+        pkg_check_modules(openjph_any QUIET openjph)
+        if(openjph_any_FOUND)
+          message(WARNING
+            "Found OpenJPH ${openjph_any_VERSION} via pkg-config, but it "
+            "does not satisfy the required version "
+            "(>= ${OPENEXR_MINIMUM_OPENJPH_VERSION}). Falling back to the "
+            "vendored copy. Set -DOPENEXR_DISABLE_VENDORED_FALLBACK=ON to "
+            "turn this into a configure-time error instead.")
+        endif()
       endif()
+    endif()
+
+    if(NOT EXR_OPENJPH_LIB AND OPENEXR_DISABLE_VENDORED_FALLBACK)
+      message(FATAL_ERROR
+        "OPENEXR_DISABLE_VENDORED_FALLBACK is set, but no compatible "
+        "external OpenJPH (>= ${OPENEXR_MINIMUM_OPENJPH_VERSION}) was "
+        "found via find_package() or pkg-config.")
     endif()
   endif()
 endif()
@@ -293,7 +365,7 @@ endif()
 if(EXR_OPENJPH_LIB)
   # Using external library
   # For OpenEXR.pc.in for static build
-  set(EXR_OPENJPH_PKGCONFIG_REQUIRES "openjph >= 0.32.0")
+  set(EXR_OPENJPH_PKGCONFIG_REQUIRES "openjph >= ${OPENEXR_MINIMUM_OPENJPH_VERSION}")
 else()
   # Using internal openjph
   set(OPENEXR_USE_INTERNAL_OPENJPH 1 CACHE INTERNAL
@@ -334,6 +406,7 @@ endif()
 #######################################
 
 option(OPENEXR_FORCE_INTERNAL_IMATH "Force using an internal imath" OFF)
+set(OPENEXR_USE_INTERNAL_IMATH OFF)
 # Check to see if Imath is installed outside of the current build directory.
 set(OPENEXR_IMATH_REPO "https://github.com/AcademySoftwareFoundation/Imath.git" CACHE STRING "Repo for auto-build of Imath")
 set(OPENEXR_IMATH_TAG "main" CACHE STRING "Tag for auto-build of Imath (branch, tag, or SHA)")
@@ -342,6 +415,13 @@ if(NOT OPENEXR_FORCE_INTERNAL_IMATH)
   set(CMAKE_IGNORE_PATH "${CMAKE_CURRENT_BINARY_DIR}/_deps/imath-src/config;${CMAKE_CURRENT_BINARY_DIR}/_deps/imath-build/config")
   find_package(Imath 3.1 CONFIG QUIET)
   set(CMAKE_IGNORE_PATH)
+
+  if(NOT TARGET Imath::Imath AND NOT Imath_FOUND AND OPENEXR_DISABLE_VENDORED_FALLBACK)
+    message(FATAL_ERROR
+      "OPENEXR_DISABLE_VENDORED_FALLBACK is set, but no external Imath (>= "
+      "3.1) was found via find_package(); refusing to fetch it from "
+      "${OPENEXR_IMATH_REPO}.")
+  endif()
 endif()
 
 if(NOT TARGET Imath::Imath AND NOT Imath_FOUND)
@@ -350,6 +430,7 @@ if(NOT TARGET Imath::Imath AND NOT Imath_FOUND)
   else()
     message(STATUS "Imath was not found, fetching from ${OPENEXR_IMATH_REPO} @ ${OPENEXR_IMATH_TAG}")
   endif()
+  set(OPENEXR_USE_INTERNAL_IMATH ON)
   include(FetchContent)
   FetchContent_Declare(Imath
     GIT_REPOSITORY "${OPENEXR_IMATH_REPO}"
@@ -433,6 +514,13 @@ if(NOT OPENEXR_FORCE_INTERNAL_ZSTD)
         message(STATUS "Using zstd ${EXR_ZSTD_VERSION} from ${libzstd_LINK_LIBRARIES}")
       endif()
     endif()
+  endif()
+
+  if(NOT EXR_ZSTD_LIB AND OPENEXR_DISABLE_VENDORED_FALLBACK)
+    message(FATAL_ERROR
+      "OPENEXR_DISABLE_VENDORED_FALLBACK is set, but no external zstd (>= "
+      "${OPENEXR_MINIMUM_ZSTD_VERSION}) was found via find_package() or "
+      "pkg-config.")
   endif()
 endif()
 

@@ -531,6 +531,30 @@ Library Naming Options
   libraries. Default is ``-<major>_<minor>`` version string. Please
   see the section on library names
 
+Vendored Dependency Resolution
+------------------------------
+
+OpenEXR depends on Imath, ``libdeflate``, ``zstd``, and ``OpenJPH``
+(see the per-dependency sections below). For each of these, at
+configuration time, CMake looks for a compatible external
+installation and uses it if found; otherwise it falls back to an
+internal "vendored"/fetched copy (``OPENEXR_FORCE_INTERNAL_IMATH``,
+``OPENEXR_FORCE_INTERNAL_DEFLATE``, ``OPENEXR_FORCE_INTERNAL_ZSTD``,
+and ``OPENEXR_FORCE_INTERNAL_OPENJPH`` force the internal copy
+unconditionally, bypassing the search for an external installation).
+
+* ``OPENEXR_DISABLE_VENDORED_FALLBACK``
+
+  If set to ``ON``, turn the fallback-to-vendored-copy behavior,
+  described above, into a configure-time error instead, for any
+  dependency that isn't explicitly forced internal via its own
+  ``OPENEXR_FORCE_INTERNAL_<DEP>`` option. This is useful when you
+  need to be certain a build only ever uses the external copies of
+  dependencies you've installed, rather than silently and perhaps
+  unexpectedly falling back to the vendored copy, e.g. if the
+  external installation isn't found, or is found but doesn't meet the
+  minimum required version. Default is ``OFF``.
+
 Imath Dependency
 ----------------
 
