@@ -50,22 +50,45 @@ on:
         type: string
       OPENEXR_FORCE_INTERNAL_IMATH:
         type: string
+      # Every external dependency below is pinned the same way: a SHA
+      # (the actual git ref installed/fetched; immutable, unlike a tag)
+      # paired with a human-readable version that the SHA is expected
+      # to correspond to. The version is used only to validate that
+      # cmake actually found that version (see the "Validate
+      # dependencies" step), not to control what's fetched/built. Each
+      # pair's default here is the single source of truth for that
+      # pin, so callers don't need to repeat it; a job's matrix entry
+      # can still override both to test a different version.
       OPENEXR_IMATH_TAG:
         type: string
+        default: 5f27ba266d3ea1565e912570c30b5eafc89959f1 # v3.2.3
       imath_version:
-        # The release version that OPENEXR_IMATH_TAG's SHA is expected
-        # to correspond to; used only to validate that cmake actually
-        # found that version (see the "Validate dependencies" step),
-        # not to control what's fetched/built.
         type: string
+        default: 3.2.3
       OPENEXR_FORCE_INTERNAL_DEFLATE:
         type: string
+      deflate_sha:
+        type: string
+        default: 92e6a0db9fa848d742f9eb286c92afc60f2c3dda # v1.26
+      deflate_version:
+        type: string
+        default: "1.26"
       OPENEXR_FORCE_INTERNAL_ZSTD:
         type: string
+      zstd_sha:
+        type: string
+        default: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+      zstd_version:
+        type: string
+        default: "1.5.7"
       OPENEXR_FORCE_INTERNAL_OPENJPH:
         type: string
+      openjph_sha:
+        type: string
+        default: 23c422895ce6c3a156935222e4715ee0b7be952c # 0.32.0
       openjph_version:
         type: string
+        default: 0.32.0
       CMAKE_OSX_ARCHITECTURES:
         type: string
       CMAKE_GENERATOR_PLATFORM:
@@ -101,13 +124,6 @@ jobs:
       CC: ${{ inputs.cc-compiler }}
       ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-      # The release versions corresponding to the libdeflate/zstd SHAs
-      # pinned below ("Install libdeflate"/"Install zstd"), kept here
-      # so the "Validate dependencies" step can confirm cmake actually
-      # found that version, without duplicating the version as a
-      # separate literal.
-      DEFLATE_VERSION: "1.26"
-      ZSTD_VERSION: "1.5.7"
 
     steps:
 
@@ -347,32 +363,34 @@ jobs:
 
       - name: Install libdeflate
         # Pre-install libdeflate so the builds validate that find_package sees the external installation.
-        # This SHA is expected to correspond to $DEFLATE_VERSION (see the "env:" block above),
+        # This SHA is expected to correspond to inputs.deflate_version,
         # which "Validate dependencies" below uses to confirm cmake actually found it.
         if: inputs.OPENEXR_FORCE_INTERNAL_DEFLATE == 'OFF' && inputs.msystem == ''
         run: |
           set -x
-          share/ci/scripts/install_libdeflate.sh 92e6a0db9fa848d742f9eb286c92afc60f2c3dda # v1.26
+          share/ci/scripts/install_libdeflate.sh ${{ inputs.deflate_sha }}
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/libdeflate/bin:$PROGRAM_FILES/libdeflate/lib" >> "$GITHUB_ENV"
         shell: bash
 
       - name: Install zstd
         # Pre-install zstd so the builds validate that find_package sees the external installation.
-        # This SHA is expected to correspond to $ZSTD_VERSION (see the "env:" block above),
+        # This SHA is expected to correspond to inputs.zstd_version,
         # which "Validate dependencies" below uses to confirm cmake actually found it.
         if: inputs.OPENEXR_FORCE_INTERNAL_ZSTD == 'OFF' && inputs.msystem == ''
         run: |
           set -x
-          share/ci/scripts/install_zstd.sh f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          share/ci/scripts/install_zstd.sh ${{ inputs.zstd_sha }}
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/zstd/bin:$PROGRAM_FILES/zstd/lib" >> "$GITHUB_ENV"
         shell: bash
 
       - name: Install OpenJPH
-        # Pre-install OpenJPH so the builds validate finding the external installation
+        # Pre-install OpenJPH so the builds validate finding the external installation.
+        # This SHA is expected to correspond to inputs.openjph_version,
+        # which "Validate dependencies" below uses to confirm cmake actually found it.
         if: inputs.OPENEXR_FORCE_INTERNAL_OPENJPH == 'OFF' && inputs.msystem == ''
         run: |
           set -x
-          share/ci/scripts/install_openjph.sh ${{ inputs.openjph_version }}
+          share/ci/scripts/install_openjph.sh ${{ inputs.openjph_sha }}
           echo "OPENEXR_PATH=$OPENEXR_PATH:$PROGRAM_FILES/openjph/bin:$PROGRAM_FILES/openjph/lib" >> "$GITHUB_ENV"
         shell: bash
 
@@ -381,7 +399,7 @@ jobs:
         if: inputs.OPENEXR_FORCE_INTERNAL_OPENJPH == 'OFF' && inputs.msystem == 'MINGW32'
         run: |
           set -x
-          share/ci/scripts/install_openjph.sh ${{ inputs.openjph_version }}
+          share/ci/scripts/install_openjph.sh ${{ inputs.openjph_sha }}
         shell: msys2 {0}
 
       - name: Install help2man
@@ -535,10 +553,10 @@ jobs:
           # and zstd via pacman packages, so CI never controls their
           # exact version there either.
           if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}" == "OFF" && "${{ inputs.msystem }}" == "" ]]; then
-            DEFLATE_VERSION_ARG=(--deflate-version "$DEFLATE_VERSION")
+            DEFLATE_VERSION_ARG=(--deflate-version "${{ inputs.deflate_version }}")
           fi
           if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_ZSTD }}" == "OFF" && "${{ inputs.msystem }}" == "" ]]; then
-            ZSTD_VERSION_ARG=(--zstd-version "$ZSTD_VERSION")
+            ZSTD_VERSION_ARG=(--zstd-version "${{ inputs.zstd_version }}")
           fi
           share/ci/scripts/validate_dependencies.py "$BUILD_DIR" "$INSTALL_DIR" \
             --force-internal-imath "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" \
