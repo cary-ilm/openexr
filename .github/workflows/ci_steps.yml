@@ -50,45 +50,35 @@ on:
         type: string
       OPENEXR_FORCE_INTERNAL_IMATH:
         type: string
-      # Every external dependency below is pinned the same way: a SHA
-      # (the actual git ref installed/fetched; immutable, unlike a tag)
-      # paired with a human-readable version that the SHA is expected
-      # to correspond to. The version is used only to validate that
-      # cmake actually found that version (see the "Validate
-      # dependencies" step), not to control what's fetched/built. Each
-      # pair's default here is the single source of truth for that
+      # Every external dependency below is pinned by a SHA: the actual
+      # git ref installed/fetched, immutable unlike a tag. The SHA is
+      # expected to correspond to a tagged GitHub release; the
+      # "Install <dep>" steps derive that release's version directly
+      # from the SHA's matching git tag (via `git describe --tags
+      # --exact-match`) for the "Validate dependencies" step below to
+      # check against what cmake actually found, so the version isn't
+      # also hand-maintained here as a separate, redundant input. Each
+      # SHA's default here is the single source of truth for that
       # pin, so callers don't need to repeat it; a job's matrix entry
-      # can still override both to test a different version.
+      # can still override it to test a different version.
       OPENEXR_IMATH_TAG:
         type: string
         default: 5f27ba266d3ea1565e912570c30b5eafc89959f1 # v3.2.3
-      imath_version:
-        type: string
-        default: 3.2.3
       OPENEXR_FORCE_INTERNAL_DEFLATE:
         type: string
       deflate_sha:
         type: string
         default: 92e6a0db9fa848d742f9eb286c92afc60f2c3dda # v1.26
-      deflate_version:
-        type: string
-        default: "1.26"
       OPENEXR_FORCE_INTERNAL_ZSTD:
         type: string
       zstd_sha:
         type: string
         default: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
-      zstd_version:
-        type: string
-        default: "1.5.7"
       OPENEXR_FORCE_INTERNAL_OPENJPH:
         type: string
       openjph_sha:
         type: string
         default: 23c422895ce6c3a156935222e4715ee0b7be952c # 0.32.0
-      openjph_version:
-        type: string
-        default: 0.32.0
       CMAKE_OSX_ARCHITECTURES:
         type: string
       CMAKE_GENERATOR_PLATFORM:
@@ -345,7 +335,11 @@ jobs:
         shell: bash
 
       - name: Install Imath
-        # Pre-install Imath so the builds validate that find_package sees the external installation
+        # Pre-install Imath so the builds validate that find_package
+        # sees the external installation. The script itself records
+        # the release version this SHA corresponds to (IMATH_VERSION),
+        # which "Validate dependencies" below uses to confirm cmake
+        # actually found it.
         if: inputs.OPENEXR_FORCE_INTERNAL_IMATH == 'OFF' && inputs.msystem == ''
         run: |
           set -x
@@ -363,8 +357,9 @@ jobs:
 
       - name: Install libdeflate
         # Pre-install libdeflate so the builds validate that find_package sees the external installation.
-        # This SHA is expected to correspond to inputs.deflate_version,
-        # which "Validate dependencies" below uses to confirm cmake actually found it.
+        # The script itself records the release version this SHA
+        # corresponds to (DEFLATE_VERSION), which "Validate
+        # dependencies" below uses to confirm cmake actually found it.
         if: inputs.OPENEXR_FORCE_INTERNAL_DEFLATE == 'OFF' && inputs.msystem == ''
         run: |
           set -x
@@ -374,8 +369,9 @@ jobs:
 
       - name: Install zstd
         # Pre-install zstd so the builds validate that find_package sees the external installation.
-        # This SHA is expected to correspond to inputs.zstd_version,
-        # which "Validate dependencies" below uses to confirm cmake actually found it.
+        # The script itself records the release version this SHA
+        # corresponds to (ZSTD_VERSION), which "Validate dependencies"
+        # below uses to confirm cmake actually found it.
         if: inputs.OPENEXR_FORCE_INTERNAL_ZSTD == 'OFF' && inputs.msystem == ''
         run: |
           set -x
@@ -385,8 +381,9 @@ jobs:
 
       - name: Install OpenJPH
         # Pre-install OpenJPH so the builds validate finding the external installation.
-        # This SHA is expected to correspond to inputs.openjph_version,
-        # which "Validate dependencies" below uses to confirm cmake actually found it.
+        # The script itself records the release version this SHA
+        # corresponds to (OPENJPH_VERSION), which "Validate
+        # dependencies" below uses to confirm cmake actually found it.
         if: inputs.OPENEXR_FORCE_INTERNAL_OPENJPH == 'OFF' && inputs.msystem == ''
         run: |
           set -x
@@ -534,18 +531,19 @@ jobs:
           OPENJPH_VERSION_ARG=()
           # MSYS2 ucrt64/clang64 jobs install Imath and OpenJPH via
           # pacman packages (see "Determine MSYS2 Packages" above),
-          # which don't respect imath_version/openjph_version: it's
+          # so $IMATH_VERSION/$OPENJPH_VERSION (set by the "Install
+          # ..." steps themselves when they run) aren't set: it's
           # whatever version MSYS2 currently packages. MINGW32 has no
           # package for either, so it installs both from source via
           # the scripts, same as non-MSYS2 jobs. So only check the
           # exact version where CI actually controls it.
           if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" == "OFF" && \
                 ( "${{ inputs.msystem }}" == "" || "${{ inputs.msystem }}" == "MINGW32" ) ]]; then
-            IMATH_VERSION_ARG=(--imath-version "${{ inputs.imath_version }}")
+            IMATH_VERSION_ARG=(--imath-version "$IMATH_VERSION")
           fi
           if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_OPENJPH }}" == "OFF" && \
                 ( "${{ inputs.msystem }}" == "" || "${{ inputs.msystem }}" == "MINGW32" ) ]]; then
-            OPENJPH_VERSION_ARG=(--openjph-version "${{ inputs.openjph_version }}")
+            OPENJPH_VERSION_ARG=(--openjph-version "$OPENJPH_VERSION")
           fi
           DEFLATE_VERSION_ARG=()
           ZSTD_VERSION_ARG=()
@@ -553,10 +551,10 @@ jobs:
           # and zstd via pacman packages, so CI never controls their
           # exact version there either.
           if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_DEFLATE }}" == "OFF" && "${{ inputs.msystem }}" == "" ]]; then
-            DEFLATE_VERSION_ARG=(--deflate-version "${{ inputs.deflate_version }}")
+            DEFLATE_VERSION_ARG=(--deflate-version "$DEFLATE_VERSION")
           fi
           if [[ "${{ inputs.OPENEXR_FORCE_INTERNAL_ZSTD }}" == "OFF" && "${{ inputs.msystem }}" == "" ]]; then
-            ZSTD_VERSION_ARG=(--zstd-version "${{ inputs.zstd_version }}")
+            ZSTD_VERSION_ARG=(--zstd-version "$ZSTD_VERSION")
           fi
           share/ci/scripts/validate_dependencies.py "$BUILD_DIR" "$INSTALL_DIR" \
             --force-internal-imath "${{ inputs.OPENEXR_FORCE_INTERNAL_IMATH }}" \
