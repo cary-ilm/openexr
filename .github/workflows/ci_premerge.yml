@@ -462,6 +462,65 @@ jobs:
             # OS/toolchain/libc-dependent behavior
             ctest --test-dir _build --output-on-failure -L portability
 
+  linux_asan_ubsan:
+    name: 'Linux: ASan + UBSan'
+    # Builds with the Address and Undefined Behavior Sanitizers and runs
+    # the test suite, failing on the first report. ASan catches buffer
+    # overflows, use-after-free and double frees; UBSan catches
+    # misaligned loads and stores (which x86-64, ARM64 and s390x all
+    # tolerate in hardware, so no other job detects them), signed
+    # overflow, invalid shifts and other undefined behavior.
+    # _GLIBCXX_ASSERTIONS adds bounds checks to the C++ standard library
+    # containers. Leak detection is off for now: the tests are not
+    # leak-clean. Dependencies are built internally so they are
+    # instrumented too.
+    if: >-
+      github.event_name != 'schedule' ||
+      github.repository == 'AcademySoftwareFoundation/openexr'
+    runs-on: ubuntu-24.04
+    env:
+      ASAN_OPTIONS: detect_leaks=0
+      UBSAN_OPTIONS: print_stacktrace=1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build
+
+      - name: Reduce ASLR entropy for the sanitizer runtimes
+        # The runner's vm.mmap_rnd_bits=32 makes GCC 13's sanitizer
+        # runtimes fail to map their shadow memory.
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+
+      - name: Configure
+        run: |
+          SAN="-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer"
+          cmake -B _build -S . -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER=gcc \
+            -DCMAKE_CXX_COMPILER=g++ \
+            "-DCMAKE_C_FLAGS=${SAN}" \
+            "-DCMAKE_CXX_FLAGS=${SAN} -D_GLIBCXX_ASSERTIONS" \
+            -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined \
+            -DCMAKE_SHARED_LINKER_FLAGS=-fsanitize=address,undefined \
+            -DOPENEXR_FORCE_INTERNAL_IMATH=ON \
+            -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
+            -DOPENEXR_FORCE_INTERNAL_ZSTD=ON \
+            -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+            -DOPENEXR_BUILD_PYTHON=OFF \
+            -DOPENEXR_BUILD_EXAMPLES=OFF \
+            -DOPENEXR_INSTALL_DOCS=OFF \
+            -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build _build
+
+      - name: Test
+        run: ctest --test-dir _build --output-on-failure -j "$(nproc)"
+
   wheels_build:
     name: 'Python Wheels: ${{ matrix.os }}-${{ matrix.arch }}'
     runs-on: ${{ matrix.os }}
