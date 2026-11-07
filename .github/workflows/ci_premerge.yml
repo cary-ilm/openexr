@@ -231,6 +231,19 @@ jobs:
             validate_install: 'OFF'
             test_category: 'portability'
 
+          - name: openjph 0.33.0
+            # Build against a system OpenJPH newer than the minimum
+            # (OPENEXR_MINIMUM_OPENJPH_VERSION) to exercise the
+            # accept-a-newer-OpenJPH path and guard against the silent
+            # vendored fallback of #2806. Everything else matches the
+            # default "Release" build, so validate_install is OFF (no
+            # install-manifest reference of its own is needed); the
+            # "Validate dependencies" step still runs and confirms the
+            # build used the external 0.33.0 instead of the vendored copy.
+            openjph_version: '0.33.0'
+            validate_install: 'OFF'
+            test_category: 'portability'
+
   macOS:
     name: 'macOS: ${{ matrix.name }}'
     if: github.event.pull_request.draft != true
