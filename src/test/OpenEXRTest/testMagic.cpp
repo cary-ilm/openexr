@@ -31,7 +31,7 @@
 using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 
-namespace
+namespace testMagic_internal
 {
 
 void
@@ -178,6 +178,8 @@ testUtf8Filename (const std::string& tempDir)
 void
 testMagic (const std::string& tempDir)
 {
+    using namespace testMagic_internal;
+
     try
     {
         cout << "Testing magic number" << endl;

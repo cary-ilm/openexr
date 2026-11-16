@@ -33,7 +33,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testTiledRgba_internal
 {
 
 void
@@ -900,6 +900,8 @@ writeReadLayers (const std::string& tempDir)
 void
 testTiledRgba (const std::string& tempDir)
 {
+    using namespace testTiledRgba_internal;
+
     try
     {
         cout << "Testing the tiled RGBA image interface" << endl;

@@ -33,7 +33,7 @@ using namespace std;
 using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
-namespace
+namespace testDeepScanLineHuge_internal
 {
 
 const int  width  = 8193;
@@ -384,6 +384,8 @@ readWriteTest (
 void
 testDeepScanLineHuge (const std::string& tempDir)
 {
+    using namespace testDeepScanLineHuge_internal;
+
     try
     {
         cout

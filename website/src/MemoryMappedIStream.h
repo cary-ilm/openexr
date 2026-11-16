@@ -3,6 +3,9 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
+#pragma once
+
+
 #include "IStream.h"
 
 class MemoryMappedIStream : public IStream

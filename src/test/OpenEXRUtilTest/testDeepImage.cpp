@@ -23,7 +23,7 @@ using namespace IMATH_NAMESPACE;
 using namespace IEX_NAMESPACE;
 using namespace std;
 
-namespace
+namespace DeepImageUtilTest
 {
 
 template <class T>
@@ -830,11 +830,13 @@ testOriginOverflow ()
     remove (fileName.c_str ());
 }
 
-} // namespace
+} // namespace DeepImageUtilTest
 
 void
 testDeepImage (const string& tempDir)
 {
+    using namespace DeepImageUtilTest;
+
     try
     {
         cout << "Testing class DeepImage" << endl;

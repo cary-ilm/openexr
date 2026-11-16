@@ -30,7 +30,7 @@ using namespace std;
 using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
-namespace
+namespace testLargeDataWindowOffsets_internal
 {
 
 using OPENEXR_IMF_NAMESPACE::FLOAT;
@@ -383,6 +383,8 @@ test (int testCount)
 void
 testLargeDataWindowOffsets (const std::string& tempDir)
 {
+    using namespace testLargeDataWindowOffsets_internal;
+
     filename = tempDir + "imf_test_interleave_patterns.exr";
 
     random_reseed (1);

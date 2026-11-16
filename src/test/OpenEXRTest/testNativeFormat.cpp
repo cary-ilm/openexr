@@ -24,7 +24,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testNativeFormat_internal
 {
 
 void
@@ -269,6 +269,8 @@ readCopyRead (
 void
 testNativeFormat (const std::string& tempDir)
 {
+    using namespace testNativeFormat_internal;
+
     try
     {
         cout << "Testing if incompressible pixel data are written "

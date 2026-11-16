@@ -17,7 +17,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testIsComplete_internal
 {
 
 void
@@ -114,6 +114,8 @@ checkFiles (
 void
 testIsComplete (const std::string& tempDir)
 {
+    using namespace testIsComplete_internal;
+
     try
     {
         cout << "Testing isComplete() function" << endl;

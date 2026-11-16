@@ -25,7 +25,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testLineOrder_internal
 {
 
 void
@@ -166,6 +166,8 @@ writeRead (
 void
 testLineOrder (const std::string& tempDir)
 {
+    using namespace testLineOrder_internal;
+
     try
     {
         cout << "Testing line order and random access to scan lines" << endl;

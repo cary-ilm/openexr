@@ -26,7 +26,7 @@
 
 #include "tmpDir.h"
 
-namespace
+namespace testDeepScanLineMultipleRead_internal
 {
 
 using std::cout;
@@ -196,6 +196,8 @@ read_file (const char* filename)
 void
 testDeepScanLineMultipleRead (const std::string& tempDir)
 {
+    using namespace testDeepScanLineMultipleRead_internal;
+
 
     cout << "\n\nTesting random re-reads from deep scanline file:\n" << endl;
 

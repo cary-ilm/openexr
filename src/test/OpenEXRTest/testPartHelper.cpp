@@ -21,7 +21,7 @@ using std::endl;
 using std::max;
 using std::vector;
 
-namespace
+namespace testPartHelper_internal
 {
 
 template <class T>
@@ -153,6 +153,8 @@ testMultiView ()
 void
 testPartHelper (const std::string& tempDir)
 {
+    using namespace testPartHelper_internal;
+
 
     cout << "\n\nTesting part helper\n" << endl;
 

@@ -29,7 +29,7 @@ namespace
 {
 
 void
-fpeHandler (int type, const char explanation[])
+mathExcFpeHandler (int type, const char explanation[])
 {
     switch (type)
     {
@@ -55,7 +55,7 @@ mathExcOn (int when)
     debug ("mathExcOn (when = 0x" << std::hex << when << ")\n");
 
     setFpExceptions (when);
-    setFpExceptionHandler (fpeHandler);
+    setFpExceptionHandler (mathExcFpeHandler);
 }
 
 int

@@ -22,13 +22,13 @@ namespace IMF = OPENEXR_IMF_NAMESPACE;
 using namespace IMF;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace deep_internal
 {
 
 static void
-err_cb (exr_const_context_t f, int code, const char* msg)
+deepErrCb (exr_const_context_t f, int code, const char* msg)
 {
-    std::cerr << "err_cb ERROR " << code << ": " << msg << std::endl;
+    std::cerr << "deepErrCb ERROR " << code << ": " << msg << std::endl;
 }
 
 const int width  = 273;
@@ -367,16 +367,17 @@ generateRandomTileFile (
     std::cout << "   --> done" << std::endl;
 }
 
-} // namespace
+} // namespace deep_internal
 
 void
 testOpenDeep (const std::string& tempdir)
 {
+    using namespace deep_internal;
     std::string fn = tempdir;
 
     exr_context_t             f;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &deepErrCb;
 
     fn += "randomtempdeep.exr";
 
@@ -410,11 +411,12 @@ testOpenDeep (const std::string& tempdir)
 void
 testReadDeep (const std::string& tempdir)
 {
+    using namespace deep_internal;
     std::string fn = tempdir;
 
     exr_context_t             f;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &deepErrCb;
 
     fn += "randomtempdeep.exr";
 
@@ -510,6 +512,7 @@ static exr_result_t
 decodeDeepZstdTile (
     const std::string& tempdir, const int32_t counts[3], uint16_t decode_flags)
 {
+    using namespace deep_internal;
     //
     // A single 1x3 deep tile (channels A half, B float), ZSTD compressed. The
     // 12-byte sample count table (100, 10, -10) is stored uncompressed and
@@ -586,7 +589,7 @@ decodeDeepZstdTile (
 
     exr_context_t             f;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &deepErrCb;
 
     EXRCORE_TEST_RVAL (exr_start_read (&f, fn.c_str (), &cinit));
 
@@ -650,11 +653,12 @@ testDeepZstdValidSampleCounts (const std::string& tempdir)
 void
 testDeepScanlineZeroSampleCountLeader (const std::string& tempdir)
 {
+    using namespace deep_internal;
     std::string fn = tempdir + "deepscanzerotable.exr";
     generateRandomScanFile (fn, 3, ZIPS_COMPRESSION);
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &deepErrCb;
 
     // Every generated scanline carries at least one sample per pixel, so the
     // middle chunk's leader has non-zero sample-count-table / packed /

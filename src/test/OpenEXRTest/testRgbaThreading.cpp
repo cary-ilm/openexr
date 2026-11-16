@@ -26,7 +26,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testRgbaThreading_internal
 {
 
 Rand32 rand1 (27);
@@ -178,6 +178,8 @@ writeReadRGBA (
 void
 testRgbaThreading (const std::string& tempDir)
 {
+    using namespace testRgbaThreading_internal;
+
     try
     {
         cout << "Testing setGlobalThreadCount()" << endl;

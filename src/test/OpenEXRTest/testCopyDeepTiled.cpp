@@ -35,7 +35,7 @@ using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 using namespace std;
 
-namespace
+namespace testCopyDeepTiled_internal
 {
 
 const int width  = 199;
@@ -504,6 +504,8 @@ readCopyWriteTest (int channelCount, int testTimes, const std::string& tempDir)
 void
 testCopyDeepTiled (const std::string& tempDir)
 {
+    using namespace testCopyDeepTiled_internal;
+
     try
     {
         cout << "Testing raw copy in DeepTiledInput/OutputFile " << endl;

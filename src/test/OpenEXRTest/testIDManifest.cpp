@@ -26,7 +26,7 @@ using std::endl;
 using std::set;
 using std::string;
 using std::vector;
-namespace
+namespace testIDManifest_internal
 {
 //
 // takes the given header and writes it to an EXR file, followed by a 1x1 pixel data block
@@ -560,6 +560,8 @@ testMerge ()
 void
 testIDManifest (const std::string& tempDir)
 {
+    using namespace testIDManifest_internal;
+
     //
     // simple test that the manifest 'round trips' correctly
     //

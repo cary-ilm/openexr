@@ -292,13 +292,13 @@ TileOffsets::writeTo (OPENEXR_IMF_INTERNAL_NAMESPACE::OStream& os) const
 
 namespace
 {
-struct tilepos
+struct TileOffsetsTilePos
 {
     uint64_t filePos;
     int      dx;
     int      dy;
     int      l;
-    bool     operator< (const tilepos& other) const
+    bool     operator< (const TileOffsetsTilePos& other) const
     {
         return filePos < other.filePos;
     }
@@ -328,7 +328,7 @@ TileOffsets::getTileOrder (
         for (unsigned int dy = 0; dy < _offsets[l].size (); ++dy)
             entries += _offsets[l][dy].size ();
 
-    std::vector<struct tilepos> table (entries);
+    std::vector<struct TileOffsetsTilePos> table (entries);
 
     size_t i = 0;
     for (unsigned int l = 0; l < _offsets.size (); ++l)

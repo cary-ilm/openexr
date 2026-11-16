@@ -41,7 +41,7 @@ using namespace std;
 using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
-namespace
+namespace testMultiScanlinePartThreading_internal
 {
 
 const int height = 263;
@@ -415,6 +415,8 @@ testWriteRead (int pixelTypes[], const std::string& tempDir)
 void
 testMultiScanlinePartThreading (const std::string& tempDir)
 {
+    using namespace testMultiScanlinePartThreading_internal;
+
     try
     {
         cout

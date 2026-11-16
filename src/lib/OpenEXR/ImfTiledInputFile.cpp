@@ -614,14 +614,14 @@ TiledInputFile::isValidTile (int dx, int dy, int lx, int ly) const
 
 namespace
 {
-struct tilepos
+struct TiledInputFileTilePos
 {
     uint64_t filePos;
     int      dx;
     int      dy;
     int      lx;
     int      ly;
-    bool     operator< (const tilepos& other) const
+    bool     operator< (const TiledInputFileTilePos& other) const
     {
         return filePos < other.filePos;
     }
@@ -680,7 +680,7 @@ TiledInputFile::tileOrder (int dx[], int dy[], int lx[], int ly[]) const
             throw IEX_NAMESPACE::ArgExc ("Unknown LevelMode format.");
     }
 
-    std::vector<tilepos> table;
+    std::vector<TiledInputFileTilePos> table;
 
     table.resize (numAllTiles);
     size_t tIdx = 0;
@@ -700,7 +700,7 @@ TiledInputFile::tileOrder (int dx[], int dy[], int lx[], int ly[]) const
                         if (EXR_ERR_SUCCESS == exr_read_tile_chunk_info (
                                 _ctxt, _data->partNumber, x, y, i_l, i_l, &cinfo))
                         {
-                            tilepos &tp = table[tIdx++];
+                            TiledInputFileTilePos &tp = table[tIdx++];
                             tp.filePos = cinfo.data_offset;
                             tp.dx = x;
                             tp.dy = y;
@@ -729,7 +729,7 @@ TiledInputFile::tileOrder (int dx[], int dy[], int lx[], int ly[]) const
                             if (EXR_ERR_SUCCESS == exr_read_tile_chunk_info (
                                     _ctxt, _data->partNumber, x, y, i_lx, i_ly, &cinfo))
                             {
-                                tilepos &tp = table[tIdx++];
+                                TiledInputFileTilePos &tp = table[tIdx++];
                                 tp.filePos = cinfo.data_offset;
                                 tp.dx = x;
                                 tp.dy = y;

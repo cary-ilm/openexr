@@ -3,6 +3,9 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
+#pragma once
+
+
 #include <string>
 
 void testExistingStreams (const std::string& tempDir);

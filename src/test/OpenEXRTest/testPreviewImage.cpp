@@ -23,7 +23,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testPreviewImage_internal
 {
 
 void
@@ -176,6 +176,8 @@ readWriteFiles (
 void
 testPreviewImage (const std::string& tempDir)
 {
+    using namespace testPreviewImage_internal;
+
     std::string filename1 = tempDir + "imf_preview1.exr";
     std::string filename2 = tempDir + "imf_preview2.exr";
 

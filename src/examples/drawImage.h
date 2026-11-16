@@ -3,6 +3,8 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
+#pragma once
+
 #include "ImfArray.h"
 #include "ImfRgbaFile.h"
 #include "OpenEXRConfig.h"

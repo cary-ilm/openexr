@@ -3,6 +3,7 @@
 
 #include "general_attr.h"
 
+#include "malloc_fail.h"
 #include "test_value.h"
 #include "openexr.h"
 
@@ -43,34 +44,6 @@ dummy_write (
     exr_stream_error_func_ptr_t error_cb)
 {
     return -1;
-}
-
-static int s_malloc_fail_on = 0;
-static void*
-failable_malloc (size_t bytes)
-{
-    if (s_malloc_fail_on == 1) return NULL;
-    if (s_malloc_fail_on > 0) --s_malloc_fail_on;
-    return malloc (bytes);
-}
-
-static void
-failable_free (void* p)
-{
-    if (!p) abort ();
-    free (p);
-}
-
-static void
-set_malloc_fail_on (int count)
-{
-    s_malloc_fail_on = count;
-}
-
-static void
-set_malloc_fail_off ()
-{
-    s_malloc_fail_on = 0;
 }
 
 static exr_context_t

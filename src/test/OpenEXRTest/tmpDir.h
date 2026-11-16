@@ -3,6 +3,9 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
+#pragma once
+
+
 #if defined(ANDROID) || defined(__ANDROID_API__)
 #    define IMF_TMP_DIR "/sdcard/"
 #    define IMF_PATH_SEPARATOR "/"

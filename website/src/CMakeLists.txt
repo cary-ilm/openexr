@@ -1,57 +1,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) Contributors to the OpenEXR Project
 
+# The documentation examples in this directory are standalone snippets
+# (one example per file) that are compiled only to verify they have no
+# compiler errors; the object output is never linked.  They are built as a
+# single aggregate translation unit (all.cpp) which #includes each example
+# source, renaming the few intentionally-reused symbols with the
+# preprocessor.  This compiles as fast as a unity build without having to
+# disable unity for the rest of the project or rename symbols in the
+# example sources.  all.cpp must be kept in sync with the example files.
 add_library(website_src OBJECT
-    C_IStream_read.cpp
-    C_IStream_seekg.cpp
-    C_IStream_tellg.cpp
-    C_IStream_clear.cpp
-
-    compression.cpp
-    envmap.cpp
-    multithreading.cpp
-    mergeOverlappingSamples.cpp
-    readDeepScanLineFile.cpp
-    readDeepTiledFile.cpp
-    readGZ1.cpp
-    readGZ2.cpp
-    readHeader.cpp
-    readComments1.cpp
-    readComments2.cpp
-    readRgba1.cpp
-    readRgba2.cpp
-    readRgbaFILE.cpp
-    readTiled1.cpp
-    readTiledRgba1.cpp
-    readChannels1.cpp
-    readChannels2.cpp
-    readLayers.cpp
-    splitVolumeSample.cpp
-    writeDeepScanLineFile.cpp
-    writeDeepTiledFile.cpp
-    writeGZ1.cpp
-    writeGZ2.cpp
-    writeRgba1.cpp
-    writeRgba2.cpp
-    writeRgba3.cpp
-    writeRgbaMT.cpp
-    writeTiledRgbaONE1.cpp
-    writeRgbaWithPreview1.cpp
-    writeTiled1.cpp
-    tileDescription.cpp
-    validExrFile.cpp
-    previewImageExamples.cpp
+    all.cpp
 )
-
-if(NOT WIN32)
-    target_sources(website_src PRIVATE
-        MemoryMappedIStream_isMemoryMapped.cpp
-        MemoryMappedIStream_destructor.cpp
-        MemoryMappedIStream_constructor.cpp
-        MemoryMappedIStream_read.cpp
-        MemoryMappedIStream_readMemoryMapped.cpp
-    )
-endif()
 
 target_compile_options(website_src PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/wd4101>

@@ -3,6 +3,9 @@
 // Copyright (c) DreamWorks Animation LLC and Contributors of the OpenEXR Project
 //
 
+#pragma once
+
+
 static const unsigned int closestDataOffset[] = {
     0,      0,      1,      2,      4,      5,      7,      9,      12,
     13,     15,     17,     20,     22,     25,     28,     32,     33,

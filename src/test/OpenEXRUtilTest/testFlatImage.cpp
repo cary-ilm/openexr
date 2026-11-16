@@ -23,7 +23,7 @@ using namespace IMATH_NAMESPACE;
 using namespace IEX_NAMESPACE;
 using namespace std;
 
-namespace
+namespace FlatImageUtilTest
 {
 
 template <class T>
@@ -639,11 +639,13 @@ testOriginOverflow ()
     remove (fileName.c_str ());
 }
 
-} // namespace
+} // namespace FlatImageUtilTest
 
 void
 testFlatImage (const string& tempDir)
 {
+    using namespace FlatImageUtilTest;
+
     try
     {
         cout << "Testing class FlatImage" << endl;

@@ -22,7 +22,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testCopyPixels_internal
 {
 
 void
@@ -194,6 +194,8 @@ writeCopyRead (
 void
 testCopyPixels (const std::string& tempDir)
 {
+    using namespace testCopyPixels_internal;
+
     try
     {
         cout << "Testing fast pixel copying" << endl;

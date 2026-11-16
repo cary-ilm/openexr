@@ -49,7 +49,7 @@ using namespace IMATH_NAMESPACE;
 #    define ILM_IMF_TEST_IMAGEDIR
 #endif
 
-namespace
+namespace testMultiPartSharedAttributes_internal
 {
 
 const int height = 263;
@@ -534,6 +534,8 @@ testHeaders (const std::string& fn)
 void
 testMultiPartSharedAttributes (const std::string& tempDir)
 {
+    using namespace testMultiPartSharedAttributes_internal;
+
     try
     {
         cout << "Testing multi part APIs : shared attributes, header... "

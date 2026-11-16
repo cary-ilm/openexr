@@ -3,6 +3,9 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
+#pragma once
+
+
 #include "ImfNamespace.h"
 
 #include "ImfArray.h"

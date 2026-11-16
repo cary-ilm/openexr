@@ -39,7 +39,7 @@ using namespace IMF;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace FuzzDeepTilesTest
 {
 
 const int width  = 127;
@@ -516,11 +516,13 @@ fuzzDeepTiles (int numThreads, Rand48& random)
     remove (brokenFile);
 }
 
-} // namespace
+} // namespace FuzzDeepTilesTest
 
 void
 testFuzzDeepTiles (const char* file)
 {
+    using namespace FuzzDeepTilesTest;
+
 
     try
     {

@@ -58,7 +58,7 @@ using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 using namespace std;
 
-namespace
+namespace testBackwardCompatibility_internal
 {
 
 //
@@ -361,6 +361,8 @@ diffTiledImages (const std::string& fn)
 void
 testBackwardCompatibility (const std::string& tempDir)
 {
+    using namespace testBackwardCompatibility_internal;
+
     try
     {
         cout << "Testing backward compatibility" << endl;

@@ -33,7 +33,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testRgba_internal
 {
 
 void
@@ -646,6 +646,8 @@ writeReadLayers (const std::string& tempDir, bool multiPart)
 void
 testRgba (const std::string& tempDir)
 {
+    using namespace testRgba_internal;
+
     try
     {
         cout << "Testing the RGBA image interface" << endl;

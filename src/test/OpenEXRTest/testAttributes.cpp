@@ -87,7 +87,7 @@ TestOpaqueAttribute::readValueFrom (
 
 OPENEXR_IMF_INTERNAL_NAMESPACE_HEADER_EXIT
 
-namespace
+namespace testAttributes_internal
 {
 
 void
@@ -582,6 +582,8 @@ template <class T>
 void
 print_type (const OPENEXR_IMF_NAMESPACE::TypedAttribute<T>& object)
 {
+    using namespace testAttributes_internal;
+
     cout << object.typeName () << endl;
 }
 
@@ -589,6 +591,8 @@ print_type (const OPENEXR_IMF_NAMESPACE::TypedAttribute<T>& object)
 void
 testAttributes (const std::string& tempDir)
 {
+    using namespace testAttributes_internal;
+
     try
     {
         cout << "Testing built-in attributes" << endl;

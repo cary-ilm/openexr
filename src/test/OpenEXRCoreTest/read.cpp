@@ -3,6 +3,7 @@
 
 #include "read.h"
 
+#include "malloc_fail.h"
 #include "test_value.h"
 
 #include "openexr.h"
@@ -17,9 +18,9 @@
 #include <memory>
 
 static void
-err_cb (exr_const_context_t f, int code, const char* msg)
+readErrCb (exr_const_context_t f, int code, const char* msg)
 {
-    std::cerr << "err_cb ERROR " << code << ": " << msg << std::endl;
+    std::cerr << "readErrCb ERROR " << code << ": " << msg << std::endl;
 }
 
 int64_t
@@ -34,41 +35,13 @@ dummyreadstream (
     return -1;
 }
 
-static int s_malloc_fail_on = 0;
-static void*
-failable_malloc (size_t bytes)
-{
-    if (s_malloc_fail_on == 1) return NULL;
-    if (s_malloc_fail_on > 0) --s_malloc_fail_on;
-    return malloc (bytes);
-}
-
-static void
-failable_free (void* p)
-{
-    if (!p) abort ();
-    free (p);
-}
-
-static void
-set_malloc_fail_on (int count)
-{
-    s_malloc_fail_on = count;
-}
-
-static void
-set_malloc_fail_off ()
-{
-    s_malloc_fail_on = 0;
-}
-
 void
 testReadBadArgs (const std::string& tempdir)
 {
     exr_context_t             f;
     std::string               fn;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &readErrCb;
 
     exr_set_default_memory_routines (&failable_malloc, &failable_free);
     fn = tempdir;
@@ -111,7 +84,7 @@ testReadBadFiles (const std::string& tempdir)
     std::string   fn = ILM_IMF_TEST_IMAGEDIR;
     fn += "invalid.exr";
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &readErrCb;
 
     EXRCORE_TEST_RVAL_FAIL (
         EXR_ERR_FILE_BAD_HEADER, exr_start_read (&f, fn.c_str (), &cinit));
@@ -128,7 +101,7 @@ testReadMeta (const std::string& tempdir)
     std::string   fn = ILM_IMF_TEST_IMAGEDIR;
     fn += "v1.7.test.1.exr";
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &readErrCb;
     exr_attribute_t* newattr;
     uint32_t verflags;
     uint64_t cto;
@@ -216,7 +189,7 @@ testOpenScans (const std::string& tempdir)
     fn += "v1.7.test.1.exr";
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &readErrCb;
 
     EXRCORE_TEST_RVAL (exr_start_read (&f, fn.c_str (), &cinit));
     exr_finish (&f);
@@ -238,7 +211,7 @@ testOpenTiles (const std::string& tempdir)
     exr_context_t             f;
     std::string               fn    = ILM_IMF_TEST_IMAGEDIR;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &readErrCb;
 
     fn += "tiled.exr";
     EXRCORE_TEST_RVAL (exr_start_read (&f, fn.c_str (), &cinit));
@@ -260,7 +233,7 @@ testReadScans (const std::string& tempdir)
     exr_context_t             f;
     std::string               fn    = ILM_IMF_TEST_IMAGEDIR;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &readErrCb;
 
     fn += "v1.7.test.interleaved.exr";
     EXRCORE_TEST_RVAL (exr_start_read (&f, fn.c_str (), &cinit));
@@ -408,7 +381,7 @@ testReadTiles (const std::string& tempdir)
     exr_context_t             f;
     std::string               fn    = ILM_IMF_TEST_IMAGEDIR;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &readErrCb;
 
     fn += "v1.7.test.tiled.exr";
     EXRCORE_TEST_RVAL (exr_start_read (&f, fn.c_str (), &cinit));
@@ -589,7 +562,7 @@ testReadUnpack (const std::string& tempdir)
     exr_context_t             f;
     std::string               fn    = ILM_IMF_TEST_IMAGEDIR;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &readErrCb;
 
     fn += "v1.7.test.tiled.exr";
     EXRCORE_TEST_RVAL (exr_start_read (&f, fn.c_str (), &cinit));

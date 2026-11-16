@@ -23,7 +23,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testChannels_internal
 {
 
 void
@@ -339,6 +339,8 @@ verifyIterators(void)
 void
 testChannels (const std::string& tempDir)
 {
+    using namespace testChannels_internal;
+
     try
     {
         cout << "Testing ChannelList Iterator behavior" << endl;

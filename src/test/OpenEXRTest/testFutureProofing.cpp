@@ -54,7 +54,7 @@ using namespace std;
 using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
-namespace
+namespace testFutureProofing_internal
 {
 
 const int      height = 16;
@@ -1554,6 +1554,8 @@ testWriteRead (int partNumber)
 void
 testFutureProofing (const std::string& tempDir)
 {
+    using namespace testFutureProofing_internal;
+
     filename = tempDir + "imf_test_future_proofing.exr";
 
     try

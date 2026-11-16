@@ -37,7 +37,7 @@ using namespace IMF;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testScanLineApi_internal
 {
 
 void
@@ -816,6 +816,8 @@ testReread()
 void
 testScanLineApi (const std::string& tempDir)
 {
+    using namespace testScanLineApi_internal;
+
     testReread();
 
     try

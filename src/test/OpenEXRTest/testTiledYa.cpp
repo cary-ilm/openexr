@@ -19,7 +19,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testTiledYa_internal
 {
 
 void
@@ -146,6 +146,8 @@ writeReadYa (
 void
 testTiledYa (const std::string& tempDir)
 {
+    using namespace testTiledYa_internal;
+
     try
     {
         cout << "Testing tiled luminance input and output" << endl;

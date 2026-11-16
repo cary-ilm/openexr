@@ -34,7 +34,7 @@ using namespace OPENEXR_IMF_INTERNAL_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace FuzzScanLinesTest
 {
 
 void
@@ -243,11 +243,13 @@ fuzzScanLines (int numThreads, Rand48& random)
     remove (brokenFile);
 }
 
-} // namespace
+} // namespace FuzzScanLinesTest
 
 void
 testFuzzScanLines (const char* file)
 {
+    using namespace FuzzScanLinesTest;
+
     try
     {
         if (file) { readImage (file); }

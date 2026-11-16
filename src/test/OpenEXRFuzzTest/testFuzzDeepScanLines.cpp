@@ -37,7 +37,7 @@ using namespace IMF;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace FuzzDeepScanLinesTest
 {
 
 const int width  = 90;
@@ -400,11 +400,13 @@ fuzzDeepScanLines (int numThreads, Rand48& random)
     remove (brokenFile);
 }
 
-} // namespace
+} // namespace FuzzDeepScanLinesTest
 
 void
 testFuzzDeepScanLines (const char* file)
 {
+    using namespace FuzzDeepScanLinesTest;
+
     try
     {
         if (file) { readFile (file); }

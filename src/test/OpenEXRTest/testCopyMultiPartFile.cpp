@@ -42,7 +42,7 @@ using namespace std;
 using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
-namespace
+namespace testCopyMultiPartFile_internal
 {
 
 const int height = 247;
@@ -1119,6 +1119,8 @@ testWriteCopyRead (
 void
 testCopyMultiPartFile (const std::string& tempDir)
 {
+    using namespace testCopyMultiPartFile_internal;
+
     try
     {
         cout << "Testing copying multi-part files" << endl;

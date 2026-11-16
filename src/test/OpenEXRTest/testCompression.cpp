@@ -33,7 +33,7 @@ using namespace IMF;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testCompression_internal
 {
 
 struct pixelArray
@@ -575,6 +575,8 @@ writeRead (
 void
 testCompression (const std::string& tempDir)
 {
+    using namespace testCompression_internal;
+
     try
     {
         cout << "Testing pixel data types, "

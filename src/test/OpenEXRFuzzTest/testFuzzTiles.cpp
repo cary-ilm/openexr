@@ -35,7 +35,7 @@ using namespace OPENEXR_IMF_INTERNAL_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace FuzzTilesTest
 {
 
 void
@@ -446,11 +446,13 @@ fuzzTiles (int numThreads, Rand48& random)
     remove (brokenFile);
 }
 
-} // namespace
+} // namespace FuzzTilesTest
 
 void
 testFuzzTiles (const char* file)
 {
+    using namespace FuzzTilesTest;
+
     try
     {
         if (file)

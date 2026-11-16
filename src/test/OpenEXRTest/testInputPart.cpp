@@ -38,7 +38,7 @@ using namespace std;
 using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
-namespace
+namespace testInputPart_internal
 {
 
 const int height = 267;
@@ -734,6 +734,8 @@ testWriteRead (
 void
 testInputPart (const std::string& tempDir)
 {
+    using namespace testInputPart_internal;
+
     try
     {
         cout << "Testing reading multipart tiles and scanlines with InputPart"

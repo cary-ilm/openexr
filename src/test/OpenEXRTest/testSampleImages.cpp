@@ -21,7 +21,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testSampleImages_internal
 {
 
 void
@@ -106,6 +106,8 @@ compareImages (const char fileName1[], const char fileName2[])
 void
 testSampleImages (const std::string&)
 {
+    using namespace testSampleImages_internal;
+
     try
     {
         cout << "Testing sample image files" << endl;

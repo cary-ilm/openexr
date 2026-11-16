@@ -22,7 +22,7 @@
 using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 
-namespace
+namespace testXdr_internal
 {
 
 struct CharIO
@@ -195,6 +195,8 @@ readData (istream& is)
 void
 testXdr (const std::string&)
 {
+    using namespace testXdr_internal;
+
     cout << "Testing Xdr" << endl;
 
     try

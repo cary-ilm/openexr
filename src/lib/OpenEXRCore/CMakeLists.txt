@@ -237,6 +237,11 @@ else()
     C_VISIBILITY_PRESET hidden
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES
+    # OpenJPH's own sources are not unity-build safe (e.g. duplicate
+    # non-static symbol names across its 32-/64-bit decoder variants), and
+    # we don't control that upstream code, so always build it one
+    # translation unit per source file regardless of CMAKE_UNITY_BUILD.
+    UNITY_BUILD OFF
   )
   target_include_directories(OpenEXRCore PRIVATE ${OPENJPH_SOURCE_DIR}/src/core)
 

@@ -3,6 +3,9 @@
 // Copyright (c) Contributors to the OpenEXR Project. See LICENSE file for details.
 //
 
+#pragma once
+
+
 #if defined(_WIN32) || defined(_WIN64)
 #    include <stdlib.h>
 #    define bswap_32(x) _byteswap_ulong (x)

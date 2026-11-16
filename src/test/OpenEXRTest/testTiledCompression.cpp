@@ -34,7 +34,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testTiledCompression_internal
 {
 
 void
@@ -517,6 +517,8 @@ writeRead (
 void
 testTiledCompression (const std::string& tempDir)
 {
+    using namespace testTiledCompression_internal;
+
     try
     {
         cout << "Testing pixel data types and data "

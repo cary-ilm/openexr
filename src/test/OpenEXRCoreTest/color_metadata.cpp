@@ -11,7 +11,7 @@
 #include <string.h>
 #include <vector>
 
-namespace
+namespace color_metadata_internal
 {
 
 const int width = 4;
@@ -141,11 +141,12 @@ expectWarnings (
     remove (fn.c_str ());
 }
 
-} // namespace
+} // namespace color_metadata_internal
 
 void
 testColorInteropChromaticities (const std::string& tempdir)
 {
+    using namespace color_metadata_internal;
     exr_attr_chromaticities_t chroma;
     const char*               id = NULL;
 
@@ -308,6 +309,7 @@ testColorInteropChromaticities (const std::string& tempdir)
 void
 testColorMetadataValues (const std::string& tempdir)
 {
+    using namespace color_metadata_internal;
     exr_attr_chromaticities_t ap1;
     exr_attr_chromaticities_t rec709;
     exr_attr_chromaticities_t nonsense = {
@@ -632,6 +634,7 @@ testColorMetadataValues (const std::string& tempdir)
 void
 testColorMetadataFile (const std::string& tempdir)
 {
+    using namespace color_metadata_internal;
     //
     // A later part may omit colorInteropID, set it to "data", or repeat the
     // first part's.

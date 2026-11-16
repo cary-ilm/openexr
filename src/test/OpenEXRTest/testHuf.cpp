@@ -23,7 +23,7 @@
 using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 
-namespace
+namespace testHuf_internal
 {
 
 void
@@ -210,6 +210,8 @@ compressVerify (const unsigned short raw[], int n, const unsigned int dekHash)
 void
 testHuf (const std::string&)
 {
+    using namespace testHuf_internal;
+
     try
     {
         cout << "Testing Huffman encoder" << endl;

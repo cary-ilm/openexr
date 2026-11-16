@@ -41,7 +41,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testExistingStreams_internal
 {
 
 void
@@ -1041,6 +1041,8 @@ writeReadTiles (int width, int height, const Array2D<Rgba>& p1)
 void
 testExistingStreams (const std::string& tempDir)
 {
+    using namespace testExistingStreams_internal;
+
     try
     {
         cout << "Testing reading and writing using existing streams" << endl;
@@ -1095,6 +1097,8 @@ testExistingStreams (const std::string& tempDir)
 void
 testExistingStreamsUTF8 (const std::string& tempDir)
 {
+    using namespace testExistingStreams_internal;
+
 
     cout << "Testing reading and writing using existing streams" << endl;
 

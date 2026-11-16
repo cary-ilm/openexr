@@ -63,7 +63,7 @@ throwNested ()
 }
 
 void
-test1 ()
+baseExcTest1 ()
 {
     std::cout << "1" << std::endl;
 
@@ -88,7 +88,7 @@ test1 ()
 }
 
 void
-test2 ()
+baseExcTest2 ()
 {
     std::cout << "2" << std::endl;
 
@@ -113,7 +113,7 @@ test2 ()
 }
 
 void
-test3 ()
+baseExcTest3 ()
 {
     std::cout << "3" << std::endl;
 
@@ -771,9 +771,9 @@ testBaseExc ()
 {
     std::cout << "See if throw and catch work:" << std::endl;
 
-    test1 ();
-    test2 ();
-    test3 ();
+    baseExcTest1 ();
+    baseExcTest2 ();
+    baseExcTest3 ();
     test4 ();
     test5 ();
 

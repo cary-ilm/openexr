@@ -36,7 +36,7 @@
 #include "ImfPartType.h"
 #include "ImfThreading.h"
 
-namespace
+namespace testCompositeDeepScanLine_internal
 {
 
 using std::cout;
@@ -643,6 +643,8 @@ test_parts (
 void
 testCompositeDeepScanLine (const std::string& tempDir)
 {
+    using namespace testCompositeDeepScanLine_internal;
+
 
     cout << "\n\nTesting deep compositing interface basic functionality:\n"
          << endl;

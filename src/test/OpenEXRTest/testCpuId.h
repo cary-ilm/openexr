@@ -3,4 +3,7 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
+#pragma once
+
+
 void testCpuId (const std::string&);

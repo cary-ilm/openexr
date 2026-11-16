@@ -27,7 +27,7 @@ using namespace IMF;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testConversion_internal
 {
 
 //
@@ -324,6 +324,8 @@ testImageChannel (
 void
 testConversion (const std::string& tempDir)
 {
+    using namespace testConversion_internal;
+
     try
     {
         cout << "Testing conversion between pixel data types" << endl;

@@ -30,7 +30,7 @@ using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
 #if ILMTHREAD_THREADING_ENABLED
-namespace
+namespace testSharedFrameBuffer_internal
 {
 
 Rand48     rand1 (27);
@@ -269,6 +269,8 @@ writeReadRGBA (
 void
 testSharedFrameBuffer (const std::string& tempDir)
 {
+    using namespace testSharedFrameBuffer_internal;
+
     try
     {
         cout << "Testing reading from and writing to files using\n"

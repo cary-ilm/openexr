@@ -47,7 +47,7 @@ using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
 #if ILMTHREAD_THREADING_ENABLED
-namespace
+namespace testMultiPartThreading_internal
 {
 
 const int height = 263;
@@ -841,6 +841,8 @@ testWriteRead (
 void
 testMultiPartThreading (const std::string& tempDir)
 {
+    using namespace testMultiPartThreading_internal;
+
     try
     {
         cout << "Testing the multi part APIs for multi-thread use" << endl;

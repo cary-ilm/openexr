@@ -35,7 +35,7 @@
 #include "ImfTiledOutputFile.h"
 #include "ImfTiledOutputPart.h"
 
-namespace
+namespace testMultiTiledPartThreading_internal
 {
 
 namespace IMF = OPENEXR_IMF_NAMESPACE;
@@ -505,6 +505,8 @@ testWriteRead (const std::string& tempDir)
 void
 testMultiTiledPartThreading (const std::string& tempDir)
 {
+    using namespace testMultiTiledPartThreading_internal;
+
     try
     {
         cout << "Testing the two threads reading/writing on two-tiled-part file"

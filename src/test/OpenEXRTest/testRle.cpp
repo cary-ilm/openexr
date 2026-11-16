@@ -19,7 +19,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace IMATH_NAMESPACE;
 using namespace std;
 
-namespace
+namespace testRle_internal
 {
 
 // Generate a random sequence of runs and single values
@@ -85,6 +85,8 @@ testRoundTrip (int bufferLen)
 void
 testRle (const string&)
 {
+    using namespace testRle_internal;
+
     cout << "RLE compression:" << endl;
 
     try

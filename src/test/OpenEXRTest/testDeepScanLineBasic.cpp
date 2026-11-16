@@ -31,7 +31,7 @@ using namespace std;
 using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
-namespace
+namespace testDeepScanLineBasic_internal
 {
 
 vector<int>           channelTypes;
@@ -858,6 +858,8 @@ const int minY   = -12;
 void
 testDeepScanLineBasic (const std::string& tempDir)
 {
+    using namespace testDeepScanLineBasic_internal;
+
     try
     {
         cout << "\n\nTesting the DeepScanLineInput/OutputFile for basic use:\n"

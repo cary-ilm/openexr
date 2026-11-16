@@ -208,16 +208,16 @@ EnvmapImage::sample (const V2f& pos) const
     float sx = x2 - pos.x;
     float tx = 1 - sx;
 
-    x1 = clamp (x1, _dataWindow.min.x, _dataWindow.max.x) - _dataWindow.min.x;
-    x2 = clamp (x2, _dataWindow.min.x, _dataWindow.max.x) - _dataWindow.min.x;
+    x1 = IMATH::clamp (x1, _dataWindow.min.x, _dataWindow.max.x) - _dataWindow.min.x;
+    x2 = IMATH::clamp (x2, _dataWindow.min.x, _dataWindow.max.x) - _dataWindow.min.x;
 
     int   y1 = IMATH::floor (pos.y);
     int   y2 = y1 + 1;
     float sy = y2 - pos.y;
     float ty = 1 - sy;
 
-    y1 = clamp (y1, _dataWindow.min.y, _dataWindow.max.y) - _dataWindow.min.y;
-    y2 = clamp (y2, _dataWindow.min.y, _dataWindow.max.y) - _dataWindow.min.y;
+    y1 = IMATH::clamp (y1, _dataWindow.min.y, _dataWindow.max.y) - _dataWindow.min.y;
+    y2 = IMATH::clamp (y2, _dataWindow.min.y, _dataWindow.max.y) - _dataWindow.min.y;
 
     Rgba p11 = _pixels[y1][x1];
     Rgba p12 = _pixels[y1][x2];

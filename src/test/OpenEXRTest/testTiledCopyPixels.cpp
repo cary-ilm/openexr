@@ -26,7 +26,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testTiledCopyPixels_internal
 {
 
 void
@@ -571,6 +571,8 @@ writeCopyRead (
 void
 testTiledCopyPixels (const std::string& tempDir)
 {
+    using namespace testTiledCopyPixels_internal;
+
     try
     {
         cout << "Testing fast pixel copying for tiled files" << endl;

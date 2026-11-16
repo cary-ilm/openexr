@@ -29,7 +29,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testCRgba_internal
 {
 void
 fillPixels (Array2D<ImfRgba>& pixels, int w, int h)
@@ -241,6 +241,8 @@ writeReadCRGBA (
 void
 testCRgba (const std::string& tempDir)
 {
+    using namespace testCRgba_internal;
+
     try
     {
         const int W = 237;

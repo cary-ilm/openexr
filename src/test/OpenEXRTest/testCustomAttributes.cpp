@@ -69,7 +69,7 @@ GlorpAttribute::readValueFrom (IStream& is, int size, int version)
 
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_EXIT
 
-namespace
+namespace testCustomAttributes_internal
 {
 
 void
@@ -226,6 +226,8 @@ writeReadCustomAttr (
 void
 testCustomAttributes (const std::string& tempDir)
 {
+    using namespace testCustomAttributes_internal;
+
     try
     {
         cout << "Testing custom attributes" << endl;

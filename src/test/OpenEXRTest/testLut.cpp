@@ -19,7 +19,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testLut_internal
 {
 
 half
@@ -208,6 +208,8 @@ testRounding ()
 void
 testLut (const std::string&)
 {
+    using namespace testLut_internal;
+
     try
     {
         cout << "Testing lookup tables" << endl;

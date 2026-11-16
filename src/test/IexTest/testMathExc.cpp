@@ -21,7 +21,7 @@ print (float f)
 }
 
 void
-test1 ()
+mathExcTest1 ()
 {
     //
     // Turn math exception handling off, and verify that no C++ exceptions
@@ -88,7 +88,7 @@ test2c ()
 }
 
 void
-test2 ()
+mathExcTest2 ()
 {
     //
     // Turn math exception handling on, and verify that C++ exceptions
@@ -112,7 +112,7 @@ test2 ()
 }
 
 void
-test3 ()
+mathExcTest3 ()
 {
     //
     // Verify that getMathExcOn() returns the value that
@@ -161,9 +161,9 @@ testMathExc ()
 {
     std::cout << "See if floating-point exceptions work:" << std::endl;
 
-    test1 ();
-    test2 ();
-    test3 ();
+    mathExcTest1 ();
+    mathExcTest2 ();
+    mathExcTest3 ();
 
     std::cout << " ok" << std::endl;
 }

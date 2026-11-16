@@ -28,9 +28,9 @@
 #include <memory>
 
 static void
-err_cb (exr_const_context_t f, exr_result_t code, const char* msg)
+writeErrCb (exr_const_context_t f, exr_result_t code, const char* msg)
 {
-    std::cerr << "err_cb " << exr_get_error_code_as_string (code) << " ("
+    std::cerr << "writeErrCb " << exr_get_error_code_as_string (code) << " ("
               << code << "): " << msg << std::endl;
 }
 
@@ -40,7 +40,7 @@ testWriteBadArgs (const std::string& tempdir)
     exr_context_t             f;
     std::string               fn    = tempdir + "invalid.exr";
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &writeErrCb;
 
     EXRCORE_TEST_RVAL_FAIL (
         EXR_ERR_INVALID_ARGUMENT,
@@ -67,7 +67,7 @@ testStartWriteScan (const std::string& tempdir)
     int           partidx;
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &writeErrCb;
 
     EXRCORE_TEST_RVAL (exr_start_write (
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
@@ -167,7 +167,7 @@ testStartWriteDeepScan (const std::string& tempdir)
     int           partidx;
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &writeErrCb;
 
     EXRCORE_TEST_RVAL (exr_start_write (
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
@@ -202,7 +202,7 @@ testStartWriteTile (const std::string& tempdir)
     int           partidx;
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &writeErrCb;
 
     EXRCORE_TEST_RVAL (exr_start_write (
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
@@ -271,7 +271,7 @@ testStartWriteDeepTile (const std::string& tempdir)
     int           partidx;
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &writeErrCb;
 
     EXRCORE_TEST_RVAL (exr_start_write (
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
@@ -305,7 +305,7 @@ testWriteBaseHeader (const std::string& tempdir)
     uint32_t      verflags;
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &writeErrCb;
 
     EXRCORE_TEST_RVAL (exr_start_write (
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
@@ -763,7 +763,7 @@ testWriteAttrs (const std::string& tempdir)
     const char*   partname;
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &writeErrCb;
 
     EXRCORE_TEST_RVAL (exr_start_write (
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
@@ -1542,7 +1542,7 @@ testWriteTiles (const std::string& tempdir)
     int                       partidx;
     int32_t                   partcnt, outpartcnt, levelsx, levelsy;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &writeErrCb;
 
     fn += "v1.7.test.tiled.exr";
     EXRCORE_TEST_RVAL (exr_start_read (&f, fn.c_str (), &cinit));
@@ -1629,7 +1629,7 @@ testWriteMultiPart (const std::string& tempdir)
     int           partidx;
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &writeErrCb;
 
     EXRCORE_TEST_RVAL (exr_start_write (
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
@@ -1687,7 +1687,7 @@ testStartWriteUTF8 (const std::string& tempdir)
     int           partidx;
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
-    cinit.error_handler_fn          = &err_cb;
+    cinit.error_handler_fn          = &writeErrCb;
     cinit.zip_level = 3;
     cinit.flags |= EXR_CONTEXT_FLAG_WRITE_LEGACY_HEADER;
 

@@ -18,7 +18,7 @@
 using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 
-namespace
+namespace testMultiView_internal
 {
 
 ChannelList
@@ -452,6 +452,8 @@ testMultiViewFunctions ()
 void
 testMultiView (const std::string&)
 {
+    using namespace testMultiView_internal;
+
     try
     {
         cout << "Testing multi-view channel list functions" << endl;

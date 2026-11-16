@@ -34,7 +34,7 @@ using namespace std;
 using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
-namespace
+namespace testOptimizedInterleavePatterns_internal
 {
 
 using OPENEXR_IMF_NAMESPACE::FLOAT;
@@ -651,6 +651,8 @@ runtests (bool nonfatal, bool tiny)
 void
 testOptimizedInterleavePatterns (const std::string& tempDir)
 {
+    using namespace testOptimizedInterleavePatterns_internal;
+
     filename = tempDir + "imf_test_interleave_patterns.exr";
 
     cout

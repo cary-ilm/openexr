@@ -25,7 +25,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testStandardAttributes_internal
 {
 
 void
@@ -1459,6 +1459,8 @@ checkColorMetadataConsistency ()
 void
 testStandardAttributes (const std::string& tempDir)
 {
+    using namespace testStandardAttributes_internal;
+
     try
     {
         cout << "Testing optional standard attributes" << endl;

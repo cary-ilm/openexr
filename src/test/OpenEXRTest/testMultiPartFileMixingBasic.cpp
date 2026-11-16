@@ -51,7 +51,7 @@ using namespace std;
 using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
-namespace
+namespace testMultiPartFileMixingBasic_internal
 {
 
 const int height = 267;
@@ -1777,6 +1777,8 @@ testWriteRead (
 void
 testMultiPartFileMixingBasic (const std::string& tempDir)
 {
+    using namespace testMultiPartFileMixingBasic_internal;
+
     try
     {
         cout

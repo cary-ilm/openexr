@@ -22,7 +22,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testYca_internal
 {
 
 void
@@ -185,6 +185,8 @@ writeReadYca (
 void
 testYca (const std::string& tempDir)
 {
+    using namespace testYca_internal;
+
     try
     {
         cout << "Testing luminance/chroma input and output" << endl;

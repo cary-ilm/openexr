@@ -24,7 +24,7 @@ using namespace IMATH_NAMESPACE;
 using namespace IEX_NAMESPACE;
 using namespace std;
 
-namespace
+namespace ImageChannelUtilTest
 {
 
 //
@@ -53,11 +53,13 @@ expectArgExcOnInsert (const char* label, int xSampling, int ySampling)
     }
 }
 
-} // namespace
+} // namespace ImageChannelUtilTest
 
 void
 testImageChannel (const string& tempDir)
 {
+    using namespace ImageChannelUtilTest;
+
     (void) tempDir;
 
     try

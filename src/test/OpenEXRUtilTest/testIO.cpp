@@ -22,7 +22,7 @@ using namespace IMATH_NAMESPACE;
 using namespace IEX_NAMESPACE;
 using namespace std;
 
-namespace
+namespace IOUtilTest
 {
 
 void
@@ -191,11 +191,13 @@ testDeepTiledImage2 (const string& fileName)
     delete img2;
 }
 
-} // namespace
+} // namespace IOUtilTest
 
 void
 testIO (const string& tempDir)
 {
+    using namespace IOUtilTest;
+
     try
     {
         cout << "Testing I/O based on image and file type" << endl;

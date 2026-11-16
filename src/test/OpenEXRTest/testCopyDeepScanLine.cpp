@@ -32,7 +32,7 @@ using namespace std;
 using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 
-namespace
+namespace testCopyDeepScanLine_internal
 {
 
 const int width  = 538;
@@ -378,6 +378,8 @@ readCopyWriteTest (const std::string& tempDir, int channelCount, int testTimes)
 void
 testCopyDeepScanLine (const std::string& tempDir)
 {
+    using namespace testCopyDeepScanLine_internal;
+
     try
     {
         cout << "\n\nTesting raw data copy in DeepScanLineInput/OutputFile:\n"

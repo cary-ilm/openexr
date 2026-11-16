@@ -38,7 +38,7 @@ using namespace std;
 // as well as the interior, and that odd chunk sizes round-trip.
 //
 
-namespace
+namespace testLJ2KBoundary_internal
 {
 
 double
@@ -324,6 +324,8 @@ testPaddingComment (const string& tempDir)
 void
 testLJ2KBoundary (const string& tempDir)
 {
+    using namespace testLJ2KBoundary_internal;
+
     try
     {
         cout << "Testing LJ2K chunk / tile boundaries" << endl;

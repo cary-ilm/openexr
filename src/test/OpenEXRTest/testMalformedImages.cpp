@@ -22,7 +22,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testMalformedImages_internal
 {
 
 void
@@ -82,6 +82,8 @@ readBadBoundsImage (const char fileName[])
 void
 testMalformedImages (const std::string&)
 {
+    using namespace testMalformedImages_internal;
+
     bool caught;
 
     try

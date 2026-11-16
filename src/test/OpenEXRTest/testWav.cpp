@@ -20,7 +20,7 @@
 using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 
-namespace
+namespace testWav_internal
 {
 
 void
@@ -217,6 +217,8 @@ test (int nx, int ny)
 void
 testWav (const std::string&)
 {
+    using namespace testWav_internal;
+
     try
     {
         cout << "Testing Wavelet encoder" << endl;

@@ -35,7 +35,7 @@ using namespace IMATH_NAMESPACE;
 using namespace ILMTHREAD_NAMESPACE;
 using namespace std;
 
-namespace
+namespace testDeepTiledBasic_internal
 {
 
 const int width  = 273;
@@ -1109,6 +1109,8 @@ readWriteTestWithAbsoluateCoordinates (
 void
 testDeepTiledBasic (const std::string& tempDir)
 {
+    using namespace testDeepTiledBasic_internal;
+
     try
     {
         cout << "Testing the DeepTiledInput/OutputFile for basic use" << endl;

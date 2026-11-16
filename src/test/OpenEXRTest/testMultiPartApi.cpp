@@ -39,7 +39,7 @@ using namespace IMF;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testMultiPartApi_internal
 {
 
 const int height = 263;
@@ -755,6 +755,8 @@ testWriteRead (
 void
 testMultiPartApi (const std::string& tempDir)
 {
+    using namespace testMultiPartApi_internal;
+
     try
     {
         cout << "Testing the multi part APIs for normal use" << endl;

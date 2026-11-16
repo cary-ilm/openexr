@@ -30,7 +30,7 @@ using namespace OPENEXR_IMF_NAMESPACE;
 using namespace std;
 using namespace IMATH_NAMESPACE;
 
-namespace
+namespace testTiledLineOrder_internal
 {
 
 void
@@ -701,6 +701,8 @@ writeCopyRead (const std::string& tempDir, int w, int h, int xs, int ys)
 void
 testTiledLineOrder (const std::string& tempDir)
 {
+    using namespace testTiledLineOrder_internal;
+
     try
     {
         cout << "Testing line orders for tiled files and "

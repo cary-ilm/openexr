@@ -232,3 +232,36 @@ openexr_define_library(OpenEXR
     OpenEXR::IlmThread
     OpenEXR::OpenEXRCore
   )
+
+# Each of these attribute .cpp files defines COMPILING_IMF_<TYPE> before
+# including its own header, which normally suppresses that header's
+# "extern template class TypedAttribute<Type>;" declaration so the file's
+# own explicit specializations (readValueFrom/writeValueTo/etc.) and
+# explicit instantiation definition take effect. In a unity build, an
+# earlier-processed source that transitively includes the same header
+# (e.g. via ImfStandardAttributes.h) sees that extern template
+# declaration first, since COMPILING_IMF_<TYPE> isn't defined yet and the
+# header's include guard prevents it from being reprocessed later -
+# making the subsequent explicit specialization in this file ill-formed:
+# "explicit specialization of ... after instantiation". Keep each of
+# these files out of unity batches so they're always compiled standalone.
+set_property(SOURCE
+    ImfBoxAttribute.cpp
+    ImfChannelListAttribute.cpp
+    ImfChromaticitiesAttribute.cpp
+    ImfCompressionAttribute.cpp
+    ImfDeepImageStateAttribute.cpp
+    ImfEnvmapAttribute.cpp
+    ImfFloatVectorAttribute.cpp
+    ImfIDManifestAttribute.cpp
+    ImfKeyCodeAttribute.cpp
+    ImfLineOrderAttribute.cpp
+    ImfMatrixAttribute.cpp
+    ImfPreviewImageAttribute.cpp
+    ImfRationalAttribute.cpp
+    ImfStringAttribute.cpp
+    ImfStringVectorAttribute.cpp
+    ImfTileDescriptionAttribute.cpp
+    ImfTimeCodeAttribute.cpp
+    ImfVecAttribute.cpp
+  PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)

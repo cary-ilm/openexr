@@ -39,7 +39,7 @@ using namespace IMATH_NAMESPACE;
 #    define ILM_IMF_TEST_IMAGEDIR
 #endif
 
-namespace
+namespace testBadTypeAttributes_internal
 {
 
 void
@@ -415,6 +415,8 @@ testWriteBadTypes (const std::string& tempDir)
 void
 testBadTypeAttributes (const std::string& tempDir)
 {
+    using namespace testBadTypeAttributes_internal;
+
     cout << "Testing whether bad type attributes are fixed on read... " << endl;
 
     testTiledWithBadAttribute (ILM_IMF_TEST_IMAGEDIR
