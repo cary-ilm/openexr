@@ -773,6 +773,55 @@ See the CMake documentation for more information (https://cmake.org/cmake/help/v
 
   Echo all compile commands during make. Default is ``OFF``.
 
+Reproducible Builds
+===================
+
+OpenEXR's C and C++ libraries, headers, and command-line tools build
+`reproducibly <https://reproducible-builds.org>`_: independent builds of
+the same source, in the same environment, produce bit-for-bit
+identical results. Two workflows support this:
+
+* ``Reproducible Build`` (``.github/workflows/reproducible_build.yml``)
+  runs weekly. It builds twice, for both shared and static libraries,
+  and compares the checksums of every installed file, to keep
+  non-deterministic behavior out of the build.
+
+* ``Sign Release`` (``.github/workflows/release-sign.yml``) runs when
+  a release is published. It builds the release tag and attaches a
+  manifest of the sha256 checksum of every installed file,
+  ``openexr-<version>.sha256``, to the release, signed with
+  `Sigstore <https://docs.sigstore.dev>`_ like the source tarball
+  (``openexr-<version>.sha256.sigstore.json``).
+
+To reproduce a release and compare it to the published manifest:
+
+1. Verify the manifest's signature, using the same ``sigstore verify
+   github`` command and certificate identity as for the source
+   tarball (see ``release-sign.yml``), with the manifest in place of
+   the tarball.
+
+2. Use the pinned build environment. It is the ASWF container image
+   recorded by its cryptographic digest, which fully identifies the
+   compiler, CMake, and other tools::
+
+       aswf/ci-openexr:2026@sha256:490239732e1a2472228938ec0f33565365815381f1f0225c02b368933bbb4d4a
+
+3. Check out the release tag and download ``openexr-<version>.sha256``
+   from the release page. The build script builds at a fixed path with
+   the dependencies pinned, sets ``SOURCE_DATE_EPOCH`` to the date of
+   the tag's commit, and compares the result to the manifest::
+
+       % docker run --rm -v $PWD:/src -w /src \
+           -e SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct) \
+           aswf/ci-openexr:2026@sha256:490239732e1a2472228938ec0f33565365815381f1f0225c02b368933bbb4d4a \
+           share/ci/scripts/linux/check_reproducible_build.sh \
+               --verify openexr-<version>.sha256 /src
+
+   Without ``--verify``, the script builds twice and compares the two
+   builds to each other. The published manifest covers the
+   shared-library build of the C and C++ libraries and tools. The
+   Python module and wheels are not covered.
+
 Cross Compiling / Specifying Specific Compilers
 ===============================================
 

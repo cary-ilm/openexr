@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) Contributors to the OpenEXR Project.
+
+# Verify that the build is reproducible: building the same source twice
+# in the same pinned environment yields bit-for-bit identical results.
+# See "Reproducible Builds" in website/install.rst.
+
+name: Reproducible Build
+
+on:
+  schedule:
+    # Weekly Sunday build
+    - cron: "0 0 * * 0"
+  pull_request:
+    paths:
+      - '.github/workflows/reproducible_build.yml'
+      - 'share/ci/scripts/linux/check_reproducible_build.sh'
+  push:
+    paths:
+      - '.github/workflows/reproducible_build.yml'
+      - 'share/ci/scripts/linux/check_reproducible_build.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproducible_build:
+    name: 'Reproducible build, ${{ matrix.name }}'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: shared
+            shared: 'ON'
+          - name: static
+            shared: 'OFF'
+    container:
+      # The image is pinned by digest, which is how an external party
+      # reproduces the build environment. Update the digest, and the
+      # matching one in website/install.rst, together.
+      # DockerHub: https://hub.docker.com/u/aswf
+      # Source: https://github.com/AcademySoftwareFoundation/aswf-docker
+      image: aswf/ci-openexr:2026@sha256:490239732e1a2472228938ec0f33565365815381f1f0225c02b368933bbb4d4a
+    env:
+      CXX: g++
+      CC: gcc
+      BUILD_SHARED_LIBS: ${{ matrix.shared }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+      - name: Mark the checkout safe for git
+        # The container user doesn't own the workspace; the script runs
+        # git log to get SOURCE_DATE_EPOCH.
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Build twice and compare
+        run: share/ci/scripts/linux/check_reproducible_build.sh "$GITHUB_WORKSPACE"
+        shell: bash
